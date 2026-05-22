@@ -3,6 +3,7 @@ import 'dart:ui';
 
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:dio/dio.dart';
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:get_it/get_it.dart';
@@ -650,12 +651,28 @@ class _DetailContentState extends State<_DetailContent> {
     return Focus(
       focusNode: _contentFocusNode,
       onKeyEvent: (node, event) {
-        if (event is KeyDownEvent &&
-            event.logicalKey == LogicalKeyboardKey.arrowUp) {
+        if (event is! KeyDownEvent && event is! KeyRepeatEvent) {
+          return KeyEventResult.ignored;
+        }
+        if (event.logicalKey == LogicalKeyboardKey.arrowUp) {
           final isAtTop =
               !_scrollController.hasClients || _scrollController.offset <= 0;
           if (isAtTop) {
             NavigationLayout.focusNavbarNotifier.value?.call();
+            return KeyEventResult.handled;
+          }
+          final moved =
+              FocusManager.instance.primaryFocus?.focusInDirection(
+                TraversalDirection.up,
+              ) ??
+              false;
+          if (moved && kIsWeb) {
+            return KeyEventResult.handled;
+          }
+        }
+        if (event.logicalKey == LogicalKeyboardKey.arrowDown) {
+          node.focusInDirection(TraversalDirection.down);
+          if (kIsWeb) {
             return KeyEventResult.handled;
           }
         }
@@ -688,7 +705,7 @@ class _DetailContentState extends State<_DetailContent> {
             const _GradientScrim(),
           CustomScrollView(
             controller: _scrollController,
-            cacheExtent: 4000,
+            cacheExtent: PlatformDetection.isTV ? 4000 : 1000,
             slivers: [
               if (item.type != 'Person' &&
                   item.type != 'MusicArtist' &&
@@ -4299,7 +4316,8 @@ class _ActionButtonsState extends State<_ActionButtons> {
             Destinations.item(item.seriesId!, serverId: item.serverId),
           ),
         ),
-      if ((GetIt.instance<UserRepository>().currentUser?.isAdministrator ??
+      if (!PlatformDetection.isTV &&
+          (GetIt.instance<UserRepository>().currentUser?.isAdministrator ??
               false) &&
           GetIt.instance<MediaServerClient>().serverType ==
               ServerType.jellyfin &&
@@ -7142,7 +7160,7 @@ class _SimilarRow extends StatelessWidget {
     final desktopScale = _desktopUiScale(prefs: prefs);
     final cardWidth = isMobile ? 120.0 : 150.0 * desktopScale;
 
-    return SizedBox(
+    final listView = SizedBox(
       height: isMobile ? 228 : 282 * desktopScale,
       child: ListView.separated(
         controller: scrollController,
@@ -7186,6 +7204,34 @@ class _SimilarRow extends StatelessWidget {
           );
         },
       ),
+    );
+
+    if (!PlatformDetection.isTV) {
+      return listView;
+    }
+
+    return Focus(
+      canRequestFocus: false,
+      skipTraversal: true,
+      onKeyEvent: (node, event) {
+        if (event is! KeyDownEvent && event is! KeyRepeatEvent) {
+          return KeyEventResult.ignored;
+        }
+        final key = event.logicalKey;
+        if (key == LogicalKeyboardKey.arrowLeft ||
+            key == LogicalKeyboardKey.arrowRight) {
+          FocusManager.instance.primaryFocus?.focusInDirection(
+            key == LogicalKeyboardKey.arrowLeft
+                ? TraversalDirection.left
+                : TraversalDirection.right,
+          );
+          if (kIsWeb) {
+            return KeyEventResult.handled;
+          }
+        }
+        return KeyEventResult.ignored;
+      },
+      child: listView,
     );
   }
 }

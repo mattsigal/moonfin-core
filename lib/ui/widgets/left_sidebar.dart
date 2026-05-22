@@ -332,10 +332,25 @@ class _LeftSidebarState extends State<LeftSidebar> {
       if (event.logicalKey == LogicalKeyboardKey.arrowRight) {
         _collapse();
         _restoreFocusOutsideSidebar();
+        if (PlatformDetection.isTV) {
+          _armTvFocusGate();
+        }
         return KeyEventResult.handled;
       }
       if (PlatformDetection.isTV &&
           event.logicalKey == LogicalKeyboardKey.arrowLeft) {
+        return KeyEventResult.handled;
+      }
+      if (PlatformDetection.isTV &&
+          event.logicalKey == LogicalKeyboardKey.arrowDown) {
+        _sidebarFocus.focusInDirection(TraversalDirection.down);
+        return KeyEventResult.handled;
+      }
+      if (PlatformDetection.isTV &&
+          event.logicalKey == LogicalKeyboardKey.arrowUp &&
+          !_homeFocusNode.hasFocus &&
+          !_profileFocusNode.hasFocus) {
+        _sidebarFocus.focusInDirection(TraversalDirection.up);
         return KeyEventResult.handled;
       }
       if (PlatformDetection.isTV &&
@@ -955,6 +970,9 @@ class _LeftSidebarState extends State<LeftSidebar> {
   }
 
   void _exitSidebarToContent() {
+    if (PlatformDetection.isTV) {
+      _armTvFocusGate();
+    }
     _collapse();
     if (PlatformDetection.isTV || PlatformDetection.isDesktop) {
       _restoreFocusOutsideSidebar();

@@ -918,7 +918,15 @@ class _LibraryBrowseScreenState extends State<LibraryBrowseScreen>
       gridContentVersion++;
       cleanupGridFocusNodes(length);
       WidgetsBinding.instance.addPostFrameCallback((_) {
-        if (mounted) restoreGridFocusIfNeeded();
+        if (!mounted) return;
+        restoreGridFocusIfNeeded();
+        // TV: if this is the first time entering the grid, seed focus on item 0.
+        if (PlatformDetection.isTV && lastFocusedGridIndex == null) {
+          final node = gridItemFocusNodes[0];
+          if (node != null && node.canRequestFocus) {
+            node.requestFocus();
+          }
+        }
       });
     }
   }

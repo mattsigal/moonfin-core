@@ -78,7 +78,7 @@ class _NativeVideoViewState extends State<NativeVideoView> {
   int? _releaseWid;
   Future<void> _pendingOp = Future<void>.value();
 
-  NativePlayer get _native => widget.player.platform as NativePlayer;
+  dynamic get _native => widget.player.platform;
 
   Future<void> _setProperty(String key, String value) async {
     try {

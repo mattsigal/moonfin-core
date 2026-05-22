@@ -1990,8 +1990,15 @@ class _ContentRowsState extends State<_ContentRows>
     return widget.prefs.get(UserPreferences.desktopUiScale).scaleFactor;
   }
 
+  double _homeTvScale() {
+    if (!PlatformDetection.isTV) return 1.0;
+    // Web TV targets (webOS) render smaller than Android TV at 0.8 scale.
+    return kIsWeb ? 1.0 : 0.8;
+  }
+
   double _squarePosterSide(PosterSize posterSize) {
-    final platformScale = PlatformDetection.isTV ? 0.8 : _desktopUiScaleFactor();
+    final platformScale =
+        PlatformDetection.isTV ? _homeTvScale() : _desktopUiScaleFactor();
     return posterSize.portraitHeight.toDouble() * platformScale;
   }
 
@@ -2013,19 +2020,26 @@ class _ContentRowsState extends State<_ContentRows>
       return _libraryRowExtent(rowHeight, metadataScale: metadataScale);
     }
 
-    final isRowsV2 = prefs.get(UserPreferences.homeRowsStyle) == HomeRowsStyle.v2;
-    final rowImageType = isRowsV2 ? ImageType.poster : _homeRowImageTypeForRow(row, prefs);
-    final platformScale = PlatformDetection.isTV ? 0.8 : desktopScale;
+    final isRowsV2 =
+        prefs.get(UserPreferences.homeRowsStyle) == HomeRowsStyle.v2;
+    final rowImageType =
+        isRowsV2 ? ImageType.poster : _homeRowImageTypeForRow(row, prefs);
+    final platformScale =
+        PlatformDetection.isTV ? _homeTvScale() : desktopScale;
     var maxCardHeight = 220.0 * metadataScale;
     if (isRowsV2) {
-      final imageHeight = posterSize.portraitHeight.toDouble() * platformScale * 2;
-      maxCardHeight = imageHeight + (_v2MetadataHeightBudget(prefs) * metadataScale);
+      final imageHeight =
+          posterSize.portraitHeight.toDouble() * platformScale * 2;
+      maxCardHeight =
+          imageHeight + (_v2MetadataHeightBudget(prefs) * metadataScale);
     } else {
       for (final item in row.items) {
         final aspectRatio = _aspectRatioForRowItem(item, row, rowImageType);
-        final imageHeight = (aspectRatio > 1
-            ? posterSize.landscapeHeight.toDouble()
-            : posterSize.portraitHeight.toDouble()) * platformScale;
+        final imageHeight =
+            (aspectRatio > 1
+                ? posterSize.landscapeHeight.toDouble()
+                : posterSize.portraitHeight.toDouble()) *
+            platformScale;
         final cardHeight = imageHeight + (46 * metadataScale);
         if (cardHeight > maxCardHeight) {
           maxCardHeight = cardHeight;

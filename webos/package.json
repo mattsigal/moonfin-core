@@ -1,0 +1,12 @@
+{
+  "name": "@moonfin/webos-flutter",
+  "private": true,
+  "scripts": {
+    "package": "../build-webos.sh",
+    "install-tv": "ares-install ./build/webos/*.ipk -d tv",
+    "launch-tv": "ares-launch org.moonfin.webos -d tv"
+  },
+  "devDependencies": {
+    "@webos-tools/cli": "^3.2.1"
+  }
+}

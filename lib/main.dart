@@ -1,11 +1,13 @@
 import 'dart:async';
 
 import 'package:audio_session/audio_session.dart';
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:get_it/get_it.dart';
 import 'package:media_kit/media_kit.dart';
 import 'package:playback_core/playback_core.dart';
+import 'package:web/web.dart' as web;
 import 'package:window_manager/window_manager.dart';
 
 import 'app.dart';
@@ -17,6 +19,8 @@ import 'playback/audio_handler.dart';
 import 'playback/playback_lifecycle_handler.dart';
 import 'preference/user_preferences.dart';
 import 'util/platform_detection.dart';
+
+const _forceTv = bool.fromEnvironment('FORCE_TV', defaultValue: false);
 
 void _configureImageCache() {
   final imageCache = PaintingBinding.instance.imageCache;
@@ -63,6 +67,44 @@ Future<void> _restoreWindowGeometry() async {
 }
 
 Future<void> _detectAndSetTvMode() async {
+  if (kIsWeb) {
+    if (_forceTv) {
+      PlatformDetection.setTvMode(true);
+      print('[Moonfin] TV mode forced via compile-time dart-define');
+      return;
+    }
+
+    final ua = web.window.navigator.userAgent.toLowerCase();
+    final query = Uri.base.queryParameters;
+    final forceTvFromQuery =
+        query['tv'] == '1' ||
+        query['tv'] == 'true' ||
+        query['force_tv'] == '1' ||
+        query['force_tv'] == 'true';
+    var forcedWebOsFlag = false;
+    var hasWebOsRuntime = false;
+    try {
+      final dynamic win = web.window;
+      forcedWebOsFlag = win.__MOONFIN_WEBOS__ == true;
+      hasWebOsRuntime = win.PalmSystem != null || win.webOSSystem != null;
+    } catch (_) {}
+
+    final isWebOsTv =
+        forceTvFromQuery ||
+        forcedWebOsFlag ||
+        hasWebOsRuntime ||
+        ua.contains('webos') ||
+        ua.contains('web0s') ||
+        (ua.contains('smarttv') && ua.contains('lg'));
+
+    PlatformDetection.setTvMode(isWebOsTv);
+    print(
+      'Moonfin web TV detection: isTV=$isWebOsTv, '
+      'queryForce=$forceTvFromQuery, forced=$forcedWebOsFlag, '
+      'runtime=$hasWebOsRuntime, ua="$ua"',
+    );
+    return;
+  }
   if (!PlatformDetection.isAndroid) return;
   try {
     const channel = MethodChannel('org.moonfin.androidtv/platform');

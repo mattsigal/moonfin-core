@@ -7,6 +7,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:get_it/get_it.dart';
 import 'package:go_router/go_router.dart';
+import 'package:web/web.dart' as web;
 import 'package:window_manager/window_manager.dart';
 
 import 'data/services/app_update_service.dart';
@@ -16,6 +17,7 @@ import 'l10n/app_localizations.dart';
 import 'preference/user_preferences.dart';
 import 'syncplay/syncplay_manager.dart';
 import 'ui/navigation/app_router.dart';
+import 'ui/navigation/destinations.dart';
 import 'ui/theme/app_theme.dart';
 import 'ui/theme/app_theme_controller.dart';
 import 'ui/widgets/cast_mini_player.dart';
@@ -24,6 +26,7 @@ import 'ui/widgets/offline_banner.dart';
 import 'ui/widgets/app_update_dialog.dart';
 import 'ui/widgets/exit_confirmation_dialog.dart';
 import 'ui/screensaver/screensaver_controller.dart';
+import 'ui/widgets/navigation_layout.dart';
 import 'util/app_distribution.dart';
 import 'util/app_exit.dart';
 import 'util/focus/dpad_keys.dart';
@@ -31,6 +34,8 @@ import 'util/fullscreen_helper.dart';
 import 'util/focus/input_mode_tracker.dart';
 import 'util/platform_detection.dart';
 import 'ui/widgets/overlay_sheet.dart';
+
+const _tvKeyDebug = bool.fromEnvironment('TV_KEY_DEBUG', defaultValue: false);
 
 class MoonfinApp extends StatefulWidget {
   const MoonfinApp({super.key});
@@ -183,6 +188,8 @@ class _GlobalShortcutScopeState extends State<_GlobalShortcutScope>
   DateTime? _lastMouseThumbNavAt;
   String? _pendingRouteHistoryLocation;
   bool _exitDialogShowing = false;
+  int _webTvKeyLogCount = 0;
+  static const int _webTvKeyLogLimit = 240;
 
   @override
   void initState() {
@@ -196,6 +203,24 @@ class _GlobalShortcutScopeState extends State<_GlobalShortcutScope>
     WidgetsBinding.instance.addObserver(this);
     if (PlatformDetection.isDesktop) {
       windowManager.addListener(this);
+    }
+    if (kIsWeb && PlatformDetection.isTV) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted) {
+          _focusNode.requestFocus();
+        }
+      });
+
+      if (_isWebTvKeyDebugEnabled) {
+        String ua = '';
+        try {
+          ua = web.window.navigator.userAgent;
+        } catch (_) {}
+        print(
+          '[Moonfin][TVKey] debug enabled '
+          '(tv=${PlatformDetection.isTV}, ua="$ua", query="${Uri.base.query}")',
+        );
+      }
     }
   }
 
@@ -381,59 +406,148 @@ class _GlobalShortcutScopeState extends State<_GlobalShortcutScope>
     return focusContext.findAncestorWidgetOfExactType<EditableText>() != null;
   }
 
+  bool get _isWebTvKeyDebugEnabled {
+    if (!_tvKeyDebug || !kIsWeb || !PlatformDetection.isTV) return false;
+    final query = Uri.base.queryParameters;
+    final queryEnabled =
+        query['keydebug'] == '1' ||
+        query['keydebug'] == 'true' ||
+        query['tvdebug'] == '1' ||
+        query['tvdebug'] == 'true';
+    return queryEnabled || _tvKeyDebug;
+  }
+
+  String _describeFocusNode(FocusNode? node) {
+    if (node == null) return 'null';
+    final label = node.debugLabel;
+    final state = node.hasFocus ? 'focused' : 'not-focused';
+    if (label == null || label.isEmpty) {
+      return '${node.runtimeType}($state)';
+    }
+    return '$label($state)';
+  }
+
+  void _logTvKeyEvent(String source, KeyEvent event) {
+    if (!_isWebTvKeyDebugEnabled) return;
+    if (_webTvKeyLogCount >= _webTvKeyLogLimit) return;
+
+    final logicalName = event.logicalKey.debugName ?? event.logicalKey.keyLabel;
+    final physicalName = event.physicalKey.debugName ?? 'physical';
+    final primaryFocus = FocusManager.instance.primaryFocus;
+
+    print(
+      '[Moonfin][TVKey][$source] '
+      'type=${event.runtimeType} '
+      'logical=$logicalName(0x${event.logicalKey.keyId.toRadixString(16)}) '
+      'physical=$physicalName(0x${event.physicalKey.usbHidUsage.toRadixString(16)}) '
+      'primary=${_describeFocusNode(primaryFocus)} '
+      'scope=${_describeFocusNode(_focusNode)}',
+    );
+
+    _webTvKeyLogCount += 1;
+    if (_webTvKeyLogCount == _webTvKeyLogLimit) {
+      print(
+        '[Moonfin][TVKey] log limit reached ($_webTvKeyLogLimit events)',
+      );
+    }
+  }
+
   bool _onHardwareKeyEvent(KeyEvent event) {
-    if (event is! KeyDownEvent) {
+    try {
+      _logTvKeyEvent('hardware', event);
+
+      if (event is! KeyDownEvent) {
+        return false;
+      }
+
+      final key = event.logicalKey;
+      final keys = HardwareKeyboard.instance.logicalKeysPressed;
+      final ctrlPressed =
+          keys.contains(LogicalKeyboardKey.controlLeft) ||
+          keys.contains(LogicalKeyboardKey.controlRight);
+
+      if (PlatformDetection.isTV && (key.isDirectional || key.isSelectKey)) {
+        final primaryFocus = FocusManager.instance.primaryFocus;
+        final needsBootstrap =
+            primaryFocus == null ||
+            identical(primaryFocus, _focusNode) ||
+            primaryFocus.context == null;
+        if (needsBootstrap) {
+          final focusNavbar = NavigationLayout.focusNavbarNotifier.value;
+          if (focusNavbar != null) {
+            if (_isWebTvKeyDebugEnabled) {
+              print(
+                '[Moonfin][TVKey][hardware] bootstrap navbar focus '
+                '(primary=${_describeFocusNode(primaryFocus)})',
+              );
+            }
+            WidgetsBinding.instance.addPostFrameCallback((_) {
+              if (!mounted) return;
+              focusNavbar();
+            });
+            return true;
+          }
+        }
+      }
+
+      final isBackspace = key == LogicalKeyboardKey.backspace;
+      if (key.isBackKey || isBackspace) {
+        if (_isPlayerRoute()) {
+          return false;
+        }
+        if (isBackspace && _isEditingText()) {
+          return false;
+        }
+        if (appRouter.canPop()) {
+          // On Android the system also delivers popRoute via MethodChannel,
+          // which would cause a double pop if we also popped here. Let the
+          // platform handle the pop; just consume the KeyEvent.
+          if (PlatformDetection.isAndroid) {
+            return true;
+          }
+          WidgetsBinding.instance.addPostFrameCallback((_) {
+            if (!mounted) return;
+            appRouter.pop();
+          });
+        } else if (!_exitDialogShowing) {
+          if (PlatformDetection.isAndroid) {
+            return true;
+          }
+          if (PlatformDetection.isTV) {
+            final currentPath =
+                appRouter.routerDelegate.currentConfiguration.uri.path;
+            if (currentPath != Destinations.home &&
+                currentPath != Destinations.startup) {
+              WidgetsBinding.instance.addPostFrameCallback((_) {
+                if (!mounted) return;
+                appRouter.go(Destinations.home);
+              });
+              return true;
+            }
+          }
+          _exitDialogShowing = true;
+          unawaited(_showExitConfirmation());
+        }
+        return true;
+      }
+
+      if (PlatformDetection.useDesktopUi && key == LogicalKeyboardKey.f11) {
+        unawaited(FullscreenHelper.toggle());
+        return true;
+      }
+
+      if (PlatformDetection.isDesktop &&
+          ctrlPressed &&
+          key == LogicalKeyboardKey.keyQ) {
+        unawaited(windowManager.close());
+        return true;
+      }
+
+      return false;
+    } catch (e, st) {
+      print('[Moonfin][TVKey] ERROR in hardware handler: $e\n$st');
       return false;
     }
-
-    final key = event.logicalKey;
-    final keys = HardwareKeyboard.instance.logicalKeysPressed;
-    final ctrlPressed =
-        keys.contains(LogicalKeyboardKey.controlLeft) ||
-        keys.contains(LogicalKeyboardKey.controlRight);
-
-    final isBackspace = key == LogicalKeyboardKey.backspace;
-    if (key.isBackKey || isBackspace) {
-      if (_isPlayerRoute()) {
-        return false;
-      }
-      if (isBackspace && _isEditingText()) {
-        return false;
-      }
-      if (appRouter.canPop()) {
-        // On Android the system also delivers popRoute via MethodChannel,
-        // which would cause a double pop if we also popped here. Let the
-        // platform handle the pop; just consume the KeyEvent.
-        if (PlatformDetection.isAndroid) {
-          return true;
-        }
-        WidgetsBinding.instance.addPostFrameCallback((_) {
-          if (!mounted) return;
-          appRouter.pop();
-        });
-      } else if (!_exitDialogShowing) {
-        if (PlatformDetection.isAndroid) {
-          return true;
-        }
-        _exitDialogShowing = true;
-        unawaited(_showExitConfirmation());
-      }
-      return true;
-    }
-
-    if (PlatformDetection.useDesktopUi && key == LogicalKeyboardKey.f11) {
-      unawaited(FullscreenHelper.toggle());
-      return true;
-    }
-
-    if (PlatformDetection.isDesktop &&
-        ctrlPressed &&
-        key == LogicalKeyboardKey.keyQ) {
-      unawaited(windowManager.close());
-      return true;
-    }
-
-    return false;
   }
 
   Future<void> _showExitConfirmation() async {
@@ -518,25 +632,43 @@ class _GlobalShortcutScopeState extends State<_GlobalShortcutScope>
   }
 
   KeyEventResult _onKeyEvent(FocusNode node, KeyEvent event) {
-    if (event is! KeyDownEvent && event is! KeyRepeatEvent) {
+    try {
+      _logTvKeyEvent('focus', event);
+
+      if (event is! KeyDownEvent && event is! KeyRepeatEvent) {
+        return KeyEventResult.ignored;
+      }
+
+      final key = event.logicalKey;
+
+      if (PlatformDetection.isTV &&
+          (key.isDirectional || key.isSelectKey) &&
+          identical(FocusManager.instance.primaryFocus, _focusNode)) {
+        final focusNavbar = NavigationLayout.focusNavbarNotifier.value;
+        if (focusNavbar != null) {
+          if (_isWebTvKeyDebugEnabled) {
+            print('[Moonfin][TVKey][focus] bootstrap navbar focus');
+          }
+          focusNavbar();
+          return KeyEventResult.handled;
+        }
+      }
+
+      if (key == LogicalKeyboardKey.enter || key == LogicalKeyboardKey.select) {
+        final targetContext =
+            FocusManager.instance.primaryFocus?.context ?? context;
+        final activated =
+            Actions.maybeInvoke(targetContext, const ActivateIntent());
+        return activated == null
+            ? KeyEventResult.ignored
+            : KeyEventResult.handled;
+      }
+
+      return KeyEventResult.ignored;
+    } catch (e, st) {
+      print('[Moonfin][TVKey] ERROR in focus handler: $e\n$st');
       return KeyEventResult.ignored;
     }
-
-    final key = event.logicalKey;
-
-    if (key == LogicalKeyboardKey.enter || key == LogicalKeyboardKey.select) {
-      final targetContext =
-          FocusManager.instance.primaryFocus?.context ?? context;
-      final activated = Actions.maybeInvoke(
-        targetContext,
-        const ActivateIntent(),
-      );
-      return activated == null
-          ? KeyEventResult.ignored
-          : KeyEventResult.handled;
-    }
-
-    return KeyEventResult.ignored;
   }
 
   @override
@@ -545,11 +677,10 @@ class _GlobalShortcutScopeState extends State<_GlobalShortcutScope>
       behavior: HitTestBehavior.translucent,
       onPointerDown: _onPointerDown,
       child: Focus(
-        autofocus: !kIsWeb,
-        focusNode: _focusNode,
-        onKeyEvent: _onKeyEvent,
-        child: widget.child,
-      ),
+        autofocus: !kIsWeb || PlatformDetection.isTV,
+      focusNode: _focusNode,
+      onKeyEvent: _onKeyEvent,
+      child: widget.child,
     );
   }
 }

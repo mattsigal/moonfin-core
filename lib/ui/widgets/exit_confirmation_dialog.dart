@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:moonfin_design/moonfin_design.dart';
+import 'package:flutter/services.dart';
 
 import '../../l10n/app_localizations.dart';
 import '../../util/app_exit.dart';
@@ -106,22 +107,40 @@ class _ExitConfirmationContentState extends State<_ExitConfirmationContent> {
               ),
             ),
             const SizedBox(height: 24),
-            Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                _ExitDialogButton(
-                  label: widget.cancelLabel,
-                  focusNode: widget.cancelFocus,
-                  autofocus: true,
-                  onPressed: widget.onCancel,
-                ),
-                const SizedBox(width: 16),
-                _ExitDialogButton(
-                  label: widget.exitLabel,
-                  focusNode: _exitFocus,
-                  onPressed: widget.onExit,
-                ),
-              ],
+            Focus(
+              canRequestFocus: false,
+              skipTraversal: true,
+              onKeyEvent: (node, event) {
+                if (event is! KeyDownEvent && event is! KeyRepeatEvent) {
+                  return KeyEventResult.ignored;
+                }
+                if (event.logicalKey == LogicalKeyboardKey.arrowRight) {
+                  _exitFocus.requestFocus();
+                  return KeyEventResult.handled;
+                }
+                if (event.logicalKey == LogicalKeyboardKey.arrowLeft) {
+                  widget.cancelFocus.requestFocus();
+                  return KeyEventResult.handled;
+                }
+                return KeyEventResult.ignored;
+              },
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  _ExitDialogButton(
+                    label: widget.cancelLabel,
+                    focusNode: widget.cancelFocus,
+                    autofocus: true,
+                    onPressed: widget.onCancel,
+                  ),
+                  const SizedBox(width: 16),
+                  _ExitDialogButton(
+                    label: widget.exitLabel,
+                    focusNode: _exitFocus,
+                    onPressed: widget.onExit,
+                  ),
+                ],
+              ),
             ),
           ],
         ),

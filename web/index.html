@@ -33,15 +33,192 @@
   <title>Moonfin</title>
   <link rel="manifest" href="manifest.json">
   <script>
-    document.addEventListener('keydown', function(e) {
-      if (e.key === 'Backspace') {
-        var tag = document.activeElement && document.activeElement.tagName;
-        var editable = document.activeElement && document.activeElement.isContentEditable;
-        if (tag !== 'INPUT' && tag !== 'TEXTAREA' && !editable) {
-          e.preventDefault();
+    (function () {
+      var ua = (navigator.userAgent || '').toLowerCase();
+      var debugFromQuery = false;
+      try {
+        if (typeof URLSearchParams !== 'undefined') {
+          var query = new URLSearchParams(window.location.search || '');
+          var keyDebug = (query.get('keydebug') || '').toLowerCase();
+          debugFromQuery = keyDebug === '1' || keyDebug === 'true';
+        }
+      } catch (_) {}
+
+      var debugBridge =
+        window.__MOONFIN_KEY_DEBUG__ === true || debugFromQuery;
+      var debugCount = 0;
+      var debugLimit = 240;
+
+      function logBridge(message, details) {
+        if (!debugBridge || debugCount >= debugLimit) return;
+        debugCount += 1;
+        if (typeof console !== 'undefined' && typeof console.log === 'function') {
+          if (details) {
+            console.log('[Moonfin][webOS-key] ' + message, details);
+          } else {
+            console.log('[Moonfin][webOS-key] ' + message);
+          }
+        }
+        if (
+          debugCount === debugLimit &&
+          typeof console !== 'undefined' &&
+          typeof console.log === 'function'
+        ) {
+          console.log(
+            '[Moonfin][webOS-key] log limit reached (' + debugLimit + ')'
+          );
         }
       }
-    });
+
+      function isTrackedRemoteEvent(code, key) {
+        if (
+          code === 37 ||
+          code === 38 ||
+          code === 39 ||
+          code === 40 ||
+          code === 13 ||
+          code === 461 ||
+          code === 10009
+        ) {
+          return true;
+        }
+        return (
+          key === 'ArrowLeft' ||
+          key === 'ArrowUp' ||
+          key === 'ArrowRight' ||
+          key === 'ArrowDown' ||
+          key === 'Enter' ||
+          key === 'GoBack' ||
+          key === 'BrowserBack' ||
+          key === 'Back' ||
+          key === 'Escape' ||
+          key === 'Unidentified'
+        );
+      }
+
+      var isWebOs =
+        ua.indexOf('webos') !== -1 ||
+        ua.indexOf('web0s') !== -1 ||
+        typeof window.PalmSystem !== 'undefined' ||
+        typeof window.webOSSystem !== 'undefined';
+      if (isWebOs) {
+        window.__MOONFIN_WEBOS__ = true;
+      }
+
+      logBridge('bridge initialized', {
+        isWebOs: isWebOs,
+        forcedWebOs: window.__MOONFIN_WEBOS__ === true,
+        userAgent: navigator.userAgent
+      });
+
+      var isNormalizing = false;
+
+      function mappedKeyForCode(code) {
+        if (code === 37) return 'ArrowLeft';
+        if (code === 38) return 'ArrowUp';
+        if (code === 39) return 'ArrowRight';
+        if (code === 40) return 'ArrowDown';
+        if (code === 13) return 'Enter';
+        if (code === 461 || code === 10009) return 'GoBack';
+        return null;
+      }
+
+      function mappedCodeForKey(key) {
+        if (key === 'ArrowLeft') return 'ArrowLeft';
+        if (key === 'ArrowUp') return 'ArrowUp';
+        if (key === 'ArrowRight') return 'ArrowRight';
+        if (key === 'ArrowDown') return 'ArrowDown';
+        if (key === 'Enter') return 'Enter';
+        if (key === 'GoBack') return 'BrowserBack';
+        return '';
+      }
+
+      function shouldNormalizeKey(eventKey, eventCode, mappedKey) {
+        if (!mappedKey) return false;
+        if (mappedKey === 'GoBack') {
+          var codeMatches = eventCode === 'BrowserBack';
+          return (
+            !(
+              eventKey === 'GoBack' ||
+              eventKey === 'BrowserBack' ||
+              eventKey === 'Escape' ||
+              eventKey === 'Back'
+            ) ||
+            !codeMatches
+          );
+        }
+        return eventKey !== mappedKey || eventCode !== mappedCodeForKey(mappedKey);
+      }
+
+      function handleKeyEvent(e) {
+        if (e.type === 'keydown' && e.key === 'Backspace') {
+          var tag = document.activeElement && document.activeElement.tagName;
+          var editable =
+            document.activeElement && document.activeElement.isContentEditable;
+          if (tag !== 'INPUT' && tag !== 'TEXTAREA' && !editable) {
+            e.preventDefault();
+          }
+        }
+
+        if (!window.__MOONFIN_WEBOS__ || isNormalizing) return;
+
+        var code = e.keyCode || e.which || 0;
+        var mappedKey = mappedKeyForCode(code);
+        if (!mappedKey && e.key === 'GoBack') {
+          mappedKey = 'GoBack';
+        }
+        var shouldNormalize = shouldNormalizeKey(e.key, e.code, mappedKey);
+
+        if (isTrackedRemoteEvent(code, e.key)) {
+          logBridge('raw ' + e.type, {
+            key: e.key,
+            code: e.code,
+            keyCode: code,
+            repeat: !!e.repeat,
+            target: e.target && e.target.tagName
+          });
+        }
+
+        if (!shouldNormalize) return;
+
+        e.preventDefault();
+        if (typeof e.stopImmediatePropagation === 'function') {
+          e.stopImmediatePropagation();
+        }
+        if (typeof e.stopPropagation === 'function') {
+          e.stopPropagation();
+        }
+
+        isNormalizing = true;
+        try {
+          logBridge('normalize ' + e.type, {
+            fromKey: e.key,
+            fromCode: e.code,
+            fromKeyCode: code,
+            toKey: mappedKey,
+            toCode: mappedCodeForKey(mappedKey)
+          });
+
+          window.dispatchEvent(
+            new KeyboardEvent(e.type, {
+              key: mappedKey,
+              code: mappedCodeForKey(mappedKey),
+              location: e.location,
+              repeat: e.repeat,
+              bubbles: true,
+              cancelable: true,
+              keyCode: code,
+              which: code
+            })
+          );
+        } finally {
+          isNormalizing = false;
+        }
+      }
+
+      window.addEventListener('keydown', handleKeyEvent, true);
+      window.addEventListener('keyup', handleKeyEvent, true);
+    })();
   </script>
 </head>
 <body>

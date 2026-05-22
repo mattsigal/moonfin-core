@@ -2,6 +2,8 @@ import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
 
+import 'package:flutter/foundation.dart' show kIsWeb;
+
 import 'package:server_core/server_core.dart';
 
 class DiscoveredServer {
@@ -26,6 +28,9 @@ class ServerDiscoveryService {
   static const _rebroadcastInterval = Duration(milliseconds: 800);
 
   Stream<DiscoveredServer> discoverLocalServers() async* {
+    if (kIsWeb) {
+      return;
+    }
     final controller = StreamController<DiscoveredServer>();
     final seen = <String>{};
     RawDatagramSocket? socket;

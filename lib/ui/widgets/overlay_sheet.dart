@@ -241,16 +241,24 @@ class _OverlaySheetState<T> extends State<_OverlaySheet<T>>
       end: Offset.zero,
     ).animate(CurvedAnimation(parent: _controller, curve: Curves.easeOutCubic));
     _controller.forward();
+    _requestInitialFocus();
+  }
+
+  void _requestInitialFocus({int attempt = 0}) {
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      WidgetsBinding.instance.addPostFrameCallback((_) {
-        if (!mounted) return;
-        final initial = widget.initialFocusNode;
-        if (initial != null && initial.canRequestFocus) {
-          initial.requestFocus();
-        } else {
-          _scopeNode.requestFocus();
-        }
-      });
+      if (!mounted) return;
+
+      final initial = widget.initialFocusNode;
+      if (initial != null && initial.canRequestFocus) {
+        initial.requestFocus();
+      } else {
+        _scopeNode.requestFocus();
+      }
+
+      final initialFocused = initial?.hasFocus ?? false;
+      if (!_scopeNode.hasFocus && !initialFocused && attempt < 6) {
+        _requestInitialFocus(attempt: attempt + 1);
+      }
     });
   }
 
