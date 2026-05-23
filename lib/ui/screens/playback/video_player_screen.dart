@@ -5060,6 +5060,13 @@ class _VideoPlayerScreenState extends State<VideoPlayerScreen>
         (offlineMeta?['MediaStreams'] as List?)?.cast<Map<String, dynamic>>() ??
         const <Map<String, dynamic>>[];
     final streams = allStreams.where((s) => s['Type'] == streamType).toList();
+    final displaySubtitleStreams = audio
+      ? const <Map<String, dynamic>>[]
+      : [
+        ...streams.where((s) => !_isExternalSubtitleStream(s)),
+        ...streams.where(_isExternalSubtitleStream),
+        ];
+    final optionStreams = audio ? streams : displaySubtitleStreams;
     final audioStreams = allStreams.where((s) => s['Type'] == 'Audio').toList();
     final canDownloadRemote =
         !audio && item is AggregatedItem && _canDownloadRemoteSubtitles(item);
@@ -5081,7 +5088,7 @@ class _VideoPlayerScreenState extends State<VideoPlayerScreen>
 
     final options = <TrackOption>[
       if (!audio) TrackOption(label: l10n.off),
-      ...streams.asMap().entries.map((entry) {
+      ...optionStreams.asMap().entries.map((entry) {
         final index = entry.key;
         final trackNumber = index + 1;
         final s = entry.value;
@@ -5136,7 +5143,9 @@ class _VideoPlayerScreenState extends State<VideoPlayerScreen>
       if (isSubsOff || (currentStreamIndex == null && streams.isNotEmpty)) {
         selectedIndex = 0;
       } else if (currentStreamIndex != null) {
-        final idx = streams.indexWhere((s) => s['Index'] == currentStreamIndex);
+        final idx = optionStreams.indexWhere(
+          (s) => s['Index'] == currentStreamIndex,
+        );
         selectedIndex = idx >= 0 ? idx + 1 : null;
       } else {
         selectedIndex = null;
@@ -5173,8 +5182,9 @@ class _VideoPlayerScreenState extends State<VideoPlayerScreen>
           await _downloadRemoteSubtitles(item, streams, audioStreams);
           return;
         }
-        if (streamIdx < streams.length) {
-          final streamIndex = streams[streamIdx]['Index'] as int? ?? streamIdx;
+        if (streamIdx < optionStreams.length) {
+          final streamIndex =
+              optionStreams[streamIdx]['Index'] as int? ?? streamIdx;
           await _runSinglePlayerMutation(
             'subtitle_$streamIndex',
             () => _manager.changeSubtitleTrack(streamIndex),
@@ -5192,6 +5202,15 @@ class _VideoPlayerScreenState extends State<VideoPlayerScreen>
       }
     }());
     _showControls();
+  }
+
+  bool _isExternalSubtitleStream(Map<String, dynamic> stream) {
+    if (stream['IsExternal'] == true) {
+      return true;
+    }
+    final deliveryMethod =
+        (stream['DeliveryMethod'] as String?)?.trim().toLowerCase();
+    return deliveryMethod == 'external';
   }
 
   Widget _buildZoomButton({
