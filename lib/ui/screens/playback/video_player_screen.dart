@@ -2123,10 +2123,10 @@ class _VideoPlayerScreenState extends State<VideoPlayerScreen>
     _isStopping = true;
     _cancelTvTemporarySpeedHold();
     if (!PlatformDetection.isTV) _pipService.enableAutoPiP(false);
+    await _manager.stop(userInitiated: false);
     if (_wasAlwaysOnTopOnEntry == false && _isAlwaysOnTop) {
       await _setAlwaysOnTop(false);
     }
-    await _manager.stop(userInitiated: false);
     if (PlatformDetection.useDesktopUi &&
         _wasDesktopFullscreenOnEntry == false) {
       final isFullscreen = await FullscreenHelper.isFullscreen();

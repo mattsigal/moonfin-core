@@ -64,7 +64,12 @@ object Media3Bridge {
     private val pendingCalls = ArrayDeque<Pair<String, Any?>>()
 
     fun attachView(view: Media3VideoView) {
-        mainHandler.post {
+        val attach = {
+            activeView?.let { oldView ->
+                if (oldView !== view) {
+                    oldView.dispose()
+                }
+            }
             activeView = view
             emitEvent(
                 mapOf(
@@ -73,18 +78,31 @@ object Media3Bridge {
             )
             flushPendingCalls(view)
         }
+        if (Looper.myLooper() == Looper.getMainLooper()) {
+            attach()
+        } else {
+            mainHandler.post { attach() }
+        }
     }
 
     fun detachView(view: Media3VideoView) {
-        mainHandler.post {
+        val detach = {
             if (activeView === view) {
                 activeView = null
+                synchronized(pendingCalls) {
+                    pendingCalls.clear()
+                }
                 emitEvent(
                     mapOf(
                         "event" to "viewDisposed",
                     ),
                 )
             }
+        }
+        if (Looper.myLooper() == Looper.getMainLooper()) {
+            detach()
+        } else {
+            mainHandler.post { detach() }
         }
     }
 

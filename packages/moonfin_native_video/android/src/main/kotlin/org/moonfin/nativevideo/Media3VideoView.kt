@@ -356,13 +356,13 @@ class Media3VideoView(
 
     override fun dispose() {
         isDisposed = true
+        Media3Bridge.detachView(this)
         stopTicker()
         player.removeListener(listener)
         player.removeAnalyticsListener(analyticsListener)
         audioPipeline.release()
         player.clearVideoSurface()
         player.release()
-        Media3Bridge.detachView(this)
     }
 
     private fun createPlayer(): ExoPlayer {
@@ -427,6 +427,11 @@ class Media3VideoView(
 
     fun handleControlCall(call: MethodCall, result: MethodChannel.Result) {
         try {
+            if (isDisposed) {
+                result.success(null)
+                return
+            }
+
             when (call.method) {
                 "setSource" -> {
                     setSource(call.arguments)
@@ -574,6 +579,10 @@ class Media3VideoView(
 
     fun handleQueuedCall(method: String, args: Any?) {
         try {
+            if (isDisposed) {
+                return
+            }
+
             when (method) {
                 "setSource" -> setSource(args)
                 "play" -> {

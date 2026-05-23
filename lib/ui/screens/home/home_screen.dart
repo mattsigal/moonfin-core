@@ -598,24 +598,28 @@ class _ContentRowsState extends State<_ContentRows>
     return _activeFocusedRowIndex;
   }
 
+  bool _isContentAreaFocus(FocusNode? node) {
+    final nodeContext = node?.context;
+    if (nodeContext == null || !nodeContext.mounted) return false;
+    return nodeContext.findAncestorStateOfType<_ContentRowsState>() != null;
+  }
+
   bool _isSidebarFocus(FocusNode? node) {
     final nodeContext = node?.context;
-    if (nodeContext == null) return false;
-
-    var insideSidebar = false;
-    nodeContext.visitAncestorElements((element) {
-      if (element.widget is LeftSidebar) {
-        insideSidebar = true;
-        return false;
-      }
-      return true;
-    });
-    return insideSidebar;
+    if (nodeContext == null || !nodeContext.mounted) return false;
+    if (widget.prefs.get(UserPreferences.navbarPosition) !=
+        NavbarPosition.left) {
+      return false;
+    }
+    return nodeContext.findAncestorWidgetOfExactType<LeftSidebar>() != null;
   }
 
   void _onGlobalFocusChanged() {
     if (!mounted) return;
+    final route = ModalRoute.of(context);
+    if (route != null && !route.isCurrent) return;
     final primary = FocusManager.instance.primaryFocus;
+    final onContentArea = _isContentAreaFocus(primary);
     final onMediaBar = identical(primary, _mediaBarFocusNode);
     final onSidebar = _isSidebarFocus(primary);
     final wasOnSidebar = _isSidebarFocus(_lastGlobalPrimaryFocus);
@@ -627,9 +631,8 @@ class _ContentRowsState extends State<_ContentRows>
     } else if (!onSidebar) {
       _holdMediaBarWhileSidebarFocused = false;
     }
-    final hasRowContext = _activeFocusedRowIndex != null || onSidebar;
-    final desktopUnfocused =
-      PlatformDetection.isDesktop && !_windowHasFocus;
+    final hasRowContext = onContentArea || onSidebar;
+    final desktopUnfocused = PlatformDetection.isDesktop && !_windowHasFocus;
     final chromeFocusActive =
         SettingsPanel.isOpenNotifier.value ||
         (!desktopUnfocused && !onMediaBar && !hasRowContext);
@@ -637,7 +640,7 @@ class _ContentRowsState extends State<_ContentRows>
     final nextMediaBarVisible =
         onMediaBar ||
         _holdMediaBarWhileSidebarFocused ||
-        (!onSidebar && _activeFocusedRowIndex == null);
+        (!onSidebar && !onContentArea);
     final chromeChanged = _chromeFocusActive != chromeFocusActive;
 
     if (_mediaBarVisible != nextMediaBarVisible || chromeChanged) {
@@ -667,7 +670,7 @@ class _ContentRowsState extends State<_ContentRows>
     _onGlobalFocusChanged();
     if (isOpen) return;
     if (!_isHomeRouteActive()) return;
-    if (_activeFocusedRowIndex != null) return;
+    if (_isContentAreaFocus(FocusManager.instance.primaryFocus)) return;
     if (!_initialFocusResolved) return;
     _initialFocusResolved = false;
     if (mounted) {
@@ -857,9 +860,9 @@ class _ContentRowsState extends State<_ContentRows>
     if (_isMediaBarIncluded()) return false;
     if (!_isHomeRouteActive()) return false;
     if (SettingsPanel.isOpenNotifier.value) return false;
-    if (_activeFocusedRowIndex != null) return false;
 
     final primary = FocusManager.instance.primaryFocus;
+    if (_isContentAreaFocus(primary)) return false;
     final primaryContext = primary?.context;
     if (primary == null || primaryContext == null) {
       return true;
@@ -949,12 +952,9 @@ class _ContentRowsState extends State<_ContentRows>
         _isHomeRouteActive();
   }
 
-  void _stopPreviewFor(AggregatedItem item) {
-    final previewKey = _previewKeyFor(item);
+  void _stopPreviewFor(AggregatedItem _) {
     _previewDelayTimer?.cancel();
-    if (_activePreviewKey == previewKey && mounted) {
-      _finishSharedPreview();
-    }
+    _finishSharedPreview();
   }
 
   void _finishSharedPreview({
@@ -1005,6 +1005,11 @@ class _ContentRowsState extends State<_ContentRows>
       return;
     }
     final requestId = ++_previewRequestId;
+
+    await Future.delayed(const Duration(milliseconds: 150));
+    if (requestId != _previewRequestId || !mounted) {
+      return;
+    }
 
     _previewStopTimer?.cancel();
     if (kIsWeb) {
