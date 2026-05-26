@@ -1364,10 +1364,13 @@ class _MediaBarState extends State<MediaBar>
     final isMobile = PlatformDetection.useMobileUi;
     final isTablet =
         isMobile && MediaQuery.of(context).size.shortestSide >= 600;
-    final hasTvLeftSidebar =
-        PlatformDetection.isTV &&
+    final hasLeftSidebar =
+      !isMobile &&
         widget.prefs.get(UserPreferences.navbarPosition) == NavbarPosition.left;
-    final logoLeftInset = 16.0 + (hasTvLeftSidebar ? 72.0 : 0.0);
+    final logoLeftInset = 40.0 + (hasLeftSidebar ? 88.0 : 0.0);
+    final infoHorizontalInset = hasLeftSidebar
+      ? 72.0
+      : (PlatformDetection.isTV ? 25.0 : 24.0);
     final navbarAtTop =
         isMobile &&
         (widget.prefs.get(UserPreferences.navbarPosition) ==
@@ -1509,6 +1512,8 @@ class _MediaBarState extends State<MediaBar>
                                 compact: _isTrailerPlaying,
                                 overlayColor: overlayColor,
                                 overlayOpacity: overlayOpacity,
+                                leftInset: infoHorizontalInset,
+                                rightInset: infoHorizontalInset,
                               ),
                             ],
                           ),
@@ -1558,6 +1563,9 @@ class _MediaBarState extends State<MediaBar>
     List<MediaBarSlideItem> items,
   ) {
     final currentItem = items.elementAtOrNull(_currentIndex);
+    final currentRatings = currentItem == null
+        ? const <String, double>{}
+        : widget.viewModel.ratingsFor(currentItem.itemId);
     final overlayColor = _mediaBarOverlayColor();
     final overlayOpacity = _mediaBarOverlayOpacity();
     final isMobile = PlatformDetection.useMobileUi;
@@ -1775,9 +1783,7 @@ class _MediaBarState extends State<MediaBar>
                                     'makd_content_${currentItem.itemId}',
                                   ),
                                   item: currentItem,
-                                  ratings: widget.viewModel.ratingsFor(
-                                    currentItem.itemId,
-                                  ),
+                                  ratings: currentRatings,
                                   enableAdditionalRatings: widget.prefs.get(
                                     UserPreferences.enableAdditionalRatings,
                                   ),
@@ -1791,11 +1797,46 @@ class _MediaBarState extends State<MediaBar>
                                     UserPreferences.showRatingBadges,
                                   ),
                                   isMobile: isMobile,
+                                  showRatings: false,
                                   onPlay: () =>
                                       _navigateToItemAndPlay(context, items),
                                   onInfo: () => _navigateToItem(context, items),
                                 ),
                               ),
+                            ),
+                          ),
+                        ),
+                      ),
+                    ),
+                  if (currentItem != null &&
+                      !_isTrailerPlaying &&
+                      (currentRatings.isNotEmpty ||
+                          currentItem.communityRating != null ||
+                          currentItem.criticRating != null))
+                    Positioned(
+                      left: isMobile ? 20 : 50,
+                      right: isMobile ? 20 : 50,
+                      bottom: isMobile ? 148 : 162,
+                      child: AnimatedOpacity(
+                        opacity: _isTrailerPlaying ? 0 : 1,
+                        duration: const Duration(milliseconds: 250),
+                        child: IgnorePointer(
+                          ignoring: _isTrailerPlaying,
+                          child: RatingsRow(
+                            ratings: currentRatings,
+                            communityRating: currentItem.communityRating,
+                            criticRating: currentItem.criticRating,
+                            enableAdditionalRatings: widget.prefs.get(
+                              UserPreferences.enableAdditionalRatings,
+                            ),
+                            enabledRatings: widget.prefs.get(
+                              UserPreferences.enabledRatings,
+                            ),
+                            showLabels: widget.prefs.get(
+                              UserPreferences.showRatingLabels,
+                            ),
+                            showBadges: widget.prefs.get(
+                              UserPreferences.showRatingBadges,
                             ),
                           ),
                         ),
@@ -2159,6 +2200,8 @@ class _SlideInfo extends StatelessWidget {
   final bool compact;
   final Color overlayColor;
   final double overlayOpacity;
+  final double leftInset;
+  final double rightInset;
 
   const _SlideInfo({
     required this.item,
@@ -2170,6 +2213,8 @@ class _SlideInfo extends StatelessWidget {
     this.compact = false,
     required this.overlayColor,
     required this.overlayOpacity,
+    this.leftInset = 1.0,
+    this.rightInset = 8.0,
   });
 
   @override
@@ -2243,8 +2288,8 @@ class _SlideInfo extends StatelessWidget {
 
     return Padding(
       padding: EdgeInsets.only(
-        left: PlatformDetection.isTV ? 40.0 : 8.0,
-        right: PlatformDetection.isTV ? 40.0 : 8.0,
+        left: leftInset,
+        right: rightInset,
         bottom: isMobile ? 24 : 36,
       ),
       child: compact
@@ -2432,6 +2477,7 @@ class _MakdContent extends StatelessWidget {
   final bool showLabels;
   final bool showBadges;
   final bool isMobile;
+  final bool showRatings;
   final VoidCallback onPlay;
   final VoidCallback onInfo;
 
@@ -2444,6 +2490,7 @@ class _MakdContent extends StatelessWidget {
     required this.showLabels,
     required this.showBadges,
     required this.isMobile,
+    this.showRatings = true,
     required this.onPlay,
     required this.onInfo,
   });
@@ -2459,9 +2506,15 @@ class _MakdContent extends StatelessWidget {
       mainAxisSize: MainAxisSize.min,
       children: [
         _MetadataRow(item: item),
-        if (ratings.isNotEmpty ||
-            item.communityRating != null ||
-            item.criticRating != null) ...[
+        if (!showRatings &&
+            (ratings.isNotEmpty ||
+                item.communityRating != null ||
+                item.criticRating != null))
+          SizedBox(height: isMobile ? 34 : 40),
+        if (showRatings &&
+            (ratings.isNotEmpty ||
+                item.communityRating != null ||
+                item.criticRating != null)) ...[
           const SizedBox(height: 6),
           RatingsRow(
             ratings: ratings,
