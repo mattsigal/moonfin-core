@@ -32,6 +32,13 @@ bool _isCompact(BuildContext context) =>
     PlatformDetection.useMobileUi ||
     MediaQuery.sizeOf(context).width < _kCompactBreakpoint;
 
+double _desktopUiScaleFactor() {
+  if (!PlatformDetection.useDesktopUi) return 1.0;
+  return GetIt.instance<UserPreferences>()
+      .get(UserPreferences.desktopUiScale)
+      .scaleFactor;
+}
+
 class FavoritesScreen extends StatefulWidget {
   const FavoritesScreen({super.key});
 
@@ -385,7 +392,7 @@ class _FavoritesHeader extends StatelessWidget {
               showBadges: showBadges,
             ),
           ],
-          const SizedBox(height: 6),
+          const SizedBox(height: 8),
           Row(
             mainAxisAlignment: isMobile
                 ? MainAxisAlignment.center
@@ -443,8 +450,10 @@ class _FocusedItemHud extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final hudHeight =
+        (showLabels ? 105.0 : 86.0) * _desktopUiScaleFactor();
     return SizedBox(
-      height: 80,
+      height: hudHeight,
       child: AnimatedSwitcher(
         duration: const Duration(milliseconds: 200),
         child: item == null
@@ -476,6 +485,7 @@ class _FocusedItemHud extends StatelessWidget {
                     showLabels: showLabels,
                     showBadges: showBadges,
                   ),
+                  const SizedBox(height: 2),
                 ],
               ),
       ),
