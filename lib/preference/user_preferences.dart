@@ -6,6 +6,9 @@ import 'home_section_config.dart';
 import 'preference_constants.dart';
 
 class UserPreferences extends ChangeNotifier {
+  static const _lastServerIdPreferenceKey = 'pref_last_server_id';
+  static const _lastUserIdPreferenceKey = 'pref_last_user_id';
+
   static const mediaBarModeMoonfin = 'moonfin';
   static const mediaBarModeMakd = 'makd';
   static const mediaBarModeOff = 'off';
@@ -48,9 +51,89 @@ class UserPreferences extends ChangeNotifier {
     }
   }
 
-  T get<T>(Preference<T> pref) => _store.get(pref);
+  String? _activeProfileScopeSuffix() {
+    final serverId = (_store.getString(_lastServerIdPreferenceKey) ?? '')
+        .trim();
+    final userId = (_store.getString(_lastUserIdPreferenceKey) ?? '').trim();
+    if (serverId.isEmpty || userId.isEmpty) {
+      return null;
+    }
+    return '${serverId}_$userId';
+  }
+
+  Preference<String>? _scopedResumeSubtractDurationPreference() {
+    final scopeSuffix = _activeProfileScopeSuffix();
+    if (scopeSuffix == null) {
+      return null;
+    }
+    return Preference(
+      key: 'pref_resume_preroll_$scopeSuffix',
+      defaultValue: '0',
+    );
+  }
+
+  Preference<bool>? _scopedCinemaModeEnabledPreference() {
+    final scopeSuffix = _activeProfileScopeSuffix();
+    if (scopeSuffix == null) {
+      return null;
+    }
+    return Preference(
+      key: 'pref_enable_cinema_mode_$scopeSuffix',
+      defaultValue: true,
+    );
+  }
+
+  bool _isResumeSubtractDurationPreference<T>(Preference<T> pref) {
+    return pref.key == resumeSubtractDuration.key;
+  }
+
+  bool _isCinemaModeEnabledPreference<T>(Preference<T> pref) {
+    return pref.key == cinemaModeEnabled.key;
+  }
+
+  T get<T>(Preference<T> pref) {
+    if (_isResumeSubtractDurationPreference(pref)) {
+      final scoped = _scopedResumeSubtractDurationPreference();
+      if (scoped != null && _store.containsKey(scoped.key)) {
+        return _store.get(scoped) as T;
+      }
+      return _store.get(resumeSubtractDuration) as T;
+    }
+
+    if (_isCinemaModeEnabledPreference(pref)) {
+      final scoped = _scopedCinemaModeEnabledPreference();
+      if (scoped != null && _store.containsKey(scoped.key)) {
+        return _store.get(scoped) as T;
+      }
+      return _store.get(cinemaModeEnabled) as T;
+    }
+
+    return _store.get(pref);
+  }
 
   Future<void> set<T>(Preference<T> pref, T value) async {
+    if (_isResumeSubtractDurationPreference(pref)) {
+      final scoped = _scopedResumeSubtractDurationPreference();
+      if (scoped != null) {
+        await _store.set(scoped, value as String);
+      } else {
+        await _store.set(resumeSubtractDuration, value as String);
+      }
+      notifyListeners();
+      return;
+    }
+
+    if (_isCinemaModeEnabledPreference(pref)) {
+      final scoped = _scopedCinemaModeEnabledPreference();
+      if (scoped != null) {
+        await _store.set(scoped, value as bool);
+      } else {
+        await _store.set(cinemaModeEnabled, value as bool);
+      }
+      notifyListeners();
+      return;
+    }
+
     await _store.set(pref, value);
     notifyListeners();
   }
@@ -59,8 +142,21 @@ class UserPreferences extends ChangeNotifier {
 
   bool containsPreferenceKey(String key) => _store.containsKey(key);
 
-  bool containsPreference<T>(Preference<T> pref) =>
-      _store.containsKey(pref.key);
+  bool containsPreference<T>(Preference<T> pref) {
+    if (_isResumeSubtractDurationPreference(pref)) {
+      final scoped = _scopedResumeSubtractDurationPreference();
+      return (scoped != null && _store.containsKey(scoped.key)) ||
+          _store.containsKey(resumeSubtractDuration.key);
+    }
+
+    if (_isCinemaModeEnabledPreference(pref)) {
+      final scoped = _scopedCinemaModeEnabledPreference();
+      return (scoped != null && _store.containsKey(scoped.key)) ||
+          _store.containsKey(cinemaModeEnabled.key);
+    }
+
+    return _store.containsKey(pref.key);
+  }
 
   AudioOutputMode resolveAudioOutputMode() => get(audioOutputMode);
 
@@ -949,9 +1045,6 @@ class UserPreferences extends ChangeNotifier {
 
   static Preference<bool> libraryFavoriteFilter(String libraryId) =>
       Preference(key: 'library_fav_filter_$libraryId', defaultValue: false);
-
-  static Preference<String> libraryLetterFilter(String libraryId) =>
-      Preference(key: 'library_letter_filter_$libraryId', defaultValue: '');
 
   static EnumPreference<ImageType> libraryImageType(String libraryId) =>
       EnumPreference(
