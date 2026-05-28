@@ -39,6 +39,7 @@ import 'home_rows_image_type_screen.dart';
 import 'home_screen_sections_integration_screen.dart';
 import 'kefin_tweaks_integration_screen.dart';
 import 'appearance_theme_screen.dart';
+import 'saved_themes_screen.dart';
 import 'home_sections_screen.dart';
 import 'library_settings_screen.dart';
 import 'media_bar_settings_screen.dart';
@@ -591,6 +592,15 @@ class _GeneralStyleScreenState extends State<_GeneralStyleScreen> {
               subtitle: Text(l10n.settingsAppearanceThemeSubtitle),
               onTap: () =>
                   context.pushSettingsScreen(const AppearanceThemeScreen()),
+            ),
+            _TvSettingsListTile(
+              leading: const Icon(Icons.download_outlined),
+              title: const Text('Saved themes'),
+              subtitle: const Text(
+                'Manage downloaded plugin themes on this device',
+              ),
+              onTap: () =>
+                  context.pushSettingsScreen(const SavedThemesScreen()),
             ),
             EnumPreferenceTile<AppTheme>(
               preference: UserPreferences.focusColor,

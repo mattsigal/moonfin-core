@@ -683,22 +683,54 @@ class _ConnectivityListenerState extends ConsumerState<_ConnectivityListener>
       return;
     }
 
+    final okFocusNode = FocusNode(debugLabel: 'AdminMessageOkButton');
+    final dialogScopeNode = FocusScopeNode(debugLabel: 'AdminMessageDialogScope');
     final l10n = AppLocalizations.of(navContext);
     showFocusRestoringDialog<void>(
       context: navContext,
       barrierDismissible: false,
-      builder: (ctx) => AlertDialog(
-        icon: const Icon(Icons.campaign_outlined),
-        title: Text(l10n.adminSendMessage),
-        content: Text(message),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(ctx).pop(),
-            child: Text(l10n.ok),
-          ),
-        ],
+      builder: (ctx) => FocusScope(
+        node: dialogScopeNode,
+        autofocus: true,
+        onKeyEvent: (node, event) {
+          if (!event.isActionable) {
+            return KeyEventResult.ignored;
+          }
+
+          final key = event.logicalKey;
+          if (key.isBackKey) {
+            DialogBackSuppressor.markDismissed();
+            Navigator.of(ctx).pop();
+            return KeyEventResult.handled;
+          }
+
+          if (key.isDirectional) {
+            if (!okFocusNode.hasFocus && okFocusNode.canRequestFocus) {
+              okFocusNode.requestFocus();
+            }
+            return KeyEventResult.handled;
+          }
+
+          return KeyEventResult.ignored;
+        },
+        child: AlertDialog(
+          icon: const Icon(Icons.campaign_outlined),
+          title: Text(l10n.adminSendMessage),
+          content: Text(message),
+          actions: [
+            TextButton(
+              focusNode: okFocusNode,
+              autofocus: true,
+              onPressed: () => Navigator.of(ctx).pop(),
+              child: Text(l10n.ok),
+            ),
+          ],
+        ),
       ),
-    );
+    ).whenComplete(() {
+      okFocusNode.dispose();
+      dialogScopeNode.dispose();
+    });
   }
 
   Future<void> _runDesktopUpdateCheck() async {

@@ -8,7 +8,6 @@
 </head>
 <body>
 
-<!-- TOP BAR -->
 <div class="topbar">
   <div class="topbar-logo">◆ Theme Editor</div>
   <div class="tf"><label>ID</label><input id="tId" value="my-theme" maxlength="40" style="width:100px" oninput="onMeta()"></div>
@@ -35,16 +34,19 @@
   <button class="btn btn-s" onclick="document.getElementById('impFile').click()">↑ Import JSON</button>
   <button class="btn btn-s" onclick="loadPreset('moonfin')">Moonfin</button>
   <button class="btn btn-s" onclick="loadPreset('neon')">Neon Pulse</button>
+  <button class="btn btn-s" onclick="runValidation(true)">Validate</button>
   <button class="btn btn-p" onclick="doExport()">↓ Export JSON</button>
 </div>
 
-<!-- LAYOUT -->
+<div class="constraint-banner">
+  Strict export constraints: blur 0-64, spread -32-32, border width 0-16, corner radius 0-9999,
+  text glow spread fixed to 0, and placeholder palette requires at least 1 color.
+</div>
+
 <div class="layout">
 
-  <!-- EDITOR PANEL -->
   <div class="editor">
     <div class="escroll" id="escroll">
-      <!-- sections injected by JS -->
     </div>
     <div class="editor-footer">
       <div class="editor-meta"><span id="draftStamp">No draft saved</span><span id="dirtyFlag">Clean</span></div>
@@ -52,7 +54,6 @@
     </div>
   </div>
 
-  <!-- PREVIEW PANEL -->
   <div class="preview">
     <div class="ptabs">
       <div class="ptab on" onclick="setTab('home')">Home</div>

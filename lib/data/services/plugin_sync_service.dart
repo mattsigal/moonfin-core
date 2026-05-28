@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'dart:convert';
+import 'dart:io';
 
 import 'package:dio/dio.dart';
 import 'package:flutter/foundation.dart';
@@ -10,6 +11,7 @@ import 'package:jellyfin_preference/jellyfin_preference.dart';
 import 'package:server_core/server_core.dart';
 
 import '../../data/repositories/seerr_repository.dart';
+import 'storage_path_service.dart';
 import '../../ui/widgets/navigation_layout.dart';
 import '../../preference/home_section_config.dart';
 import '../../preference/preference_constants.dart' as prefs;
@@ -53,6 +55,7 @@ class PluginSyncService extends ChangeNotifier {
   bool get mdblistAvailable => _mdblistAvailable;
   bool _tmdbAvailable = false;
   bool get tmdbAvailable => _tmdbAvailable;
+  String? _activeThemeCacheServerId;
   void Function(String message)? onAdminMessage;
   CancelToken? _settingsStreamCancelToken;
   StreamSubscription<String>? _settingsStreamSubscription;
@@ -121,6 +124,7 @@ class PluginSyncService extends ChangeNotifier {
     _seerrInfoAvailable = false;
     _mdblistAvailable = false;
     _tmdbAvailable = false;
+    _activeThemeCacheServerId = null;
     if (notify) {
       _setLocalSeerrEnabled(false);
     }
@@ -238,6 +242,9 @@ class PluginSyncService extends ChangeNotifier {
 
   Future<void> syncOnLogin(MediaServerClient client, {String? serverId}) async {
     try {
+      _activeThemeCacheServerId = serverId;
+      await _hydrateCachedThemes(client, serverId: serverId);
+
       final availability = await _refreshAvailabilityStatus(client);
 
       final syncInitializedPref =
@@ -261,7 +268,7 @@ class PluginSyncService extends ChangeNotifier {
         return;
       }
 
-      await _refreshCustomThemes(client);
+      await _refreshCustomThemes(client, serverId: serverId);
 
       final resolved = await _fetchResolvedProfile(client, _profileName);
       if (resolved == null) {
@@ -351,6 +358,12 @@ class PluginSyncService extends ChangeNotifier {
         return;
       }
 
+      if (parsed['type'] == 'themesChanged') {
+        await _refreshCustomThemes(client);
+        notifyListeners();
+        return;
+      }
+
       if (parsed['type'] != 'settingsUpdated') {
         return;
       }
@@ -383,10 +396,7 @@ class PluginSyncService extends ChangeNotifier {
     try {
       final response = await _dio.get<ResponseBody>(
         '${client.baseUrl}/Moonfin/Settings/Stream',
-        options: Options(
-          headers: headers,
-          responseType: ResponseType.stream,
-        ),
+        options: Options(headers: headers, responseType: ResponseType.stream),
         cancelToken: cancelToken,
       );
 
@@ -398,7 +408,7 @@ class PluginSyncService extends ChangeNotifier {
         return;
       }
 
-        _settingsStreamReconnectAttempt = 0;
+      _settingsStreamReconnectAttempt = 0;
 
       _settingsStreamSubscription = body.stream
           .cast<List<int>>()
@@ -603,28 +613,160 @@ class PluginSyncService extends ChangeNotifier {
     return const [];
   }
 
-  Future<void> _refreshCustomThemes(MediaServerClient client) async {
-    final payload = await _fetchThemesPayload(client);
-    final objects = _extractThemeObjects(payload);
+  String _sanitizeThemeCacheFileNameStem(String id) {
+    final trimmed = id.trim().toLowerCase();
+    final sanitized = trimmed.replaceAll(RegExp(r'[^a-z0-9_-]+'), '_');
+    return sanitized.isEmpty ? 'theme' : sanitized;
+  }
 
-    final specs = <ThemeSpec>[];
-    for (final entry in objects) {
-      if (entry is! Map) continue;
-      try {
-        specs.add(ThemeSpec.fromJson(entry.cast<String, dynamic>()));
-      } catch (_) {
-        // Ignore malformed theme entries from the plugin response.
+  Future<Directory?> _getThemeCacheDirectory(
+    MediaServerClient client, {
+    String? serverId,
+  }) async {
+    try {
+      final baseDirectory = await GetIt.instance<StoragePathService>()
+          .getThemeCacheDir();
+      final effectiveServerId = serverId ?? _activeThemeCacheServerId;
+      final scopedDirectory = Directory(
+        '${baseDirectory.path}/${_serverSyncKey(client, serverId: effectiveServerId)}',
+      );
+      if (!await scopedDirectory.exists()) {
+        await scopedDirectory.create(recursive: true);
       }
+      return scopedDirectory;
+    } catch (_) {
+      return null;
+    }
+  }
+
+  Future<List<ThemeSpec>> _loadCachedCustomThemes(
+    Directory cacheDirectory,
+  ) async {
+    final specs = <ThemeSpec>[];
+    if (!await cacheDirectory.exists()) {
+      return specs;
     }
 
-    ThemeRegistry.replaceCustomThemes(specs);
+    final files =
+        cacheDirectory
+            .listSync()
+            .whereType<File>()
+            .where((file) => file.path.toLowerCase().endsWith('.json'))
+            .toList()
+          ..sort((a, b) => a.path.compareTo(b.path));
 
+    for (final file in files) {
+      try {
+        final raw = await file.readAsString();
+        final decoded = jsonDecode(raw);
+        if (decoded is! Map) {
+          continue;
+        }
+
+        specs.add(ThemeSpec.fromJson(Map<String, dynamic>.from(decoded)));
+      } catch (_) {}
+    }
+
+    return specs;
+  }
+
+  Future<void> _writeCachedCustomThemes(
+    Directory cacheDirectory,
+    List<ThemeSpec> specs,
+  ) async {
+    if (!await cacheDirectory.exists()) {
+      await cacheDirectory.create(recursive: true);
+    }
+
+    final desiredFileNames = <String>{};
+    const encoder = JsonEncoder.withIndent('  ');
+
+    for (final spec in specs) {
+      final fileName = '${_sanitizeThemeCacheFileNameStem(spec.id)}.json';
+      desiredFileNames.add(fileName);
+
+      final file = File('${cacheDirectory.path}/$fileName');
+      final json = encoder.convert(spec.toJson());
+      await file.writeAsString(json);
+    }
+
+    final existingFiles = cacheDirectory.listSync().whereType<File>().where(
+      (file) => file.path.toLowerCase().endsWith('.json'),
+    );
+
+    for (final file in existingFiles) {
+      final fileName = file.uri.pathSegments.isNotEmpty
+          ? file.uri.pathSegments.last
+          : '';
+      if (!desiredFileNames.contains(fileName)) {
+        try {
+          await file.delete();
+        } catch (_) {}
+      }
+    }
+  }
+
+  void _clearMissingCustomThemeSelection() {
     final customThemeId = _prefs.get(UserPreferences.customThemeId);
     if (customThemeId.isNotEmpty &&
         !ThemeRegistry.availableThemes.containsKey(customThemeId)) {
       _store.set(UserPreferences.customThemeId, '');
       _prefs.notifyPreferenceChanged();
     }
+  }
+
+  Future<Directory?> _hydrateCachedThemes(
+    MediaServerClient client, {
+    String? serverId,
+  }) async {
+    final cacheDirectory = await _getThemeCacheDirectory(
+      client,
+      serverId: serverId,
+    );
+
+    if (cacheDirectory == null) {
+      return null;
+    }
+
+    final cachedSpecs = await _loadCachedCustomThemes(cacheDirectory);
+    ThemeRegistry.replaceCustomThemes(cachedSpecs);
+    return cacheDirectory;
+  }
+
+  Future<void> _refreshCustomThemes(
+    MediaServerClient client, {
+    String? serverId,
+  }) async {
+    final cacheDirectory = await _hydrateCachedThemes(
+      client,
+      serverId: serverId,
+    );
+
+    final payload = await _fetchThemesPayload(client);
+    if (payload == null) {
+      _clearMissingCustomThemeSelection();
+      return;
+    }
+
+    final objects = _extractThemeObjects(payload);
+    final specs = <ThemeSpec>[];
+
+    for (final entry in objects) {
+      if (entry is! Map) continue;
+      try {
+        specs.add(ThemeSpec.fromJson(Map<String, dynamic>.from(entry)));
+      } catch (_) {}
+    }
+
+    ThemeRegistry.replaceCustomThemes(specs);
+
+    if (cacheDirectory != null) {
+      try {
+        await _writeCachedCustomThemes(cacheDirectory, specs);
+      } catch (_) {}
+    }
+
+    _clearMissingCustomThemeSelection();
   }
 
   Future<void> _applyServerSettings(Map<String, dynamic> resolved) async {
@@ -1123,7 +1265,9 @@ class PluginSyncService extends ChangeNotifier {
       'customThemeId': _prefs.get(UserPreferences.customThemeId),
       'navbarPosition': _prefs.get(UserPreferences.navbarPosition).name,
       'focusColor': _prefs.get(UserPreferences.focusColor).name,
-      'watchedIndicator': _prefs.get(UserPreferences.watchedIndicatorBehavior).name,
+      'watchedIndicator': _prefs
+          .get(UserPreferences.watchedIndicatorBehavior)
+          .name,
       'cardFocusExpansion': _prefs.get(UserPreferences.cardFocusExpansion),
       'homeRowsStyle': _prefs.get(UserPreferences.homeRowsStyle).name,
       'homeImageTypeContinueWatching': _prefs
@@ -1140,7 +1284,9 @@ class PluginSyncService extends ChangeNotifier {
           .get(UserPreferences.collectionsRowSortBy)
           .name,
       'genresRowSortBy': _prefs.get(UserPreferences.genresRowSortBy).name,
-      'genresRowItemFilter': _prefs.get(UserPreferences.genresRowItemFilter).name,
+      'genresRowItemFilter': _prefs
+          .get(UserPreferences.genresRowItemFilter)
+          .name,
       'showShuffleButton': _prefs.get(UserPreferences.showShuffleButton),
       'showGenresButton': _prefs.get(UserPreferences.showGenresButton),
       'showFavoritesButton': _prefs.get(UserPreferences.showFavoritesButton),

@@ -1,4 +1,3 @@
-// ─── STATE ───────────────────────────────────────────────────────────────────
 const BOOK_DEFAULTS = {
   background: '#FF0F182A',
   accent: '#FF32B9E8',
@@ -126,10 +125,10 @@ const NEON = {
 };
 
 const DRAFT_KEY='moonfin-theme-editor-draft-v1';
+const EDITOR_EXPORT_VERSION='2026.05.28';
 let dirty=false;
 let persistTimer=null;
 
-// ─── COLOR HELPERS ────────────────────────────────────────────────────────────
 function hex2css(h){
   if(!h||typeof h!=='string') return 'rgba(0,0,0,0)';
   const s=h.replace('#','');
@@ -225,6 +224,73 @@ function clearDraft(){
   setStatus('Draft cleared','ok');
 }
 
+function clampNumber(value,min,max,fallback){
+  const parsed=typeof value==='number'?value:parseFloat(value);
+  if(!Number.isFinite(parsed)) return fallback;
+  return Math.min(max,Math.max(min,parsed));
+}
+
+function normalizeStateForConstraints(){
+  if(!ST.borders||typeof ST.borders!=='object') ST.borders={};
+
+  ['cardBorder','chipBorder','focusBorder'].forEach((key)=>{
+    if(!ST.borders[key]||typeof ST.borders[key]!=='object') ST.borders[key]={};
+    ST.borders[key].width=clampNumber(ST.borders[key].width,0,16,key==='focusBorder'?2:1);
+  });
+
+  if(ST.borders.navBorder&&typeof ST.borders.navBorder==='object'){
+    ST.borders.navBorder.width=clampNumber(ST.borders.navBorder.width,0,16,1);
+  }
+
+  const normalizeRadius=(value,fallback)=>{
+    if(typeof value==='number'){
+      return clampNumber(value,0,9999,fallback);
+    }
+    if(value&&typeof value==='object'&&!Array.isArray(value)){
+      return {
+        topLeft:clampNumber(value.topLeft,0,9999,fallback),
+        topRight:clampNumber(value.topRight,0,9999,fallback),
+        bottomLeft:clampNumber(value.bottomLeft,0,9999,fallback),
+        bottomRight:clampNumber(value.bottomRight,0,9999,fallback),
+      };
+    }
+    return fallback;
+  };
+
+  ST.borders.cardRadius=normalizeRadius(ST.borders.cardRadius,8);
+  ST.borders.chipRadius=normalizeRadius(ST.borders.chipRadius,999);
+
+  if(!Array.isArray(ST.borders.focusGlow)) ST.borders.focusGlow=[];
+  ST.borders.focusGlow=ST.borders.focusGlow.slice(0,8).map((sh)=>({
+    color:sh&&sh.color?sh.color:'#99FF2E92',
+    blurRadius:clampNumber(sh&&sh.blurRadius,0,64,8),
+    spreadRadius:clampNumber(sh&&sh.spreadRadius,-32,32,0),
+    offsetX:clampNumber(sh&&sh.offsetX,-50,50,0),
+    offsetY:clampNumber(sh&&sh.offsetY,-50,50,0),
+  }));
+
+  if(!Array.isArray(ST.textGlow)) ST.textGlow=[];
+  ST.textGlow=ST.textGlow.slice(0,8).map((glow)=>({
+    color:glow&&glow.color?glow.color:'#6600E5FF',
+    blurRadius:clampNumber(glow&&glow.blurRadius,0,64,8),
+    spreadRadius:0,
+    offsetX:clampNumber(glow&&glow.offsetX,-20,20,0),
+    offsetY:clampNumber(glow&&glow.offsetY,-20,20,0),
+  }));
+
+  if(!Array.isArray(ST.navColorCycle)) ST.navColorCycle=[];
+  ST.navColorCycle=ST.navColorCycle.slice(0,16);
+
+  if(!ST.book||typeof ST.book!=='object') ST.book=cloneBookDefaults();
+  if(!Array.isArray(ST.book.placeholderPalette)) ST.book.placeholderPalette=[];
+  if(ST.book.placeholderPalette.length<1){
+    ST.book.placeholderPalette=['#FF1A5C9A'];
+  }
+  if(ST.book.placeholderPalette.length>16){
+    ST.book.placeholderPalette=ST.book.placeholderPalette.slice(0,16);
+  }
+}
+
 function validateTheme(){
   const issues=[];
   const bookColorKeys=[
@@ -294,6 +360,11 @@ function validateTheme(){
     ST.textGlow.forEach((sh,i)=>{
       if(!parseHex(sh?.color||'')) issues.push(`Invalid color in textGlow[${i}].color`);
       if(!inRange(sh?.blurRadius,0,64)) issues.push(`Invalid blurRadius in textGlow[${i}]`);
+      if(!isNumber(sh?.offsetX)) issues.push(`Invalid offsetX in textGlow[${i}]`);
+      if(!isNumber(sh?.offsetY)) issues.push(`Invalid offsetY in textGlow[${i}]`);
+      if(sh&&Object.prototype.hasOwnProperty.call(sh,'spreadRadius')&&!inRange(sh.spreadRadius,0,0)){
+        issues.push(`textGlow[${i}].spreadRadius must be 0.`);
+      }
     });
   }
   if(!Array.isArray(ST.navColorCycle)){
@@ -307,7 +378,20 @@ function validateTheme(){
   return issues;
 }
 
-// ─── STATE PATH ───────────────────────────────────────────────────────────────
+function runValidation(showSuccess){
+  const issues=validateTheme();
+  setIssues(issues);
+  if(issues.length){
+    setStatus('Validation failed','err');
+    return false;
+  }
+  setStatus('Validation passed','ok');
+  if(showSuccess){
+    setIssues([]);
+  }
+  return true;
+}
+
 function rpath(path){
   try{ return path.split('.').reduce((o,k)=>o==null?undefined:o[k], ST); }
   catch(e){ return undefined; }
@@ -323,7 +407,6 @@ function spath(path,val){
   o[parts[parts.length-1]]=val;
 }
 
-// ─── CSS VARS ─────────────────────────────────────────────────────────────────
 function updateVars(){
   const c=ST.colors, b=ST.borders, s=ST.semantic, bk=ST.book||cloneBookDefaults();
   const cr1=(typeof b.cardRadius==='number')?b.cardRadius+'px':`${b.cardRadius.topLeft||0}px ${b.cardRadius.topRight||0}px ${b.cardRadius.bottomLeft||0}px ${b.cardRadius.bottomRight||0}px`;
@@ -386,15 +469,9 @@ function updateVars(){
   document.querySelectorAll('.pdevice').forEach(d=>d.setAttribute('style',css));
 }
 
-// ─── MOCK PREVIEWS ────────────────────────────────────────────────────────────
 const GR=[['#1a3a5c','#0d2340'],['#3a1a5c','#220d40'],['#1a5c3a','#0d4025'],
           ['#5c3a1a','#402510'],['#5c1a3a','#400d25'],['#1a4a5c','#0d3040'],['#4a5c1a','#304010']];
 const pg=i=>`linear-gradient(135deg,${GR[i%GR.length][0]},${GR[i%GR.length][1]})`;
-const LOGO_SRC='assets/images/logo_and_text.png';
-
-function mi(code){
-  return `<span class="mi">&#x${code};</span>`;
-}
 
 function cardMarkup(title, sub, idx, focused, wide){
   return `<div class="mf-card${focused?' focused':''}">
@@ -566,34 +643,22 @@ function renderHome(){
 }
 
 function renderDetail(){
-  // ── Nav bar icons ──────────────────────────────────────────────────────────
   const iArrow=`<svg viewBox="0 0 24 24"><path d="M20 11H7.83l5.59-5.59L12 4l-8 8 8 8 1.41-1.41L7.83 13H20v-2z"/></svg>`;
-  // Icons.home_rounded
   const iHome=`<svg viewBox="0 0 24 24"><path d="M10 20v-6h4v6h5v-8h3L12 3 2 12h3v8z"/></svg>`;
-  // Icons.search_rounded
   const iSearch=`<svg viewBox="0 0 24 24"><path d="M15.5 14h-.79l-.28-.27A6.47 6.47 0 0 0 16 9.5 6.5 6.5 0 1 0 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19l-4.99-5zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14z"/></svg>`;
-  // Icons.shuffle_rounded
   const iShuffle=`<svg viewBox="0 0 24 24"><path d="M10.59 9.17L5.41 4 4 5.41l5.17 5.17 1.42-1.41zM14.5 4l2.04 2.04L4 18.59 5.41 20 17.96 7.46 20 9.5V4h-5.5zm.33 9.41l-1.41 1.41 3.13 3.13L14.5 20H20v-5.5l-2.04 2.04-3.13-3.13z"/></svg>`;
-  // genres.png placeholder – provide SVG or icon name to update
   const iGenres=`<svg viewBox="0 0 24 24"><path d="M8.11,19.45C5.94,18.65 4.22,16.78 3.71,14.35L2.05,6.54C1.81,5.46 2.5,4.4 3.58,4.17L13.35,2.1L13.38,2.09C14.45,1.88 15.5,2.57 15.72,3.63L16.07,5.3L20.42,6.23H20.45C21.5,6.47 22.18,7.53 21.96,8.59L20.3,16.41C19.5,20.18 15.78,22.6 12,21.79C10.42,21.46 9.08,20.61 8.11,19.45V19.45M20,8.18L10.23,6.1L8.57,13.92V13.95C8,16.63 9.73,19.27 12.42,19.84C15.11,20.41 17.77,18.69 18.34,16L20,8.18M16,16.5C15.37,17.57 14.11,18.16 12.83,17.89C11.56,17.62 10.65,16.57 10.5,15.34L16,16.5M8.47,5.17L4,6.13L5.66,13.94L5.67,13.97C5.82,14.68 6.12,15.32 6.53,15.87C6.43,15.1 6.45,14.3 6.62,13.5L7.05,11.5C6.6,11.42 6.21,11.17 6,10.81C6.06,10.2 6.56,9.66 7.25,9.5C7.33,9.5 7.4,9.5 7.5,9.5L8.28,5.69C8.32,5.5 8.38,5.33 8.47,5.17M15.03,12.23C15.35,11.7 16.03,11.42 16.72,11.57C17.41,11.71 17.91,12.24 18,12.86C17.67,13.38 17,13.66 16.3,13.5C15.61,13.37 15.11,12.84 15.03,12.23M10.15,11.19C10.47,10.66 11.14,10.38 11.83,10.53C12.5,10.67 13.03,11.21 13.11,11.82C12.78,12.34 12.11,12.63 11.42,12.5C10.73,12.33 10.23,11.8 10.15,11.19M11.97,4.43L13.93,4.85L13.77,4.05L11.97,4.43Z" /></svg>`;
-  // Icons.favorite_rounded
   const iFavRnd=`<svg viewBox="0 0 24 24"><path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/></svg>`;
-  // Icons.groups_rounded
   const iGroups=`<svg viewBox="0 0 24 24"><path d="M4 13c1.1 0 2-.9 2-2s-.9-2-2-2-2 .9-2 2 .9 2 2 2zm1.13 1.1c-.37-.06-.74-.1-1.13-.1-.99 0-1.93.21-2.78.58C.48 14.9 0 15.62 0 16.43V18h4.5v-1.61c0-.83.23-1.61.63-2.29zM20 13c1.1 0 2-.9 2-2s-.9-2-2-2-2 .9-2 2 .9 2 2 2zm4 3.43c0-.81-.48-1.53-1.22-1.85C21.93 14.21 20.99 14 20 14c-.39 0-.76.04-1.13.1.4.68.63 1.46.63 2.29V18H24v-1.57zM16.67 13.13c-.51-.31-1.08-.54-1.67-.7.58-.36 1-.99 1-1.68V10c0-1.1-.9-2-2-2s-2 .9-2 2v.75c0 .69.42 1.32 1 1.68-.59.16-1.16.39-1.67.7C10.52 13.77 10 14.62 10 15.6V18h8v-2.4c0-.98-.52-1.83-1.33-2.47z"/></svg>`;
-  // Icons.movie (library button)
   const iMovie=`<svg viewBox="0 0 24 24"><path d="m4 6.47.85 1.7H7V6h10v2.17h2.15L20 6.47V6c0-1.1-.9-2-2-2H6C4.9 4 4 4.9 4 6v.47zM22 8H2v12c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V8zm-9 9.5v-7l5.5 3.5L13 17.5z"/></svg>`;
-  // Icons.settings_rounded
   const iGear=`<svg viewBox="0 0 24 24"><path d="M19.14 12.94c.04-.3.06-.61.06-.94 0-.32-.02-.64-.07-.94l2.03-1.58c.18-.14.23-.41.12-.61l-1.92-3.32c-.12-.22-.37-.29-.59-.22l-2.39.96c-.5-.38-1.03-.7-1.62-.94l-.36-2.54c-.04-.24-.24-.41-.48-.41h-3.84c-.24 0-.43.17-.47.41l-.36 2.54c-.59.24-1.13.57-1.62.94l-2.39-.96c-.22-.08-.47 0-.59.22L2.74 8.87c-.12.21-.08.47.12.61l2.03 1.58c-.05.3-.07.63-.07.94s.02.64.07.94l-2.03 1.58c-.18.14-.23.41-.12.61l1.92 3.32c.12.22.37.29.59.22l2.39-.96c.5.38 1.03.7 1.62.94l.36 2.54c.05.24.24.41.48.41h3.84c.24 0 .44-.17.47-.41l.36-2.54c.59-.24 1.13-.56 1.62-.94l2.39.96c.22.08.47 0 .59-.22l1.92-3.32c.12-.22.07-.47-.12-.61l-2.03-1.58zM12 15.6c-1.98 0-3.6-1.62-3.6-3.6s1.62-3.6 3.6-3.6 3.6 1.62 3.6 3.6-1.62 3.6-3.6 3.6z"/></svg>`;
-  // ── Action button icons ───────────────────────────────────────────────────
   const iPlay=`<svg viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg>`;
   const iSub=`<svg viewBox="0 0 24 24"><path d="M20 4H4c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V6c0-1.1-.9-2-2-2zm0 14H4V6h16v12zM6 10h2v2H6zm0 4h8v2H6zm10 0h2v2h-2zm-6-4h8v2h-8z"/></svg>`;
   const iCast=`<svg viewBox="0 0 24 24"><path d="M21 3H3c-1.1 0-2 .9-2 2v3h2V5h18v14h-7v2h7c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zM1 18v3h3c0-1.66-1.34-3-3-3zm0-4v2c2.76 0 5 2.24 5 5h2c0-3.87-3.13-7-7-7zm0-4v2c4.97 0 9 4.03 9 9h2C12 14.07 7.07 9 1 9z"/></svg>`;
-  // Icons.movie_outlined (Trailer)
   const iTrail=`<svg viewBox="0 0 24 24"><path d="m4 6.47.85 1.7H7V6h10v2.17h2.15L20 6.47V6c0-1.1-.9-2-2-2H6C4.9 4 4 4.9 4 6v.47zM22 8H2v12c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V8zm-9 9.5v-7l5.5 3.5L13 17.5z"/></svg>`;
   const iCheck=`<svg viewBox="0 0 24 24"><path d="M16.59 7.58 10 14.17l-3.59-3.58L5 12l5 5 8-8zM12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.42 0-8-3.58-8-8s3.58-8 8-8 8 3.58 8 8-3.58 8-8 8z"/></svg>`;
   const iFav=`<svg viewBox="0 0 24 24"><path d="M16.5 3c-1.74 0-3.41.81-4.5 2.09C10.91 3.81 9.24 3 7.5 3 4.42 3 2 5.42 2 8.5c0 3.78 3.4 6.86 8.55 11.54L12 21.35l1.45-1.32C18.6 15.36 22 12.28 22 8.5 22 5.42 19.58 3 16.5 3zm-4.4 15.55-.1.1-.1-.1C7.14 14.24 4 11.39 4 8.5 4 6.5 5.5 5 7.5 5c1.54 0 3.04.99 3.57 2.36h1.87C13.46 5.99 14.96 5 16.5 5c2 0 3.5 1.5 3.5 3.5 0 2.89-3.14 5.74-7.9 10.05z"/></svg>`;
   const iPlist=`<svg viewBox="0 0 24 24"><path d="M14 10H2v2h12v-2zm0-4H2v2h12V6zm4 8v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zM2 16h8v-2H2v2z"/></svg>`;
-  // Person placeholder SVG for cast avatars
   const personSvg=`<svg viewBox="0 0 24 24" style="width:36px;height:36px;fill:rgba(255,255,255,.22)"><path d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z"/></svg>`;
   const castData=[
     {n:'C. Thorne',r:'Lead Actor'},{n:'M. Reeves',r:'Dir. Cameo'},
@@ -604,7 +669,6 @@ function renderDetail(){
     {n:'E. Cross',r:'Analyst'},{n:'N. Grey',r:'Ghost'},
   ];
   const castItems=castData.map(d=>`<div class="rd-citem"><div class="rd-cav" style="background:rgba(255,255,255,.07);display:flex;align-items:center;justify-content:center">${personSvg}</div><div class="rd-cname">${d.n}</div><div class="rd-crole">${d.r}</div></div>`).join('');
-  // Similar items
   const simData=[
     {i:0,t:'Echo Point',s:'2023'},{i:3,t:'Dusk Protocol',s:'2022'},
     {i:2,t:'Glass Hour',s:'2024'},{i:4,t:'Dead Signal',s:'2021'},
@@ -833,7 +897,6 @@ function renderEpg(){
   const iCal=`<svg viewBox="0 0 24 24"><path d="M17 12h-5v5h5v-5zM16 1v2H8V1H6v2H5c-1.11 0-1.99.9-1.99 2L3 19c0 1.1.89 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2h-1V1h-2zm3 18H5V8h14v11z"/></svg>`;
   const iDvr=`<svg viewBox="0 0 24 24"><path d="M21 3H3c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h5v2h8v-2h5c1.1 0 1.99-.9 1.99-2L23 5c0-1.1-.9-2-2-2zm0 14H3V5h18v12zm-3.5-6l-7 4.5V7l7 4.5z"/></svg>`;
   const iRec=`<svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="8"/></svg>`;
-  // Window: 20:00–23:00 (180 min). "Now" = 21:00 (60 min in = 33.33%)
   const W=180, NOW=60;
   const pct=m=>`${(m/W*100).toFixed(2)}%`;
   const ts=m=>{const b=20*60+m,h=Math.floor(b/60)%24,mn=b%60;return `${h}:${mn.toString().padStart(2,'0')}`;};
@@ -931,7 +994,6 @@ function renderSettings(){
 
 function renderAll(){ renderHome(); renderDetail(); renderPlayer(); renderSearch(); renderLibrary(); renderEpg(); renderSettings(); }
 
-// ─── EDITOR BUILDING ──────────────────────────────────────────────────────────
 function mkCrow(label,path){
   const id='c_'+path.replace(/\./g,'_');
   return `
@@ -1200,6 +1262,7 @@ function rebuildAdv(){
     `<button class="rmbtn" onclick="rmCyc(${i})" style="border:1px solid #ef4444;border-radius:4px;padding:1px 5px;font-size:10px;margin:1px 0">✕ Remove</button>`; });
   if(cyc.length<16) html+=`<button class="addbtn" onclick="addCyc()">+ Add Color</button>`;
   html+=`<div class="bsubt" style="margin-top:10px">Text Glow</div>`;
+  html+=`<div class="constraint-note">Text glow spread is fixed to 0 for cross-platform consistency.</div>`;
   tg.forEach((g,i)=>{ html+=`
     <div class="shadow-entry">
       <div class="shadow-hd"><span>Glow ${i+1}</span><button class="rmbtn" onclick="rmTG(${i})">✕</button></div>
@@ -1244,7 +1307,6 @@ function onNavBdr(){
   populateAll(); updateVars(); queuePersist();
 }
 
-// ─── INPUT HANDLERS ───────────────────────────────────────────────────────────
 function syncC(id,hex){
   if(!hex) return;
   const swi=document.getElementById('swi_'+id),
@@ -1276,13 +1338,39 @@ function onAsl(id,path){
   spath(path,h); syncC(id,h); updateVars(); queuePersist();
 }
 function onN(el){
-  const v=parseFloat(el.value);
-  if(!isNaN(v)){ spath(el.dataset.npath,v); updateVars(); queuePersist(); }
+  const raw=parseFloat(el.value);
+  if(isNaN(raw)) return;
+
+  let next=raw;
+  const min=parseFloat(el.min);
+  const max=parseFloat(el.max);
+  const stepRaw=(el.step||'').trim();
+
+  if(Number.isFinite(min)) next=Math.max(next,min);
+  if(Number.isFinite(max)) next=Math.min(next,max);
+
+  if(stepRaw&&stepRaw!=='any'){
+    const step=parseFloat(stepRaw);
+    if(Number.isFinite(step)&&step>0){
+      next=Math.round(next/step)*step;
+      const decimals=stepRaw.indexOf('.')>=0?stepRaw.split('.')[1].length:0;
+      next=Number(next.toFixed(decimals));
+      if(Number.isFinite(min)) next=Math.max(next,min);
+      if(Number.isFinite(max)) next=Math.min(next,max);
+    }
+  }
+
+  if(next!==raw){
+    setStatus('Value clamped to allowed range','warn');
+  }
+
+  el.value=String(next);
+  spath(el.dataset.npath,next);
+  updateVars();
+  queuePersist();
 }
 
-// ─── POPULATE ALL ─────────────────────────────────────────────────────────────
 function populateAll(){
-  // Color rows
   document.querySelectorAll('[data-cpath]').forEach(row=>{
     const p=row.dataset.cpath, v=rpath(p);
     if(typeof v==='string'){
@@ -1290,19 +1378,16 @@ function populateAll(){
       syncC(id,v);
     }
   });
-  // Number inputs
   document.querySelectorAll('input.ninput[data-npath]').forEach(el=>{
     const v=rpath(el.dataset.npath);
     if(typeof v==='number') el.value=v;
   });
-  // Nav border
   const nbEn=document.getElementById('navBEn');
   if(nbEn){
     nbEn.checked=ST.borders.navBorder!=null;
     const f=document.getElementById('navBFields');
     if(f) f.style.display=ST.borders.navBorder?'flex':'none';
   }
-  // Top bar
   document.getElementById('tId').value=ST.id;
   document.getElementById('tName').value=ST.displayName;
   document.getElementById('tDesc').value=ST.description||'';
@@ -1310,7 +1395,6 @@ function populateAll(){
   document.getElementById('pProfile').value=ST.previewProfile||'desktop';
 }
 
-// ─── META ─────────────────────────────────────────────────────────────────────
 function onMeta(){
   ST.id=document.getElementById('tId').value.trim()||'my-theme';
   ST.displayName=document.getElementById('tName').value.trim()||'My Theme';
@@ -1323,14 +1407,12 @@ function onMeta(){
 }
 function toggleSec(id){ document.getElementById(id).classList.toggle('open'); }
 
-// ─── TABS ─────────────────────────────────────────────────────────────────────
 function setTab(name){
   const names=['home','detail','player','search','library','epg','settings'];
   document.querySelectorAll('.ptab').forEach((t,i)=>t.classList.toggle('on',names[i]===name));
   document.querySelectorAll('.pframe').forEach(f=>f.classList.toggle('on',f.id==='pf-'+name));
 }
 
-// ─── PRESETS ─────────────────────────────────────────────────────────────────
 function loadPreset(name){
   const src=name==='neon'?NEON:{
     id:'my-theme',displayName:'My Theme',
@@ -1356,7 +1438,6 @@ function loadPreset(name){
   setStatus('Preset loaded','ok');
 }
 
-// ─── IMPORT ───────────────────────────────────────────────────────────────────
 function doImport(ev){
   const f=ev.target.files[0]; if(!f) return;
   const r=new FileReader();
@@ -1393,18 +1474,25 @@ function loadFromObj(j){
       ST.book.placeholderPalette=[...j.book.placeholderPalette.slice(0,16)];
     }
   }
-  ST.textGlow=j.textGlow||[];
-  ST.navColorCycle=j.navColorCycle||[];
+  ST.textGlow=Array.isArray(j.textGlow)?j.textGlow.slice(0,8).map(function(g){
+    return {
+      color:g&&g.color?g.color:'#6600E5FF',
+      blurRadius:typeof g?.blurRadius==='number'?g.blurRadius:8,
+      spreadRadius:0,
+      offsetX:typeof g?.offsetX==='number'?g.offsetX:0,
+      offsetY:typeof g?.offsetY==='number'?g.offsetY:0,
+    };
+  }):[];
+  ST.navColorCycle=Array.isArray(j.navColorCycle)?j.navColorCycle.slice(0,16):[];
+  normalizeStateForConstraints();
   rebuildRadiusEditors(); rebuildBook(); rebuildGlow(); rebuildAdv();
   populateAll(); updateVars(); renderAll();
   queuePersist();
 }
 
-// ─── EXPORT ───────────────────────────────────────────────────────────────────
 function doExport(){
-  const issues=validateTheme();
-  setIssues(issues);
-  if(issues.length){
+  normalizeStateForConstraints();
+  if(!runValidation(false)){
     setStatus('Fix issues before export','err');
     alert('Theme has validation issues. Check the issue list in the editor footer.');
     return;
@@ -1414,7 +1502,10 @@ function doExport(){
   const desc=document.getElementById('tDesc').value.trim();
   const b=ST.borders;
   const out={
-    schemaVersion:1, id, displayName:name,
+    schemaVersion:1,
+    exportedByEditorVersion:EDITOR_EXPORT_VERSION,
+    id,
+    displayName:name,
     colors:{...ST.colors},
     borders:{
       cardBorder:{color:b.cardBorder.color,width:b.cardBorder.width},
@@ -1434,7 +1525,7 @@ function doExport(){
   if(b.navBorder) out.borders.navBorder={color:b.navBorder.color,width:b.navBorder.width};
   if(desc) out.description=desc;
   if(ST.textGlow&&ST.textGlow.length)
-    out.textGlow=ST.textGlow.map(g=>({color:g.color,blurRadius:g.blurRadius||0,offsetX:g.offsetX||0,offsetY:g.offsetY||0}));
+    out.textGlow=ST.textGlow.map(g=>({color:g.color,blurRadius:g.blurRadius||0,spreadRadius:0,offsetX:g.offsetX||0,offsetY:g.offsetY||0}));
   if(ST.navColorCycle&&ST.navColorCycle.length) out.navColorCycle=[...ST.navColorCycle];
   const json=JSON.stringify(out,null,2);
   const a=document.createElement('a');
@@ -1444,7 +1535,6 @@ function doExport(){
   setStatus('Exported JSON','ok');
 }
 
-// ─── INIT ─────────────────────────────────────────────────────────────────────
 buildEditor();
 populateAll();
 updateVars();
