@@ -4714,6 +4714,9 @@ class _ActionButtonsState extends State<_ActionButtons> {
     final prefs = GetIt.instance<UserPreferences>();
     final defaultToNone = prefs.get(UserPreferences.subtitlesDefaultToNone);
     if (defaultToNone) {
+      if (subtitleStreams.isNotEmpty) {
+        return subtitleStreams.first['Index'] as int?;
+      }
       return -1;
     }
 
@@ -4767,6 +4770,10 @@ class _ActionButtonsState extends State<_ActionButtons> {
 
     if (bestStream != null) {
       return bestStream['Index'] as int?;
+    }
+
+    if (subtitleStreams.isNotEmpty) {
+      return subtitleStreams.first['Index'] as int?;
     }
 
     return null;
