@@ -2033,9 +2033,7 @@ class _VideoPlayerScreenState extends State<VideoPlayerScreen>
   }
 
   void _syncMediaQueuingPreference() {
-    _manager.autoAdvanceEnabled = _prefs.get(
-      UserPreferences.mediaQueuingEnabled,
-    );
+    _manager.autoAdvanceEnabled = _prefs.get(UserPreferences.autoplayNextEpisode);
   }
 
   void _suppressSeekPrompts({
@@ -2717,11 +2715,13 @@ class _VideoPlayerScreenState extends State<VideoPlayerScreen>
     return SubtitleViewConfiguration(
       visible: true,
       style: TextStyle(
+        inherit: false,
         height: 1.4,
         fontSize: fontSize,
         color: textColor,
         fontWeight: fontWeight >= 700 ? FontWeight.bold : FontWeight.normal,
         backgroundColor: bgColor,
+        fontFamilyFallback: const ['Roboto', 'Noto Sans', 'Arial'],
         shadows: strokeShadows,
       ),
       textAlign: TextAlign.center,
@@ -3158,6 +3158,9 @@ class _VideoPlayerScreenState extends State<VideoPlayerScreen>
                       timeoutMs: _prefs.get(UserPreferences.nextUpTimeout),
                       onPlayNext: _handleNextUpPlay,
                       onDismiss: _handleNextUpCancel,
+                        onTimeout: _prefs.get(UserPreferences.autoplayNextEpisode)
+                          ? _handleNextUpPlay
+                          : _handleNextUpCancel,
                       focusNode: PlatformDetection.isTV
                           ? _tvNextUpPlayFocus
                           : null,

@@ -625,12 +625,16 @@ class _TopToolbarState extends State<TopToolbar> {
         seerrEnabledLocally &&
         pluginSync.pluginAvailable &&
         pluginSync.seerrInfoAvailable;
+    final l10n = AppLocalizations.of(context);
+    final seerrDisplayName = seerrPrefs.moonfinDisplayName.trim();
+    final seerrNavLabel = seerrDisplayName.isNotEmpty
+      ? seerrDisplayName
+      : (seerrPrefs.isSeerrVariant ? l10n.seerr : l10n.jellyseerr);
     final useAndroidTvInlineLibraries =
         PlatformDetection.isAndroid &&
         PlatformDetection.isTV &&
         _prefs.get(UserPreferences.navbarPosition) == NavbarPosition.top;
 
-    final l10n = AppLocalizations.of(context);
     int order = 1;
     var neonSlot = 0;
     Color? nextNavColor() {
@@ -803,9 +807,7 @@ class _TopToolbarState extends State<TopToolbar> {
                       iconBuilder: (size, color) => seerrPrefs.isSeerrVariant
                           ? SeerrIcon(size: size, color: color)
                           : JellyseerrIcon(size: size, color: color),
-                      label: seerrPrefs.isSeerrVariant
-                          ? l10n.seerr
-                          : l10n.jellyseerr,
+                      label: seerrNavLabel,
                       onPressed: () {
                         if (_isActive(Destinations.seerrDiscover)) return;
                         context.navigateTopLevel(Destinations.seerrDiscover);

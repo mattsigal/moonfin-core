@@ -15,9 +15,7 @@ import '../../widgets/overlay_sheet.dart';
 import '../../widgets/poster_size_settings_dialog.dart';
 import '../../widgets/settings/clean_settings_typography.dart';
 import '../../widgets/settings/preference_tiles.dart';
-import '../../widgets/settings/settings_panel.dart';
 import '../../../l10n/app_localizations.dart';
-import 'home_rows_image_type_screen.dart';
 import 'settings_app_bar.dart';
 
 const double _kHomeSectionTileRadius = 16;
@@ -741,12 +739,11 @@ class _HomeSectionsScreenState extends State<HomeSectionsScreen> {
   }
 
   Widget _buildHeader(AppLocalizations l10n) {
-    final rowsStyle = _prefs.get(UserPreferences.homeRowsStyle);
     return Column(
       children: [
         ListTile(
           leading: const Icon(Icons.photo_size_select_large),
-          title: Text(l10n.homeRowPosterSize),
+          title: const Text('Card Size'),
           subtitle: Text(_posterSizeLabel(_prefs.get(UserPreferences.posterSize), l10n)),
           trailing: const Icon(Icons.chevron_right),
           onTap: _showPosterSizeDialog,
@@ -764,17 +761,6 @@ class _HomeSectionsScreenState extends State<HomeSectionsScreen> {
           },
         ),
         const Divider(),
-        if (rowsStyle == HomeRowsStyle.v1) ...[
-          ListTile(
-            leading: const Icon(Icons.image),
-            title: Text(l10n.perRowImageTypeSelection),
-            subtitle: Text(l10n.configureImageTypeForEachRow),
-            trailing: const Icon(Icons.chevron_right),
-            onTap: () =>
-                context.pushSettingsScreen(const HomeRowsImageTypeScreen()),
-          ),
-          const Divider(),
-        ],
         SwitchListTile(
           secondary: const Icon(Icons.merge_type),
           title: Text(l10n.mergeContinueWatchingAndNextUp),

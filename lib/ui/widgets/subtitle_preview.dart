@@ -60,10 +60,12 @@ class _SubtitlePreviewState extends State<SubtitlePreview> {
         AppLocalizations.of(context).subtitlePreviewText,
         textAlign: TextAlign.center,
         style: TextStyle(
+          inherit: false,
           height: 1.4,
           fontSize: displaySize,
           color: textColor,
           backgroundColor: bgColor,
+          fontFamilyFallback: const ['Roboto', 'Noto Sans', 'Arial'],
           fontWeight: fontWeight >= 700 ? FontWeight.bold : FontWeight.normal,
           shadows: subtitleStrokeShadows(strokeColor, displaySize),
         ),

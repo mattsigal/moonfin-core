@@ -35,7 +35,6 @@ import '../../widgets/navigation_layout.dart';
 import '../../widgets/support_dialog.dart';
 import '../../widgets/focus/request_initial_focus.dart';
 import '../home/home_view_model.dart';
-import 'home_rows_image_type_screen.dart';
 import 'home_screen_sections_integration_screen.dart';
 import 'kefin_tweaks_integration_screen.dart';
 import 'appearance_theme_screen.dart';
@@ -713,72 +712,99 @@ class _GeneralStyleScreenState extends State<_GeneralStyleScreen> {
   }
 }
 
-class _NavigationCategoryScreen extends StatelessWidget {
+class _NavigationCategoryScreen extends StatefulWidget {
   const _NavigationCategoryScreen();
+
+  @override
+  State<_NavigationCategoryScreen> createState() =>
+      _NavigationCategoryScreenState();
+}
+
+class _NavigationCategoryScreenState extends State<_NavigationCategoryScreen> {
+  late final PreferenceBinding<bool> _showShuffleButtonBinding;
+
+  @override
+  void initState() {
+    super.initState();
+    _showShuffleButtonBinding = PreferenceBinding(
+      GetIt.instance<PreferenceStore>(),
+      UserPreferences.showShuffleButton,
+    );
+  }
+
+  @override
+  void dispose() {
+    _showShuffleButtonBinding.dispose();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
-    return Scaffold(
-      appBar: buildSettingsAppBar(context, Text(l10n.navigation)),
-      body: ListView(
-        children: [
-          EnumPreferenceTile<NavbarPosition>(
-            preference: UserPreferences.navbarPosition,
-            title: l10n.navigationStyle,
-            icon: Icons.view_sidebar,
-            labelOf: (v) => switch (v) {
-              NavbarPosition.top => l10n.topBar,
-              NavbarPosition.left => l10n.leftSidebar,
-            },
-            onChanged: () {
-              final pos = GetIt.instance<UserPreferences>().get(
-                UserPreferences.navbarPosition,
-              );
-              NavigationLayout.positionNotifier.value = pos;
-              _pushPersonalizationSync();
-            },
-          ),
-          _NavbarColorPickerTile(onChanged: _pushPersonalizationSync),
-          SliderPreferenceTile(
-            preference: UserPreferences.navbarOpacity,
-            title: l10n.navbarOpacity,
-            icon: Icons.opacity,
-            min: 0,
-            max: 100,
-            divisions: 20,
-            labelOf: (v) => '$v%',
-          ),
-          SwitchPreferenceTile(
-            preference: UserPreferences.showShuffleButton,
-            title: l10n.showShuffleButton,
-            subtitle: l10n.settingsShowShuffleButtonInNavigation,
-            icon: Icons.shuffle,
-            onChanged: _pushPersonalizationSync,
-          ),
-          _ShuffleContentTypePickerTile(onChanged: _pushPersonalizationSync),
-          SwitchPreferenceTile(
-            preference: UserPreferences.showGenresButton,
-            title: l10n.showGenresButton,
-            subtitle: l10n.settingsShowGenresButtonInNavigation,
-            icon: Icons.theater_comedy,
-            onChanged: _pushPersonalizationSync,
-          ),
-          SwitchPreferenceTile(
-            preference: UserPreferences.showFavoritesButton,
-            title: l10n.showFavoritesButton,
-            subtitle: l10n.settingsShowFavoritesButtonInNavigation,
-            icon: Icons.favorite,
-            onChanged: _pushPersonalizationSync,
-          ),
-          SwitchPreferenceTile(
-            preference: UserPreferences.showLibrariesInToolbar,
-            title: l10n.showLibrariesInToolbar,
-            subtitle: l10n.settingsShowLibrariesButtonInNavigation,
-            icon: Icons.video_library,
-            onChanged: _pushPersonalizationSync,
-          ),
-        ],
+    return ValueListenableBuilder<bool>(
+      valueListenable: _showShuffleButtonBinding,
+      builder: (context, showShuffleButton, _) => Scaffold(
+        appBar: buildSettingsAppBar(context, Text(l10n.navigation)),
+        body: ListView(
+          children: [
+            EnumPreferenceTile<NavbarPosition>(
+              preference: UserPreferences.navbarPosition,
+              title: l10n.navigationStyle,
+              icon: Icons.view_sidebar,
+              labelOf: (v) => switch (v) {
+                NavbarPosition.top => l10n.topBar,
+                NavbarPosition.left => l10n.leftSidebar,
+              },
+              onChanged: () {
+                final pos = GetIt.instance<UserPreferences>().get(
+                  UserPreferences.navbarPosition,
+                );
+                NavigationLayout.positionNotifier.value = pos;
+                _pushPersonalizationSync();
+              },
+            ),
+            _NavbarColorPickerTile(onChanged: _pushPersonalizationSync),
+            SliderPreferenceTile(
+              preference: UserPreferences.navbarOpacity,
+              title: l10n.navbarOpacity,
+              icon: Icons.opacity,
+              min: 0,
+              max: 100,
+              divisions: 20,
+              labelOf: (v) => '$v%',
+            ),
+            SwitchPreferenceTile(
+              preference: UserPreferences.showShuffleButton,
+              title: l10n.showShuffleButton,
+              subtitle: l10n.settingsShowShuffleButtonInNavigation,
+              icon: Icons.shuffle,
+              onChanged: _pushPersonalizationSync,
+            ),
+            if (showShuffleButton)
+              _ShuffleContentTypePickerTile(onChanged: _pushPersonalizationSync),
+            SwitchPreferenceTile(
+              preference: UserPreferences.showGenresButton,
+              title: l10n.showGenresButton,
+              subtitle: l10n.settingsShowGenresButtonInNavigation,
+              icon: Icons.theater_comedy,
+              onChanged: _pushPersonalizationSync,
+            ),
+            SwitchPreferenceTile(
+              preference: UserPreferences.showFavoritesButton,
+              title: l10n.showFavoritesButton,
+              subtitle: l10n.settingsShowFavoritesButtonInNavigation,
+              icon: Icons.favorite,
+              onChanged: _pushPersonalizationSync,
+            ),
+            SwitchPreferenceTile(
+              preference: UserPreferences.showLibrariesInToolbar,
+              title: l10n.showLibrariesInToolbar,
+              subtitle: l10n.settingsShowLibrariesButtonInNavigation,
+              icon: Icons.video_library,
+              onChanged: _pushPersonalizationSync,
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -859,15 +885,6 @@ class _HomeScreenCategoryScreenState extends State<_HomeScreenCategoryScreen> {
       body: ListView(
         children: [
           const _SectionHeader('Home Rows'),
-          _TvSettingsListTile(
-            autofocus: true,
-            leading: const Icon(Icons.list),
-            title: Text(l10n.homeSections),
-            subtitle: Text(l10n.reorderToggleHomeRows),
-            onTap: () => context.pushSettingsScreen(
-              const HomeSectionsScreen(showGeneralOptions: false),
-            ),
-          ),
           EnumPreferenceTile<HomeRowsStyle>(
             preference: UserPreferences.homeRowsStyle,
             title: 'Rows Type',
@@ -881,20 +898,21 @@ class _HomeScreenCategoryScreenState extends State<_HomeScreenCategoryScreen> {
               setState(() {});
             },
           ),
-          if (rowsStyle == HomeRowsStyle.v1)
-            _TvSettingsListTile(
-              leading: const Icon(Icons.photo_library),
-              title: Text(l10n.perRowImageTypeSelection),
-              subtitle: Text(l10n.configureImageTypeForEachRow),
-              onTap: () =>
-                  context.pushSettingsScreen(const HomeRowsImageTypeScreen()),
-            ),
           SwitchPreferenceTile(
             preference: UserPreferences.mergeContinueWatchingNextUp,
             title: l10n.mergeContinueWatchingAndNextUp,
             subtitle: l10n.combineBothRows,
             icon: Icons.merge_type,
             onChanged: _pushPersonalizationSync,
+          ),
+          _TvSettingsListTile(
+            autofocus: true,
+            leading: const Icon(Icons.list),
+            title: Text(l10n.homeSections),
+            subtitle: Text(l10n.reorderToggleHomeRows),
+            onTap: () => context.pushSettingsScreen(
+              const HomeSectionsScreen(showGeneralOptions: false),
+            ),
           ),
           SwitchPreferenceTile(
             preference: UserPreferences.displayFavoritesRows,
@@ -967,7 +985,7 @@ class _HomeScreenCategoryScreenState extends State<_HomeScreenCategoryScreen> {
           ),
           EnumPreferenceTile<PosterSize>(
             preference: UserPreferences.posterSize,
-            title: l10n.posterSize,
+            title: 'Card Size',
             icon: Icons.photo_size_select_large,
             labelOf: (v) => switch (v) {
               PosterSize.small => l10n.small,
@@ -1459,20 +1477,20 @@ class _AboutCategoryScreen extends StatelessWidget {
             leading: const Icon(Icons.code),
             title: Text(l10n.sourceCode),
             subtitle: Text(l10n.sourceCodeUrl),
-            onTap: () => launchUrl(
-              Uri.parse('https://github.com/Moonfin-Client/Mobile-Desktop'),
-              mode: LaunchMode.externalApplication,
+            onTap: () => showQrOrLaunch(
+              context,
+              url: 'https://github.com/Moonfin-Client/Mobile-Desktop',
+              title: l10n.sourceCode,
             ),
           ),
           _TvSettingsListTile(
             leading: const Icon(Icons.bug_report),
             title: Text(l10n.settingsReportAnIssue),
             subtitle: Text(l10n.settingsReportAnIssueSubtitle),
-            onTap: () => launchUrl(
-              Uri.parse(
-                'https://github.com/Moonfin-Client/Mobile-Desktop/issues',
-              ),
-              mode: LaunchMode.externalApplication,
+            onTap: () => showQrOrLaunch(
+              context,
+              url: 'https://github.com/Moonfin-Client/Mobile-Desktop/issues',
+              title: l10n.settingsReportAnIssue,
             ),
           ),
           _TvSettingsListTile(
@@ -1496,17 +1514,22 @@ class _AboutCategoryScreen extends StatelessWidget {
             leading: const Icon(Icons.description),
             title: Text(l10n.settingsLicenses),
             subtitle: Text(l10n.settingsOpenSourceLicenseNotices),
-            onTap: () => context.pushSettingsScreen(const _LicensesScreen()),
+            onTap: () => showQrOrLaunch(
+              context,
+              url:
+                  'https://github.com/Moonfin-Client/Mobile-Desktop/blob/main/LICENSE',
+              title: l10n.settingsLicenses,
+            ),
           ),
           _TvSettingsListTile(
             leading: const Icon(Icons.privacy_tip),
             title: Text(l10n.settingsPrivacyPolicy),
             subtitle: Text(l10n.settingsPrivacyPolicySubtitle),
-            onTap: () => launchUrl(
-              Uri.parse(
-                'https://github.com/Moonfin-Client/Mobile-Desktop/blob/main/PRIVACY_POLICY.md',
-              ),
-              mode: LaunchMode.externalApplication,
+            onTap: () => showQrOrLaunch(
+              context,
+              url:
+                  'https://github.com/Moonfin-Client/Mobile-Desktop/blob/main/PRIVACY_POLICY.md',
+              title: l10n.settingsPrivacyPolicy,
             ),
           ),
         ],
@@ -1852,59 +1875,12 @@ class _VideoPlaybackScreen extends StatelessWidget {
       ),
       body: ListView(
         children: [
-          StringPickerPreferenceTile(
-            preference: UserPreferences.mediaSegmentActions,
-            title: l10n.settingsSkipIntrosAndOutros,
-            icon: Icons.content_cut,
-            options: {
-              'intro:askToSkip,outro:askToSkip': l10n.settingsPromptUser,
-              'intro:skip,outro:skip': l10n.settingsSkip,
-              'intro:doNothing,outro:doNothing': l10n.settingsDoNothing,
-            },
-          ),
-          SwitchPreferenceTile(
-            preference: UserPreferences.replaceSkipOutroWithNextUp,
-            title: 'Replace skip outro with Next Up',
-            subtitle:
-                'Show the Next Up overlay instead of skipping outros immediately.',
-            icon: Icons.skip_next,
-          ),
+          const _SectionHeader('Media Player Behavior'),
           SwitchPreferenceTile(
             preference: UserPreferences.showDescriptionOnPause,
             title: l10n.showDescriptionOnPause,
             subtitle: l10n.dimVideoShowOverview,
             icon: Icons.pause_circle_outline,
-          ),
-          StringPickerPreferenceTile(
-            preference: UserPreferences.maxBitrate,
-            title: l10n.maxStreamingBitrate,
-            description: l10n.settingsMaxBitrateDescription,
-            icon: Icons.network_check,
-            options: {
-              'auto': l10n.auto,
-              '200': '200 Mbps',
-              '120': '120 Mbps',
-              '80': '80 Mbps',
-              '40': '40 Mbps',
-              '20': '20 Mbps',
-              '10': '10 Mbps',
-              '5': '5 Mbps',
-              '2': '2 Mbps',
-              '1': '1 Mbps',
-            },
-          ),
-          EnumPreferenceTile<MaxVideoResolution>(
-            preference: UserPreferences.maxVideoResolution,
-            title: l10n.maxResolution,
-            description: l10n.settingsMaxResolutionDescription,
-            icon: Icons.high_quality,
-            labelOf: (v) => switch (v) {
-              MaxVideoResolution.auto => l10n.auto,
-              MaxVideoResolution.res480p => '480p',
-              MaxVideoResolution.res720p => '720p',
-              MaxVideoResolution.res1080p => '1080p',
-              MaxVideoResolution.res2160p => '2160p (4K)',
-            },
           ),
           EnumPreferenceTile<ZoomMode>(
             preference: UserPreferences.playerZoomMode,
@@ -1917,6 +1893,79 @@ class _VideoPlaybackScreen extends StatelessWidget {
               ZoomMode.stretch => l10n.stretch,
             },
           ),
+          SwitchPreferenceTile(
+            preference: UserPreferences.trickPlayEnabled,
+            title: l10n.trickPlay,
+            subtitle: l10n.showPreviewThumbnailsWhenSeeking,
+            icon: Icons.image_search,
+          ),
+          StringPickerPreferenceTile(
+            preference: UserPreferences.resumeSubtractDuration,
+            title: l10n.resumeRewind,
+            description: l10n.settingsResumeRewindDescription,
+            icon: Icons.replay,
+            options: {
+              '0': l10n.disabled,
+              '5': l10n.fiveSeconds,
+              '10': l10n.tenSeconds,
+              '15': l10n.fifteenSeconds,
+              '30': l10n.thirtySeconds,
+            },
+          ),
+          IntPickerPreferenceTile(
+            preference: UserPreferences.unpauseRewindDuration,
+            title: l10n.unpauseRewind,
+            description: l10n.settingsUnpauseRewindDescription,
+            icon: Icons.replay_circle_filled,
+            options: {
+              0: l10n.disabled,
+              5000: l10n.fiveSeconds,
+              10000: l10n.tenSeconds,
+              15000: l10n.fifteenSeconds,
+              30000: l10n.thirtySeconds,
+            },
+          ),
+          IntPickerPreferenceTile(
+            preference: UserPreferences.skipBackLength,
+            title: l10n.skipBackLength,
+            description: l10n.settingsSkipBackLengthDescription,
+            icon: Icons.fast_rewind,
+            options: {
+              1000: l10n.settingsOneSecond,
+              3000: l10n.settingsThreeSeconds,
+              5000: l10n.fiveSeconds,
+              10000: l10n.tenSeconds,
+              15000: l10n.fifteenSeconds,
+              30000: l10n.thirtySeconds,
+              45000: l10n.settingsFortyFiveSeconds,
+              60000: l10n.settingsSixtySeconds,
+            },
+          ),
+          IntPickerPreferenceTile(
+            preference: UserPreferences.skipForwardLength,
+            title: l10n.skipForwardLength,
+            description: l10n.settingsSkipForwardLengthDescription,
+            icon: Icons.fast_forward,
+            options: {
+              1000: l10n.settingsOneSecond,
+              3000: l10n.settingsThreeSeconds,
+              5000: l10n.fiveSeconds,
+              10000: l10n.tenSeconds,
+              15000: l10n.fifteenSeconds,
+              30000: l10n.thirtySeconds,
+              45000: l10n.settingsFortyFiveSeconds,
+              60000: l10n.settingsSixtySeconds,
+            },
+          ),
+          if (PlatformDetection.useMobileUi)
+            SwitchPreferenceTile(
+              preference: UserPreferences.osdLockEnabled,
+              title: l10n.osdLockButton,
+              subtitle: l10n.osdLockButtonDescription,
+              icon: Icons.lock,
+            ),
+
+          const _SectionHeader('Decoding & Rendering'),
           if (PlatformDetection.isAndroid)
             EnumPreferenceTile<PlaybackEnginePreference>(
               preference: UserPreferences.playbackEnginePreference,
@@ -1940,24 +1989,6 @@ class _VideoPlaybackScreen extends StatelessWidget {
                   l10n.settingsPlaybackEngineMpvLegacy,
               },
             ),
-          if (PlatformDetection.isAndroid && PlatformDetection.isTV)
-            SwitchPreferenceTile(
-              preference: UserPreferences.preferExoPlayerFfmpeg,
-              title: 'Prefer software decoders',
-              subtitle:
-                  'Use FFmpeg (audio) and libgav1 (AV1) before hardware decoders. Disable if HDMI audio passthrough breaks.',
-              icon: Icons.memory,
-            ),
-          if (PlatformDetection.isAndroid && PlatformDetection.isTV)
-            SwitchPreferenceTile(
-              preference: UserPreferences.useExternalPlayer,
-              title: 'Use external player',
-              subtitle:
-                  'Open video playback in your selected external app on Android TV.',
-              icon: Icons.open_in_new,
-            ),
-          if (PlatformDetection.isAndroid && PlatformDetection.isTV)
-            const _ExternalPlayerAppPickerTile(),
           if (PlatformDetection.isAndroid && PlatformDetection.isTV)
             EnumPreferenceTile<DolbyVisionFallbackBehavior>(
               preference: UserPreferences.dolbyVisionFallbackBehavior,
@@ -2018,75 +2049,37 @@ class _VideoPlaybackScreen extends StatelessWidget {
                 AutoHdrSwitchingBehavior.always => l10n.always,
               },
             ),
-          SwitchPreferenceTile(
-            preference: UserPreferences.trickPlayEnabled,
-            title: l10n.trickPlay,
-            subtitle: l10n.showPreviewThumbnailsWhenSeeking,
-            icon: Icons.image_search,
-          ),
-          if (PlatformDetection.useMobileUi)
-            SwitchPreferenceTile(
-              preference: UserPreferences.osdLockEnabled,
-              title: l10n.osdLockButton,
-              subtitle: l10n.osdLockButtonDescription,
-              icon: Icons.lock,
-            ),
+
+          const _SectionHeader('Transcoding Limits'),
           StringPickerPreferenceTile(
-            preference: UserPreferences.resumeSubtractDuration,
-            title: l10n.resumeRewind,
-            description: l10n.settingsResumeRewindDescription,
-            icon: Icons.replay,
+            preference: UserPreferences.maxBitrate,
+            title: l10n.maxStreamingBitrate,
+            description: l10n.settingsMaxBitrateDescription,
+            icon: Icons.network_check,
             options: {
-              '0': l10n.disabled,
-              '5': l10n.fiveSeconds,
-              '10': l10n.tenSeconds,
-              '15': l10n.fifteenSeconds,
-              '30': l10n.thirtySeconds,
+              'auto': l10n.auto,
+              '200': '200 Mbps',
+              '120': '120 Mbps',
+              '80': '80 Mbps',
+              '40': '40 Mbps',
+              '20': '20 Mbps',
+              '10': '10 Mbps',
+              '5': '5 Mbps',
+              '2': '2 Mbps',
+              '1': '1 Mbps',
             },
           ),
-          IntPickerPreferenceTile(
-            preference: UserPreferences.unpauseRewindDuration,
-            title: l10n.unpauseRewind,
-            description: l10n.settingsUnpauseRewindDescription,
-            icon: Icons.replay_circle_filled,
-            options: {
-              0: l10n.disabled,
-              5000: l10n.fiveSeconds,
-              10000: l10n.tenSeconds,
-              15000: l10n.fifteenSeconds,
-              30000: l10n.thirtySeconds,
-            },
-          ),
-          IntPickerPreferenceTile(
-            preference: UserPreferences.skipBackLength,
-            title: l10n.skipBackLength,
-            description: l10n.settingsSkipBackLengthDescription,
-            icon: Icons.fast_rewind,
-            options: {
-              1000: l10n.settingsOneSecond,
-              3000: l10n.settingsThreeSeconds,
-              5000: l10n.fiveSeconds,
-              10000: l10n.tenSeconds,
-              15000: l10n.fifteenSeconds,
-              30000: l10n.thirtySeconds,
-              45000: l10n.settingsFortyFiveSeconds,
-              60000: l10n.settingsSixtySeconds,
-            },
-          ),
-          IntPickerPreferenceTile(
-            preference: UserPreferences.skipForwardLength,
-            title: l10n.skipForwardLength,
-            description: l10n.settingsSkipForwardLengthDescription,
-            icon: Icons.fast_forward,
-            options: {
-              1000: l10n.settingsOneSecond,
-              3000: l10n.settingsThreeSeconds,
-              5000: l10n.fiveSeconds,
-              10000: l10n.tenSeconds,
-              15000: l10n.fifteenSeconds,
-              30000: l10n.thirtySeconds,
-              45000: l10n.settingsFortyFiveSeconds,
-              60000: l10n.settingsSixtySeconds,
+          EnumPreferenceTile<MaxVideoResolution>(
+            preference: UserPreferences.maxVideoResolution,
+            title: l10n.maxResolution,
+            description: l10n.settingsMaxResolutionDescription,
+            icon: Icons.high_quality,
+            labelOf: (v) => switch (v) {
+              MaxVideoResolution.auto => l10n.auto,
+              MaxVideoResolution.res480p => '480p',
+              MaxVideoResolution.res720p => '720p',
+              MaxVideoResolution.res1080p => '1080p',
+              MaxVideoResolution.res2160p => '2160p (4K)',
             },
           ),
         ],
@@ -2350,7 +2343,6 @@ class _AudioPreferencesScreenState extends State<_AudioPreferencesScreen> {
     final hasSnapshot = PlatformDetection.hasAudioCapabilities;
     if (!hasSnapshot) {
       return <Widget>[
-        _SectionHeader(l10n.settingsDetectedAudioCapabilities),
         _TvSettingsListTile(
           leading: const Icon(Icons.hearing_disabled),
           title: Text(l10n.settingsDetectedAudioCapabilitiesUnavailable),
@@ -2386,20 +2378,19 @@ class _AudioPreferencesScreenState extends State<_AudioPreferencesScreen> {
     ];
 
     return <Widget>[
-      _SectionHeader(l10n.settingsDetectedAudioCapabilities),
       _TvSettingsListTile(
         leading: const Icon(Icons.router),
-        title: Text(l10n.settingsAudioRouteLabel),
+        title: const Text('Connection'),
         subtitle: Text(routeSubtitleParts.join(' • ')),
       ),
       _TvSettingsListTile(
         leading: const Icon(Icons.memory),
-        title: Text(l10n.settingsAudioDecodeLabel),
+        title: const Text('Audio Transcode Target'),
         subtitle: Text(_joinedOrUnknown(l10n, decodeCodecs)),
       ),
       _TvSettingsListTile(
         leading: const Icon(Icons.settings_input_hdmi),
-        title: Text(l10n.settingsAudioPassthroughLabel),
+        title: const Text('Passthrough'),
         subtitle: Text(_joinedOrUnknown(l10n, passthroughCodecs)),
       ),
     ];
@@ -2431,6 +2422,7 @@ class _AudioPreferencesScreenState extends State<_AudioPreferencesScreen> {
       appBar: buildSettingsAppBar(context, Text(l10n.settingsAudioPreferences)),
       body: ListView(
         children: [
+          const _SectionHeader('Media Player Behavior'),
           SwitchPreferenceTile(
             preference: UserPreferences.audioNightMode,
             title: l10n.nightMode,
@@ -2463,6 +2455,8 @@ class _AudioPreferencesScreenState extends State<_AudioPreferencesScreen> {
               'pol': l10n.polish,
             },
           ),
+
+          const _SectionHeader('Processing & Passthrough'),
           EnumPreferenceTile<AudioOutputMode>(
             preference: UserPreferences.audioOutputMode,
             title: l10n.settingsAudioOutputMode,
@@ -2486,101 +2480,94 @@ class _AudioPreferencesScreenState extends State<_AudioPreferencesScreen> {
               AudioFallbackCodec.eac3_5_1 => l10n.settingsAudioFallbackEac35_1,
             },
           ),
+
           if (_showPassthroughToggles) ...[
-            _SectionHeader(l10n.settingsAudioPassthroughAdvanced),
-            ExpansionTile(
-              leading: const Icon(Icons.settings_input_hdmi),
-              title: Text(l10n.settingsAudioCodecPassthrough),
-              subtitle: Text(l10n.settingsAudioCodecPassthroughDescription),
-              children: [
-                SwitchPreferenceTile(
-                  preference: UserPreferences.ac3PassthroughEnabled,
-                  title: l10n.ac3Passthrough,
-                  subtitle: _capabilitySubtitle(
-                    l10n,
-                    baseSubtitle: l10n.settingsBitstreamAc3ToExternalDecoder,
-                    isSupported: PlatformDetection.supportsAc3Audio,
-                  ),
-                  icon: Icons.speaker,
-                ),
-                SwitchPreferenceTile(
-                  preference: UserPreferences.eac3PassthroughEnabled,
-                  title: l10n.settingsAudioEac3Passthrough,
-                  subtitle: _capabilitySubtitle(
-                    l10n,
-                    baseSubtitle:
-                        l10n.settingsAudioBitstreamEac3ToExternalDecoder,
-                    isSupported: PlatformDetection.supportsEac3Audio,
-                  ),
-                  icon: Icons.surround_sound,
-                ),
-                SwitchPreferenceTile(
-                  preference: UserPreferences.eac3JocPassthroughEnabled,
-                  title: l10n.settingsAudioEac3JocPassthrough,
-                  subtitle: _capabilitySubtitle(
-                    l10n,
-                    baseSubtitle:
-                        l10n.settingsAudioBitstreamEac3JocToExternalDecoder,
-                    isSupported: PlatformDetection.supportsEac3JocAudio,
-                  ),
-                  icon: Icons.surround_sound,
-                ),
-                SwitchPreferenceTile(
-                  preference: UserPreferences.dtsCorePassthroughEnabled,
-                  title: l10n.settingsAudioDtsCorePassthrough,
-                  subtitle: _capabilitySubtitle(
-                    l10n,
-                    baseSubtitle: l10n.enableDtsPassthrough,
-                    isSupported: PlatformDetection.supportsDtsAudio,
-                  ),
-                  icon: Icons.audiotrack,
-                ),
-                SwitchPreferenceTile(
-                  preference: UserPreferences.dtsHdPassthroughEnabled,
-                  title: l10n.settingsAudioDtsHdPassthrough,
-                  subtitle: _capabilitySubtitle(
-                    l10n,
-                    baseSubtitle:
-                        l10n.settingsAudioBitstreamDtsHdToExternalDecoder,
-                    isSupported: PlatformDetection.supportsDtsHdAudio,
-                  ),
-                  icon: Icons.high_quality,
-                ),
-                SwitchPreferenceTile(
-                  preference: UserPreferences.dtsXPassthroughEnabled,
-                  title: 'DTS:X (DTS UHD) Passthrough',
-                  subtitle: _capabilitySubtitle(
-                    l10n,
-                    baseSubtitle:
-                        'Bitstream DTS:X (DTS UHD) to external decoder.',
-                    isSupported: PlatformDetection.supportsDtsXAudio,
-                  ),
-                  icon: Icons.high_quality,
-                ),
-                SwitchPreferenceTile(
-                  preference: UserPreferences.trueHdPassthroughEnabled,
-                  title: l10n.settingsAudioTrueHdPassthrough,
-                  subtitle: _capabilitySubtitle(
-                    l10n,
-                    baseSubtitle: l10n.enableTrueHdAudio,
-                    isSupported: PlatformDetection.supportsTrueHdAudio,
-                  ),
-                  icon: Icons.graphic_eq,
-                ),
-                SwitchPreferenceTile(
-                  preference: UserPreferences.trueHdAtmosPassthroughEnabled,
-                  title: 'TrueHD with Atmos (JOC) Passthrough',
-                  subtitle: _capabilitySubtitle(
-                    l10n,
-                    baseSubtitle:
-                        l10n.settingsAudioBitstreamTrueHdAtmosToExternalDecoder,
-                    isSupported: PlatformDetection.supportsTrueHdJocAudio,
-                  ),
-                  icon: Icons.graphic_eq,
-                ),
-              ],
+            const _SectionHeader('Passthrough Settings'),
+            SwitchPreferenceTile(
+              preference: UserPreferences.ac3PassthroughEnabled,
+              title: l10n.ac3Passthrough,
+              subtitle: _capabilitySubtitle(
+                l10n,
+                baseSubtitle: l10n.settingsBitstreamAc3ToExternalDecoder,
+                isSupported: PlatformDetection.supportsAc3Audio,
+              ),
+              icon: Icons.speaker,
+            ),
+            SwitchPreferenceTile(
+              preference: UserPreferences.eac3PassthroughEnabled,
+              title: l10n.settingsAudioEac3Passthrough,
+              subtitle: _capabilitySubtitle(
+                l10n,
+                baseSubtitle: l10n.settingsAudioBitstreamEac3ToExternalDecoder,
+                isSupported: PlatformDetection.supportsEac3Audio,
+              ),
+              icon: Icons.surround_sound,
+            ),
+            SwitchPreferenceTile(
+              preference: UserPreferences.eac3JocPassthroughEnabled,
+              title: l10n.settingsAudioEac3JocPassthrough,
+              subtitle: _capabilitySubtitle(
+                l10n,
+                baseSubtitle:
+                    l10n.settingsAudioBitstreamEac3JocToExternalDecoder,
+                isSupported: PlatformDetection.supportsEac3JocAudio,
+              ),
+              icon: Icons.surround_sound,
+            ),
+            SwitchPreferenceTile(
+              preference: UserPreferences.dtsCorePassthroughEnabled,
+              title: l10n.settingsAudioDtsCorePassthrough,
+              subtitle: _capabilitySubtitle(
+                l10n,
+                baseSubtitle: l10n.enableDtsPassthrough,
+                isSupported: PlatformDetection.supportsDtsAudio,
+              ),
+              icon: Icons.audiotrack,
+            ),
+            SwitchPreferenceTile(
+              preference: UserPreferences.dtsHdPassthroughEnabled,
+              title: l10n.settingsAudioDtsHdPassthrough,
+              subtitle: _capabilitySubtitle(
+                l10n,
+                baseSubtitle: l10n.settingsAudioBitstreamDtsHdToExternalDecoder,
+                isSupported: PlatformDetection.supportsDtsHdAudio,
+              ),
+              icon: Icons.high_quality,
+            ),
+            SwitchPreferenceTile(
+              preference: UserPreferences.dtsXPassthroughEnabled,
+              title: 'DTS:X (DTS UHD) Passthrough',
+              subtitle: _capabilitySubtitle(
+                l10n,
+                baseSubtitle: 'Bitstream DTS:X (DTS UHD) to external decoder.',
+                isSupported: PlatformDetection.supportsDtsXAudio,
+              ),
+              icon: Icons.high_quality,
+            ),
+            SwitchPreferenceTile(
+              preference: UserPreferences.trueHdPassthroughEnabled,
+              title: l10n.settingsAudioTrueHdPassthrough,
+              subtitle: _capabilitySubtitle(
+                l10n,
+                baseSubtitle: l10n.enableTrueHdAudio,
+                isSupported: PlatformDetection.supportsTrueHdAudio,
+              ),
+              icon: Icons.graphic_eq,
+            ),
+            SwitchPreferenceTile(
+              preference: UserPreferences.trueHdAtmosPassthroughEnabled,
+              title: 'TrueHD with Atmos (JOC) Passthrough',
+              subtitle: _capabilitySubtitle(
+                l10n,
+                baseSubtitle:
+                    l10n.settingsAudioBitstreamTrueHdAtmosToExternalDecoder,
+                isSupported: PlatformDetection.supportsTrueHdJocAudio,
+              ),
+              icon: Icons.graphic_eq,
             ),
           ],
+
+          const _SectionHeader('Detected Audio Capabilities'),
           ..._buildDetectedCapabilities(l10n),
         ],
       ),
@@ -2588,12 +2575,45 @@ class _AudioPreferencesScreenState extends State<_AudioPreferencesScreen> {
   }
 }
 
-class _AutomationQueueScreen extends StatelessWidget {
+class _AutomationQueueScreen extends StatefulWidget {
   const _AutomationQueueScreen();
+
+  @override
+  State<_AutomationQueueScreen> createState() =>
+      _AutomationQueueScreenState();
+}
+
+class _AutomationQueueScreenState extends State<_AutomationQueueScreen> {
+  static const _promptSkipSegments = 'intro:askToSkip,outro:askToSkip';
+  late final UserPreferences _prefs;
+
+  @override
+  void initState() {
+    super.initState();
+    _prefs = GetIt.instance<UserPreferences>();
+    _prefs.addListener(_onPreferencesChanged);
+  }
+
+  @override
+  void dispose() {
+    _prefs.removeListener(_onPreferencesChanged);
+    super.dispose();
+  }
+
+  void _onPreferencesChanged() {
+    if (!mounted) return;
+    setState(() {});
+  }
 
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
+    final nextUpBehavior = _prefs.get(UserPreferences.nextUpBehavior);
+    final mediaSegmentActions = _prefs.get(UserPreferences.mediaSegmentActions);
+    final showNextUpOptions = nextUpBehavior != NextUpBehavior.disabled;
+    final showReplaceSkipOutroWithNextUp =
+        showNextUpOptions && mediaSegmentActions == _promptSkipSegments;
+
     return Scaffold(
       appBar: buildSettingsAppBar(
         context,
@@ -2601,48 +2621,89 @@ class _AutomationQueueScreen extends StatelessWidget {
       ),
       body: ListView(
         children: [
+          const _SectionHeader('Playback Enhancements'),
           SwitchPreferenceTile(
             preference: UserPreferences.cinemaModeEnabled,
             title: l10n.settingsCinemaMode,
             subtitle: l10n.settingsCinemaModeSubtitle,
             icon: Icons.movie_filter,
           ),
+          StringPickerPreferenceTile(
+            preference: UserPreferences.mediaSegmentActions,
+            title: l10n.settingsSkipIntrosAndOutros,
+            icon: Icons.content_cut,
+            options: {
+              _promptSkipSegments: l10n.settingsPromptUser,
+              'intro:skip,outro:skip': l10n.settingsSkip,
+              'intro:doNothing,outro:doNothing': l10n.settingsDoNothing,
+            },
+          ),
+
+          const _SectionHeader('Automatic Queuing'),
+          ListTile(
+            leading: const Icon(Icons.queue),
+            title: Text(l10n.mediaQueuing),
+            subtitle: const Text('Always on.'),
+          ),
           SwitchPreferenceTile(
-            preference: UserPreferences.mediaQueuingEnabled,
-            title: l10n.mediaQueuing,
-            subtitle: l10n.autoQueueNextEpisodes,
-            icon: Icons.queue,
+            preference: UserPreferences.autoplayNextEpisode,
+            title: 'Autoplay Next Episode',
+            subtitle:
+                'Automatically play the next episode when available.',
+            icon: Icons.play_circle,
           ),
           EnumPreferenceTile<NextUpBehavior>(
             preference: UserPreferences.nextUpBehavior,
             title: l10n.nextUpDisplay,
-            description: l10n.settingsNextUpDisplayDescription,
+            description:
+                'If enabled, show a pop-up at the end of an episode to Play Next or Close. If Autoplay is off, no input will return to details page.',
             icon: Icons.skip_next,
             labelOf: (v) => switch (v) {
-              NextUpBehavior.extended => l10n.extended,
-              NextUpBehavior.minimal => l10n.minimal,
-              NextUpBehavior.disabled => l10n.disabled,
+              NextUpBehavior.extended =>
+                'Extended - Full card with artwork and description',
+              NextUpBehavior.minimal =>
+                'Minimal - Compact overlay without thumbnail',
+              NextUpBehavior.disabled => 'None - Hide Next Up display',
             },
           ),
-          SliderPreferenceTile(
-            preference: UserPreferences.nextUpTimeout,
-            title: l10n.nextUpTimeout,
-            icon: Icons.timer,
-            min: 0,
-            max: 30000,
-            divisions: 30,
-            labelOf: (v) => l10n.secondsValue((v / 1000).round()),
-          ),
+          if (showNextUpOptions)
+            Padding(
+              padding: const EdgeInsets.fromLTRB(16, 4, 16, 0),
+              child: Text(
+                'How long should the Next Up display appear before auto-playing next episode (auto-play on) or returning to the media details page (auto-play off).',
+                style: Theme.of(context).textTheme.bodySmall,
+              ),
+            ),
+          if (showNextUpOptions)
+            SliderPreferenceTile(
+              preference: UserPreferences.nextUpTimeout,
+              title: l10n.nextUpTimeout,
+              icon: Icons.timer,
+              min: 0,
+              max: 30000,
+              divisions: 30,
+              labelOf: (v) => l10n.secondsValue((v / 1000).round()),
+            ),
+          if (showReplaceSkipOutroWithNextUp)
+            SwitchPreferenceTile(
+              preference: UserPreferences.replaceSkipOutroWithNextUp,
+              title: 'Replace Skip Outro with Next Up Display',
+              subtitle:
+                  'Show the Next Up overlay instead of the Skip Outro button.',
+              icon: Icons.skip_next,
+            ),
           EnumPreferenceTile<StillWatchingBehavior>(
             preference: UserPreferences.stillWatchingBehavior,
             title: l10n.stillWatchingPrompt,
+            description:
+                'Prompt to Continue Watching after X consecutive episodes.',
             icon: Icons.visibility,
             labelOf: (v) => switch (v) {
-              StillWatchingBehavior.short_ => l10n.settingsShort,
-              StillWatchingBehavior.medium => l10n.medium,
-              StillWatchingBehavior.long_ => l10n.settingsLong,
-              StillWatchingBehavior.veryLong => l10n.settingsVeryLong,
-              StillWatchingBehavior.disabled => l10n.off,
+              StillWatchingBehavior.short_ => '2 episodes',
+              StillWatchingBehavior.medium => '3 episodes',
+              StillWatchingBehavior.long_ => '5 episodes',
+              StillWatchingBehavior.veryLong => '8 episodes',
+              StillWatchingBehavior.disabled => 'Off',
             },
           ),
         ],
@@ -2689,6 +2750,24 @@ class _AdvancedOptionsScreenState extends State<_AdvancedOptionsScreen> {
               divisions: 20,
               labelOf: (v) => l10n.settingsMillisecondsValue(v.round()),
             ),
+            if (PlatformDetection.isAndroid && PlatformDetection.isTV) ...[
+              const _SectionHeader('Player Routing'),
+              SwitchPreferenceTile(
+                preference: UserPreferences.preferExoPlayerFfmpeg,
+                title: 'Prefer software decoders',
+                subtitle:
+                    'Use FFmpeg (audio) and libgav1 (AV1) before hardware decoders. Disable if HDMI audio passthrough breaks.',
+                icon: Icons.memory,
+              ),
+              SwitchPreferenceTile(
+                preference: UserPreferences.useExternalPlayer,
+                title: 'Use external player',
+                subtitle:
+                    'Open video playback in your selected external app on Android TV.',
+                icon: Icons.open_in_new,
+              ),
+              const _ExternalPlayerAppPickerTile(),
+            ],
             if (!PlatformDetection.isTV &&
                 !PlatformDetection.isIOS &&
                 !PlatformDetection.isWeb) ...[
@@ -2792,6 +2871,7 @@ class _SyncPlaySettingsScreenState extends State<_SyncPlaySettingsScreen> {
         child: ListView(
           padding: EdgeInsets.only(bottom: bottomPad),
           children: [
+            const _SectionHeader('Active Sessions'),
             _TvSettingsListTile(
               leading: const Icon(Icons.group_work),
               title: Text(l10n.settingsOpenGroups),
@@ -2800,7 +2880,7 @@ class _SyncPlaySettingsScreenState extends State<_SyncPlaySettingsScreen> {
                 MaterialPageRoute<void>(builder: (_) => const SyncPlayScreen()),
               ),
             ),
-            const Divider(),
+            const _SectionHeader('SyncPlay Options'),
             SwitchPreferenceTile(
               preference: UserPreferences.syncPlayEnabled,
               title: l10n.settingsSyncplayEnabled,
@@ -3044,67 +3124,77 @@ class _DoubleSliderTileState extends State<_DoubleSliderTile> {
   @override
   Widget build(BuildContext context) {
     final colorScheme = Theme.of(context).colorScheme;
-    return Focus(
-      focusNode: _outerFocusNode,
-      onKeyEvent: _onKeyEvent,
-      onFocusChange: (focused) {
-        if (focused) {
-          _ensureSettingsTileVisible(context);
-        }
-        if (_outerFocused != focused && mounted) {
-          setState(() => _outerFocused = focused);
-        }
-      },
-      child: AnimatedContainer(
-        duration: const Duration(milliseconds: 90),
-        curve: Curves.easeOut,
-        decoration: BoxDecoration(
-          color: _outerFocused
-              ? AppColorScheme.onSurface
-              : colorScheme.surfaceContainerLow,
-          borderRadius: BorderRadius.circular(12),
-        ),
-        child: ListTileTheme.merge(
-          textColor: _outerFocused
-              ? AppColors.black.withValues(alpha: 0.87)
-              : AppColorScheme.onSurface,
-          iconColor: _outerFocused
-              ? AppColors.black.withValues(alpha: 0.54)
-              : AppColorScheme.onSurface.withValues(alpha: 0.7),
-          titleTextStyle: const TextStyle(
-            fontSize: 14,
-            fontWeight: FontWeight.w600,
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(12, 4, 12, 4),
+      child: Focus(
+        focusNode: _outerFocusNode,
+        onKeyEvent: _onKeyEvent,
+        onFocusChange: (focused) {
+          if (focused) {
+            _ensureSettingsTileVisible(context);
+          }
+          if (_outerFocused != focused && mounted) {
+            setState(() => _outerFocused = focused);
+          }
+        },
+        child: AnimatedContainer(
+          duration: const Duration(milliseconds: 90),
+          curve: Curves.easeOut,
+          decoration: BoxDecoration(
+            color: _outerFocused
+                ? AppColorScheme.onSurface
+                : colorScheme.surfaceContainerLow,
+            borderRadius: BorderRadius.circular(12),
+            border: Border.fromBorderSide(
+              (_outerFocused
+                      ? ThemeRegistry.active.borders.focusBorder
+                      : ThemeRegistry.active.borders.cardBorder)
+                  .copyWith(width: 1),
+            ),
+            boxShadow: _outerFocused ? ThemeRegistry.active.borders.focusGlow : null,
           ),
-          subtitleTextStyle: const TextStyle(fontSize: 12),
-          child: ValueListenableBuilder<double>(
-            valueListenable: widget.binding,
-            builder: (_, value, _) => ListTile(
-              focusColor: Colors.transparent,
-              hoverColor: Colors.transparent,
-              leading: Icon(widget.icon),
-              title: Text(widget.title),
-              subtitle: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    AppLocalizations.of(
-                      context,
-                    ).settingsMillisecondsValue(value.round()),
-                    style: TextStyle(
-                      color: _outerFocused
-                          ? AppColors.black.withValues(alpha: 0.54)
-                          : AppColorScheme.onSurface.withValues(alpha: 0.7),
+          child: ListTileTheme.merge(
+            textColor: _outerFocused
+                ? AppColors.black.withValues(alpha: 0.87)
+                : AppColorScheme.onSurface,
+            iconColor: _outerFocused
+                ? AppColors.black.withValues(alpha: 0.54)
+                : AppColorScheme.onSurface.withValues(alpha: 0.7),
+            titleTextStyle: const TextStyle(
+              fontSize: 14,
+              fontWeight: FontWeight.w600,
+            ),
+            subtitleTextStyle: const TextStyle(fontSize: 12),
+            child: ValueListenableBuilder<double>(
+              valueListenable: widget.binding,
+              builder: (_, value, _) => ListTile(
+                focusColor: Colors.transparent,
+                hoverColor: Colors.transparent,
+                leading: Icon(widget.icon),
+                title: Text(widget.title),
+                subtitle: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      AppLocalizations.of(
+                        context,
+                      ).settingsMillisecondsValue(value.round()),
+                      style: TextStyle(
+                        color: _outerFocused
+                            ? AppColors.black.withValues(alpha: 0.54)
+                            : AppColorScheme.onSurface.withValues(alpha: 0.7),
+                      ),
                     ),
-                  ),
-                  Slider(
-                    focusNode: _sliderInternalNode,
-                    value: value.clamp(widget.min, widget.max),
-                    min: widget.min,
-                    max: widget.max,
-                    divisions: 40,
-                    onChanged: (v) => widget.binding.value = v,
-                  ),
-                ],
+                    Slider(
+                      focusNode: _sliderInternalNode,
+                      value: value.clamp(widget.min, widget.max),
+                      min: widget.min,
+                      max: widget.max,
+                      divisions: 40,
+                      onChanged: (v) => widget.binding.value = v,
+                    ),
+                  ],
+                ),
               ),
             ),
           ),

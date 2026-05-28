@@ -275,11 +275,13 @@ class _LiveTvPlayerScreenState extends State<LiveTvPlayerScreen> {
     return SubtitleViewConfiguration(
       visible: true,
       style: TextStyle(
+        inherit: false,
         height: 1.4,
         fontSize: fontSize,
         color: textColor,
         fontWeight: fontWeight >= 700 ? FontWeight.bold : FontWeight.normal,
         backgroundColor: bgColor,
+        fontFamilyFallback: const ['Roboto', 'Noto Sans', 'Arial'],
         shadows: strokeShadows,
       ),
       textAlign: TextAlign.center,

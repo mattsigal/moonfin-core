@@ -19,6 +19,8 @@ class UserPreferences extends ChangeNotifier {
 
   UserPreferences(this._store) {
     _migrateOverlayPreferences();
+    _migrateDefaultAudioLanguagePreference();
+    _enforceMediaQueuingAlwaysOn();
   }
 
   void _migrateOverlayPreferences() {
@@ -27,6 +29,22 @@ class UserPreferences extends ChangeNotifier {
     }
     if (!_store.containsKey(navbarColor.key)) {
       _store.set(navbarColor, _store.get(mediaBarOverlayColor));
+    }
+  }
+
+  void _migrateDefaultAudioLanguagePreference() {
+    if (!_store.containsKey(defaultAudioLanguage.key)) {
+      return;
+    }
+    final current = _store.get(defaultAudioLanguage).trim();
+    if (current.isEmpty) {
+      _store.set(defaultAudioLanguage, 'auto');
+    }
+  }
+
+  void _enforceMediaQueuingAlwaysOn() {
+    if (_store.get(mediaQueuingEnabled) != true) {
+      _store.set(mediaQueuingEnabled, true);
     }
   }
 
@@ -302,6 +320,11 @@ class UserPreferences extends ChangeNotifier {
     defaultValue: true,
   );
 
+  static final autoplayNextEpisode = Preference(
+    key: 'pref_autoplay_next_episode',
+    defaultValue: true,
+  );
+
   static final nextUpBehavior = EnumPreference(
     key: 'next_up_behavior',
     defaultValue: NextUpBehavior.extended,
@@ -499,7 +522,7 @@ class UserPreferences extends ChangeNotifier {
 
   static final defaultAudioLanguage = Preference(
     key: 'pref_audio_language',
-    defaultValue: '',
+    defaultValue: 'auto',
   );
   static final defaultSubtitleLanguage = Preference(
     key: 'pref_subtitle_language',

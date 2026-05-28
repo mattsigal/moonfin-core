@@ -14,6 +14,7 @@ class NextUpOverlay extends StatefulWidget {
   final int timeoutMs;
   final VoidCallback onPlayNext;
   final VoidCallback onDismiss;
+  final VoidCallback? onTimeout;
   final FocusNode? focusNode;
   final FocusNode? dismissFocusNode;
 
@@ -24,6 +25,7 @@ class NextUpOverlay extends StatefulWidget {
     required this.timeoutMs,
     required this.onPlayNext,
     required this.onDismiss,
+    this.onTimeout,
     this.focusNode,
     this.dismissFocusNode,
   });
@@ -50,7 +52,7 @@ class _NextUpOverlayState extends State<NextUpOverlay>
     if (widget.timeoutMs > 0) {
       _timer = Timer(
         Duration(milliseconds: widget.timeoutMs),
-        widget.onDismiss,
+        widget.onTimeout ?? widget.onDismiss,
       );
     }
   }

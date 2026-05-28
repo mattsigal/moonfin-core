@@ -308,16 +308,25 @@ class _SeerrConfigScreenState extends State<SeerrConfigScreen> {
             onChanged: _setBlockNsfw,
           ),
         if (showSeerrSettings)
-          ListTile(
-            leading: const Icon(Icons.view_carousel_outlined),
-            title: Text(l10n.discoverRows),
-            subtitle: Text(
+          Padding(
+            padding: const EdgeInsets.fromLTRB(16, 18, 16, 6),
+            child: Text(
+              l10n.discoverRows,
+              style: Theme.of(context).textTheme.titleSmall?.copyWith(
+                    fontWeight: FontWeight.w700,
+                  ),
+            ),
+          ),
+        if (showSeerrSettings)
+          Padding(
+            padding: const EdgeInsets.fromLTRB(16, 0, 16, 8),
+            child: Text(
               _syncService.pluginAvailable
                   ? l10n.discoverRowsDescriptionPlugin
                   : l10n.discoverRowsDescription,
+              style: Theme.of(context).textTheme.bodySmall,
             ),
           ),
-        if (showSeerrSettings) const Divider(height: 1),
       ],
     );
   }
@@ -378,6 +387,7 @@ class _SeerrConfigScreenState extends State<SeerrConfigScreen> {
           ReorderableListView.builder(
             shrinkWrap: true,
             physics: const NeverScrollableScrollPhysics(),
+            buildDefaultDragHandles: false,
             itemCount: _rows.length,
             onReorder: (oldIndex, newIndex) {
               if (newIndex > oldIndex) newIndex--;
@@ -394,13 +404,21 @@ class _SeerrConfigScreenState extends State<SeerrConfigScreen> {
                 hiddenLabel: l10n.hidden,
                 isFirst: rowIndex == 0,
                 isLast: rowIndex == _rows.length - 1,
-                trailing: ReorderableDragStartListener(
-                  index: rowIndex,
-                  child: Icon(
-                    Icons.drag_handle,
-                    color: colorScheme.onSurfaceVariant,
-                  ),
-                ),
+                trailing: PlatformDetection.useMobileUi
+                    ? ReorderableDelayedDragStartListener(
+                        index: rowIndex,
+                        child: Icon(
+                          Icons.drag_handle,
+                          color: colorScheme.onSurfaceVariant,
+                        ),
+                      )
+                    : ReorderableDragStartListener(
+                        index: rowIndex,
+                        child: Icon(
+                          Icons.drag_handle,
+                          color: colorScheme.onSurfaceVariant,
+                        ),
+                      ),
                 onToggle: (enabled) {
                   setState(() {
                     _rows[rowIndex] = row.copyWith(enabled: enabled);
@@ -452,9 +470,7 @@ class _SeerrLoginCardState extends State<_SeerrLoginCard> {
   String? _errorMessage;
 
   bool get _canSignIn {
-    return !_submitting &&
-        _usernameController.text.trim().isNotEmpty &&
-        _passwordController.text.isNotEmpty;
+    return !_submitting && _usernameController.text.trim().isNotEmpty;
   }
 
   @override
