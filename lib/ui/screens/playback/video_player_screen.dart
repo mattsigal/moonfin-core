@@ -47,6 +47,7 @@ import '../../../util/focus/dpad_keys.dart';
 import '../../../util/platform_detection.dart';
 import '../../navigation/destinations.dart';
 import '../../widgets/subtitle_preview.dart';
+import '../../screensaver/screensaver_controller.dart';
 import '../../widgets/remote_play_to_session_dialog.dart';
 import '../../widgets/track_selector_dialog.dart';
 import '../../widgets/playback/player_loading_overlay.dart';
@@ -87,6 +88,7 @@ class _VideoPlayerScreenState extends State<VideoPlayerScreen>
   final _pipService = GetIt.instance<PipService>();
   final _lifecycleHandler = GetIt.instance<PlaybackLifecycleHandler>();
   final _themeMusicService = GetIt.instance<ThemeMusicService>();
+  final _screensaverController = GetIt.instance<ScreensaverController>();
   final SyncPlayManager? _syncPlayManager =
       GetIt.instance.isRegistered<SyncPlayManager>()
       ? GetIt.instance<SyncPlayManager>()
@@ -145,6 +147,7 @@ class _VideoPlayerScreenState extends State<VideoPlayerScreen>
   bool _isPlayerMutationInFlight = false;
   Duration? _positionBeforeScreenLock;
   StreamSubscription<bool>? _screenLockSub;
+  StreamSubscription<bool>? _screensaverPlayingSub;
   StreamSubscription<void>? _completedSub;
   bool _isRestoringPosition = false;
   DateTime? _suppressSeekPromptsUntil;
@@ -733,6 +736,10 @@ class _VideoPlayerScreenState extends State<VideoPlayerScreen>
   @override
   void initState() {
     super.initState();
+    _screensaverController.setPlaybackActive(true);
+    _screensaverPlayingSub = _state.playingStream.listen(
+      _screensaverController.setPlaybackActive,
+    );
     if (PlatformDetection.useNativeVideoSurface) {
       _subtitleActive = (_manager.subtitleStreamIndex ?? -1) >= 0;
     }
@@ -883,6 +890,8 @@ class _VideoPlayerScreenState extends State<VideoPlayerScreen>
 
   @override
   void dispose() {
+    _screensaverPlayingSub?.cancel();
+    _screensaverController.setPlaybackActive(false);
     _prefs.removeListener(_syncMediaQueuingPreference);
     _manager.autoAdvanceEnabled = true;
     WidgetsBinding.instance.removeObserver(this);
@@ -1209,7 +1218,9 @@ class _VideoPlayerScreenState extends State<VideoPlayerScreen>
           if (_isTvLifecycleExitSuppressed()) return;
           if (_didHandleBackgroundSuspend) return;
           _didHandleBackgroundSuspend = true;
-          _scheduleTvBackgroundExit();
+          if (_state.isPlaying) {
+            _scheduleTvBackgroundExit();
+          }
           return;
         }
         if (PlatformDetection.isIOS) {

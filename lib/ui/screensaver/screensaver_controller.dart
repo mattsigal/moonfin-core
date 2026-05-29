@@ -8,6 +8,7 @@ class ScreensaverController {
   }
 
   bool _activityPaused = false;
+  bool _playbackActive = false;
   bool _wakeLockEnabled = false;
 
   bool get activityPaused => _activityPaused;
@@ -15,6 +16,12 @@ class ScreensaverController {
   set activityPaused(bool value) {
     if (_activityPaused == value) return;
     _activityPaused = value;
+    _refreshWakeLock();
+  }
+
+  void setPlaybackActive(bool value) {
+    if (_playbackActive == value) return;
+    _playbackActive = value;
     _refreshWakeLock();
   }
 
@@ -29,7 +36,7 @@ class ScreensaverController {
   }
 
   void _refreshWakeLock() {
-    final shouldEnable = !_activityPaused;
+    final shouldEnable = !_activityPaused && _playbackActive;
     if (_wakeLockEnabled == shouldEnable) {
       return;
     }
