@@ -124,6 +124,7 @@ class _VideoPlayerScreenState extends State<VideoPlayerScreen>
   bool _subtitleActive = false;
   bool _subtitleReapplyRetryScheduled = false;
   bool _isStopping = false;
+  bool _readyToPop = false;
   bool _didRestoreSystemUiOnExit = false;
   DateTime? _suppressTvLifecycleExitUntil;
   bool _isOsdLocked = false;
@@ -2345,7 +2346,9 @@ class _VideoPlayerScreenState extends State<VideoPlayerScreen>
 
   Future<void> _exitPlayback() async {
     if (_isStopping) return;
-    _isStopping = true;
+    setState(() {
+      _isStopping = true;
+    });
     _cancelTvTemporarySpeedHold();
     if (!PlatformDetection.isTV) _pipService.enableAutoPiP(false);
     if (_wasAlwaysOnTopOnEntry == false && _isAlwaysOnTop) {
@@ -2361,7 +2364,15 @@ class _VideoPlayerScreenState extends State<VideoPlayerScreen>
     }
     await _restoreSystemUiForExit();
     if (mounted) {
-      Navigator.of(context).pop();
+      _dismissTopOverlayRouteIfAny();
+      setState(() {
+        _readyToPop = true;
+      });
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted) {
+          Navigator.of(context).pop();
+        }
+      });
     }
   }
 
@@ -3044,7 +3055,7 @@ class _VideoPlayerScreenState extends State<VideoPlayerScreen>
     }
 
     return PopScope(
-      canPop: false,
+      canPop: _readyToPop,
       onPopInvokedWithResult: (didPop, _) {
         if (didPop) return;
         if (_isBackNavigationSuppressed()) {
