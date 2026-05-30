@@ -583,9 +583,7 @@ build_deb() {
 
   cp -r "$BUILD_DIR"/* "$pkg_root/usr/lib/moonfin/"
 
-  # Strip bundled libmpv/libsecret; deb uses distro packages via Depends.
-  rm -f "$pkg_root/usr/lib/moonfin/lib/libmpv.so."*
-  rm -f "$pkg_root/usr/lib/moonfin/lib/libsecret-1.so."*
+  inject_linux_runtime_libs "$pkg_root/usr/lib/moonfin"
 
   cat > "$pkg_root/usr/bin/moonfin" << 'EOF'
 #!/bin/sh
@@ -607,7 +605,7 @@ Version: ${version}
 Architecture: ${deb_arch}
 Maintainer: Moonfin Team <support@moonfin.dev>
 Installed-Size: $(du -sk "$pkg_root/usr" | cut -f1)
-Depends: libgtk-3-0, libglib2.0-0, libmpv2 | libmpv1, libsecret-1-0, libwebkit2gtk-4.1-0
+Depends: libgtk-3-0, libglib2.0-0, libsecret-1-0, libwebkit2gtk-4.1-0
 Description: Jellyfin & Emby media client
  Moonfin is a media client for Jellyfin and Emby servers,
  available on mobile, TV, and desktop platforms.
