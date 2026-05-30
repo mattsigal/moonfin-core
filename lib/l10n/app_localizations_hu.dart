@@ -7270,4 +7270,11 @@ class AppLocalizationsHu extends AppLocalizations {
   String latestLibraryName(String libraryName) {
     return 'Latest $libraryName';
   }
+
+  @override
+  String get useDetailedSubHeadings => 'Use Detailed Sub-Headings';
+
+  @override
+  String get useDetailedSubHeadingsDescription =>
+      'Show detailed or minimal subrow on Library pages.';
 }

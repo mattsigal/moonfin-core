@@ -12820,6 +12820,18 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Latest {libraryName}'**
   String latestLibraryName(String libraryName);
+
+  /// Label for setting to toggle detailed or minimal subrow on library pages
+  ///
+  /// In en, this message translates to:
+  /// **'Use Detailed Sub-Headings'**
+  String get useDetailedSubHeadings;
+
+  /// Subtitle for the use detailed sub headings setting
+  ///
+  /// In en, this message translates to:
+  /// **'Show detailed or minimal subrow on Library pages.'**
+  String get useDetailedSubHeadingsDescription;
 }
 
 class _AppLocalizationsDelegate

@@ -7274,6 +7274,13 @@ class AppLocalizationsEs extends AppLocalizations {
   String latestLibraryName(String libraryName) {
     return 'Último $libraryName';
   }
+
+  @override
+  String get useDetailedSubHeadings => 'Use Detailed Sub-Headings';
+
+  @override
+  String get useDetailedSubHeadingsDescription =>
+      'Show detailed or minimal subrow on Library pages.';
 }
 
 /// The translations for Spanish Castilian, as used in Latin America and the Caribbean (`es_419`).
