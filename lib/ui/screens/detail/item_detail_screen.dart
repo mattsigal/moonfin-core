@@ -2358,10 +2358,7 @@ class _DetailContentState extends State<_DetailContent> {
             unawaited(() async {
               await manager.playItems(viewModel.tracks, startIndex: index);
               if (!context.mounted) return;
-              final isAudio = viewModel.tracks.every((t) {
-                final mediaType = t.rawData['MediaType'] as String?;
-                return t.type == 'Audio' || mediaType == 'Audio';
-              });
+              final isAudio = viewModel.tracks.every(_isAudioItem);
               context.push(
                 isAudio ? Destinations.audioPlayer : Destinations.videoPlayer,
               );
