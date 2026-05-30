@@ -4329,7 +4329,7 @@ class _ActionButtonsState extends State<_ActionButtons> {
       playButtonLabel = hasProgress ? l10n.resumeReading : l10n.read;
     } else if (isSeries) {
       if (isFullyWatched || isFullyUnwatched) {
-        playButtonLabel = 'Play from Start';
+        playButtonLabel = l10n.play;
       } else {
         final nextUp = viewModel.nextUp;
         if (nextUp != null) {
