@@ -38,6 +38,7 @@ class RatingIconProvider {
       'tomatoes' || 'popcorn' || 'tomatoes_audience' ||
       'tmdb' || 'metacritic' || 'metacriticuser' || 'trakt' || 'anilist' =>
         '${value.toInt()}%',
+      'letterboxd' => '${value.toStringAsFixed(1)}/5',
       _ => value.toStringAsFixed(1),
     };
   }
