@@ -88,7 +88,8 @@ Widget buildSettingsLeadingIconShell(
 
 EdgeInsets _settingsTileOuterPadding(BuildContext context) {
   final inDialog =
-      context.findAncestorWidgetOfExactType<SimpleDialog>() != null;
+      context.findAncestorWidgetOfExactType<SimpleDialog>() != null ||
+      context.findAncestorWidgetOfExactType<AlertDialog>() != null;
   if (inDialog) {
     return const EdgeInsets.symmetric(vertical: 2);
   }

@@ -199,8 +199,9 @@ class _MediaBarSettingsScreenState extends State<MediaBarSettingsScreen> {
     return showFocusRestoringDialog<Set<String>>(
       context: context,
       useRootNavigator: false,
-      builder: (ctx) {
-        final closeOnce = createDialogBackCloseHandler(ctx);
+      builder: (dialogContext) {
+        var popped = false;
+        final closeOnce = createDialogBackCloseHandler(dialogContext);
         return Focus(
           canRequestFocus: false,
           skipTraversal: true,
@@ -215,8 +216,8 @@ class _MediaBarSettingsScreenState extends State<MediaBarSettingsScreen> {
           child: FocusScope(
             autofocus: true,
             child: StatefulBuilder(
-              builder: (ctx, setDialogState) => withCleanSettingsTypography(
-                ctx,
+              builder: (builderContext, setDialogState) => withCleanSettingsTypography(
+                builderContext,
                 AlertDialog(
                   title: Text(title),
                   content: SizedBox(
@@ -240,30 +241,35 @@ class _MediaBarSettingsScreenState extends State<MediaBarSettingsScreen> {
                                 setDialogState(() => working.clear());
                               },
                               child: Text(l10n.clear),
-                            ),
+                                  ),
                           ],
                         ),
                         Flexible(
                           child: ListView(
                             shrinkWrap: true,
-                            children: orderedEntries.map((e) {
-                              return CheckboxListTile(
-                                dense: true,
-                                visualDensity: VisualDensity.compact,
-                                contentPadding: EdgeInsets.zero,
-                                controlAffinity:
-                                    ListTileControlAffinity.leading,
-                                title: Text(e.value),
-                                value: working.contains(e.key),
-                                onChanged: (checked) {
-                                  setDialogState(() {
-                                    if (checked == true) {
-                                      working.add(e.key);
-                                    } else {
-                                      working.remove(e.key);
-                                    }
-                                  });
-                                },
+                            children: orderedEntries.asMap().entries.map((entry) {
+                              final i = entry.key;
+                              final e = entry.value;
+                              return TvFocusHighlight(
+                                builder: (ctx, focused) => CheckboxListTile(
+                                  autofocus: i == 0,
+                                  dense: true,
+                                  visualDensity: VisualDensity.compact,
+                                  contentPadding: EdgeInsets.zero,
+                                  controlAffinity:
+                                      ListTileControlAffinity.leading,
+                                  title: Text(e.value),
+                                  value: working.contains(e.key),
+                                  onChanged: (checked) {
+                                    setDialogState(() {
+                                      if (checked == true) {
+                                        working.add(e.key);
+                                      } else {
+                                        working.remove(e.key);
+                                      }
+                                    });
+                                  },
+                                ),
                               );
                             }).toList(),
                           ),
@@ -273,11 +279,19 @@ class _MediaBarSettingsScreenState extends State<MediaBarSettingsScreen> {
                   ),
                   actions: [
                     TextButton(
-                      onPressed: () => Navigator.pop(ctx),
+                      onPressed: () {
+                        if (popped) return;
+                        popped = true;
+                        Navigator.pop(dialogContext);
+                      },
                       child: Text(l10n.cancel),
                     ),
                     FilledButton(
-                      onPressed: () => Navigator.pop(ctx, working),
+                      onPressed: () {
+                        if (popped) return;
+                        popped = true;
+                        Navigator.pop(dialogContext, working);
+                      },
                       child: Text(l10n.save),
                     ),
                   ],
@@ -348,7 +362,7 @@ class _MediaBarSettingsScreenState extends State<MediaBarSettingsScreen> {
               subtitle: Text(
                 _sourceSubtitle(
                   UserPreferences.mediaBarLibraryIds,
-                  l10n.allLibraries,
+                  l10n.noneSelected,
                   l10n,
                 ),
               ),
