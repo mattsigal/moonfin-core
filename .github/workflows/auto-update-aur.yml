@@ -12,7 +12,7 @@ jobs:
       - name: Get upstream latest release
         id: upstream
         run: |
-          LATEST=$(curl -s https://api.github.com/repos/Moonfin-Client/Mobile-Desktop/releases/latest | jq -r '.tag_name')
+          LATEST=$(curl -s https://api.github.com/repos/Moonfin-Client/Moonfin-Core/releases/latest | jq -r '.tag_name')
           echo "version=$LATEST" >> "$GITHUB_OUTPUT"
           echo "Upstream latest version: $LATEST"
 
@@ -63,7 +63,7 @@ jobs:
         id: download
         run: |
           VERSION="${{ steps.upstream.outputs.version }}"
-          URL="https://github.com/Moonfin-Client/Mobile-Desktop/releases/download/${VERSION}/Moonfin_Linux_v${VERSION}.tar.gz"
+          URL="https://github.com/Moonfin-Client/Moonfin-Core/releases/download/${VERSION}/Moonfin_Linux_v${VERSION}.tar.gz"
           curl -L -o /tmp/moonfin-linux.tar.gz "$URL"
           SHA256=$(sha256sum /tmp/moonfin-linux.tar.gz | cut -d' ' -f1)
           echo "sha256=$SHA256" >> "$GITHUB_OUTPUT"
@@ -95,7 +95,7 @@ jobs:
             "    pkgdesc = Jellyfin & Emby media client for Linux (binary release)" \
             "    pkgver = ${VERSION}" \
             "    pkgrel = 1" \
-            "    url = https://github.com/Moonfin-Client/Mobile-Desktop" \
+            "    url = https://github.com/Moonfin-Client/Moonfin-Core" \
             "    arch = x86_64" \
             "    license = GPL-3.0-or-later" \
             "    depends = gtk3" \
@@ -104,7 +104,7 @@ jobs:
             "    depends = webkit2gtk-4.1" \
             "    provides = moonfin" \
             "    conflicts = moonfin" \
-            "    source = moonfin-bin-${VERSION}.tar.gz::https://github.com/Moonfin-Client/Mobile-Desktop/releases/download/${VERSION}/Moonfin_Linux_v${VERSION}.tar.gz" \
+            "    source = moonfin-bin-${VERSION}.tar.gz::https://github.com/Moonfin-Client/Moonfin-Core/releases/download/${VERSION}/Moonfin_Linux_v${VERSION}.tar.gz" \
             "    sha256sums = ${SHA256}" \
             "" \
             "pkgname = moonfin-bin" > .SRCINFO
