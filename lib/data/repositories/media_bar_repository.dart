@@ -68,7 +68,7 @@ class MediaBarRepository {
 
       final fetchTasks = <Future<List<Map<String, dynamic>>>>[];
 
-      if (libraryIds.isEmpty) {
+      if (libraryIds.isEmpty && collectionIds.isEmpty) {
         fetchTasks.add(_fetchItems(includeTypes, fetchLimit));
       } else {
         for (final libraryId in libraryIds) {
