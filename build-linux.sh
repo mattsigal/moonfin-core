@@ -411,8 +411,8 @@ EOF
 
 ensure_flatpak_runtime() {
   # GNOME runtime includes WebKitGTK required by linux webview plugin.
-  local runtime="org.gnome.Platform//47"
-  local sdk="org.gnome.Sdk//47"
+  local runtime="org.gnome.Platform//50"
+  local sdk="org.gnome.Sdk//50"
 
   if flatpak info --user "$runtime" >/dev/null 2>&1 && flatpak info --user "$sdk" >/dev/null 2>&1; then
     return 0
@@ -894,7 +894,7 @@ build_flatpak() {
   cat > "$flatpak_dir/${APP_ID}.yml" << EOF
 app-id: ${APP_ID}
 runtime: org.gnome.Platform
-runtime-version: '47'
+runtime-version: '50'
 sdk: org.gnome.Sdk
 
 command: moonfin
