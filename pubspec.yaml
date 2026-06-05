@@ -180,7 +180,9 @@ flutter:
   fonts:
     - family: NeonPulseDisplay
       fonts:
-        - asset: assets/fonts/ScienceGothic-Regular.ttf
+        - asset: assets/fonts/Orbitron-Regular.ttf
+        - asset: assets/fonts/Orbitron-Bold.ttf
+          weight: 700
     - family: NotoSans
       fonts:
         - asset: assets/fonts/NotoSans-Regular.ttf
