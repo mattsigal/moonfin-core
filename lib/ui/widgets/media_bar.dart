@@ -457,6 +457,10 @@ class _MediaBarState extends State<MediaBar> with WidgetsBindingObserver {
       }
       final items = widget.viewModel.items;
       if (items.isEmpty) return;
+      if (_isBookshelfMode() && _currentIndex >= items.length - 1) {
+        _autoAdvanceTimer?.cancel();
+        return;
+      }
       final nextIndex = (_currentIndex + 1) % items.length;
       _goToPage(nextIndex);
     });
@@ -522,8 +526,7 @@ class _MediaBarState extends State<MediaBar> with WidgetsBindingObserver {
     final mode = UserPreferences.normalizeMediaBarMode(
       widget.prefs.get(UserPreferences.mediaBarMode),
     );
-    return mode == UserPreferences.mediaBarModeBookshelf &&
-        (PlatformDetection.useDesktopUi || PlatformDetection.isTV);
+    return mode == UserPreferences.mediaBarModeBookshelf;
   }
 
   void _scheduleTrailerPreview(MediaBarSlideItem item) {
@@ -1260,9 +1263,7 @@ class _MediaBarState extends State<MediaBar> with WidgetsBindingObserver {
       widget.prefs.get(UserPreferences.mediaBarMode),
     );
     final useMakdStyle = mode == UserPreferences.mediaBarModeMakd;
-    final useBookshelfStyle =
-        mode == UserPreferences.mediaBarModeBookshelf &&
-        (PlatformDetection.useDesktopUi || PlatformDetection.isTV);
+    final useBookshelfStyle = mode == UserPreferences.mediaBarModeBookshelf;
 
     return switch (state) {
       MediaBarLoading() => SizedBox(height: widget.height),
@@ -1913,6 +1914,7 @@ class _MediaBarState extends State<MediaBar> with WidgetsBindingObserver {
                 activeIndex: clampedIndex,
                 onSelect: _selectBookshelfIndex,
                 onInfo: () => _navigateToItem(context, items),
+                onPlay: () => _playFromBookshelf(context, items),
                 detailFor: widget.viewModel.bookshelfDetailFor,
               ),
               if (_bookshelfLoadingOverlay)
@@ -2001,7 +2003,13 @@ class _MediaBarState extends State<MediaBar> with WidgetsBindingObserver {
       return KeyEventResult.handled;
     }
     if (key == LogicalKeyboardKey.arrowRight) {
-      _goToPage((_currentIndex + 1) % items.length);
+      if (_isBookshelfMode()) {
+        if (_currentIndex < items.length - 1) {
+          _goToPage(_currentIndex + 1);
+        }
+      } else {
+        _goToPage((_currentIndex + 1) % items.length);
+      }
       return KeyEventResult.handled;
     }
     if (key == LogicalKeyboardKey.arrowDown && widget.onNavigateDown != null) {

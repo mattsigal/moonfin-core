@@ -1,10 +1,10 @@
 import 'package:flutter/material.dart';
-import 'package:moonfin_design/moonfin_design.dart';
+import 'package:get_it/get_it.dart';
+import 'package:server_core/server_core.dart';
 
 import '../../../data/models/bookshelf_detail.dart';
 import '../../../data/models/media_bar_slide_item.dart';
 import '../bounded_network_image.dart';
-import 'bookshelf_active_card.dart';
 import 'bookshelf_glow.dart';
 
 class BookshelfLayout extends StatelessWidget {
@@ -15,11 +15,10 @@ class BookshelfLayout extends StatelessWidget {
   final int activeIndex;
 
   final ValueChanged<int> onSelect;
-
   final VoidCallback onInfo;
+  final VoidCallback? onPlay;
 
   final VoidCallback? onHoverOff;
-
   final BookshelfDetail? Function(String itemId) detailFor;
 
   const BookshelfLayout({
@@ -28,288 +27,581 @@ class BookshelfLayout extends StatelessWidget {
     required this.activeIndex,
     required this.onSelect,
     required this.onInfo,
+    this.onPlay,
     required this.detailFor,
     this.onHoverOff,
   });
 
   @override
   Widget build(BuildContext context) {
-    final panels = items.take(5).toList();
-    if (panels.isEmpty) return const SizedBox.shrink();
+    if (items.isEmpty) return const SizedBox.shrink();
 
-    final clampedActive = activeIndex.clamp(0, panels.length - 1);
-    final activeItem = panels[clampedActive];
-    final glow = glowColorForGenres(activeItem.genres);
+    final totalCount = items.length;
 
     return LayoutBuilder(
       builder: (context, constraints) {
+        final isMobile = constraints.maxWidth < 600;
         final totalHeight = constraints.maxHeight;
-        final marginV = totalHeight * 0.12;
-        final barHeight = totalHeight - marginV * 2;
 
-        return Stack(
-          fit: StackFit.expand,
-          children: [
-            AnimatedSwitcher(
-              duration: const Duration(milliseconds: 500),
-              child: DecoratedBox(
-                key: ValueKey<int>(glow.toARGB32()),
-                decoration: BoxDecoration(
-                  gradient: RadialGradient(
-                    center: const Alignment(-0.2, 0.1),
-                    radius: 1.1,
-                    colors: [
-                      glow.withValues(alpha: 0.42),
-                      glow.withValues(alpha: 0.14),
-                      AppColorScheme.background.withValues(alpha: 0.0),
-                    ],
-                    stops: const [0.0, 0.45, 1.0],
+        // Heights and dimensions relative to content height
+        final contentHeight = totalHeight - (isMobile ? 108.0 : 0.0);
+        final activeBookHeight = contentHeight * 0.84;
+        final activeBookWidth = activeBookHeight * 0.72;
+        final shelfSpineHeight = contentHeight * 0.76;
+        final shelfSpineWidth = isMobile ? 48.0 : 36.0;
+
+        // Dynamically calculate how many books fit on each side
+        // Center compartment width = activeBookWidth + (isMobile ? 0 : 56)
+        final centerWidth = activeBookWidth + (isMobile ? 0 : 56);
+        final sideWidth = (constraints.maxWidth - centerWidth) / 2;
+        // Each spine occupies shelfSpineWidth + 4 (margin)
+        int maxSide = (sideWidth / (shelfSpineWidth + 4)).floor();
+        if (maxSide < 1) {
+          maxSide = 1;
+        }
+
+        // Left side items: from leftStart to activeIndex (exclusive)
+        final leftStart = (activeIndex - maxSide).clamp(0, totalCount);
+        final leftCount = activeIndex - leftStart;
+
+        // Right side items: from activeIndex + 1 to rightEnd (exclusive)
+        final rightEnd = (activeIndex + 1 + maxSide).clamp(0, totalCount);
+        final rightCount = (rightEnd - (activeIndex + 1)).clamp(0, totalCount);
+
+        final activeItem = items[activeIndex];
+        final activeDetail = detailFor(activeItem.itemId);
+
+        return GestureDetector(
+          behavior: HitTestBehavior.opaque,
+          onHorizontalDragEnd: (details) {
+            if (details.primaryVelocity == null) return;
+            if (details.primaryVelocity! < -200) {
+              if (activeIndex < items.length - 1) {
+                onSelect(activeIndex + 1);
+              }
+            } else if (details.primaryVelocity! > 200) {
+              if (activeIndex > 0) {
+                onSelect(activeIndex - 1);
+              }
+            }
+          },
+          child: Padding(
+            padding: EdgeInsets.only(
+              top: isMobile ? 88.0 : 0.0,
+              bottom: isMobile ? 20.0 : 0.0,
+            ),
+            child: Stack(
+              fit: StackFit.expand,
+              children: [
+            // Wooden bookshelf background backing
+            if (isMobile)
+              Container(color: const Color(0xFF1C100A))
+            else
+              Row(
+                children: [
+                  // Left shelf wood backing
+                  Expanded(
+                    child: Container(
+                      decoration: const BoxDecoration(
+                        gradient: LinearGradient(
+                          colors: [
+                            Color(0xFF130905), // deep shadow inside left corner
+                            Color(0xFF23150D), // wood backing
+                          ],
+                          begin: Alignment.centerLeft,
+                          end: Alignment.centerRight,
+                        ),
+                      ),
+                    ),
+                  ),
+                  // Center backing (wood backing, matches left/right areas)
+                  SizedBox(
+                    width: centerWidth,
+                    child: Container(
+                      color: const Color(0xFF1C100A),
+                    ),
+                  ),
+                  // Right shelf wood backing
+                  Expanded(
+                    child: Container(
+                      decoration: const BoxDecoration(
+                        gradient: LinearGradient(
+                        colors: [
+                          Color(0xFF23150D), // wood backing
+                          Color(0xFF130905), // deep shadow inside right corner
+                        ],
+                        begin: Alignment.centerLeft,
+                        end: Alignment.centerRight,
+                      ),
+                    ),
                   ),
                 ),
-                child: const SizedBox.expand(),
-              ),
+              ],
             ),
-            Positioned(
-              top: 0,
-              left: 0,
-              right: 0,
-              height: marginV,
-              child: MouseRegion(
-                onEnter: (_) => onHoverOff?.call(),
-                child: const SizedBox.expand(),
-              ),
+
+            // Bookshelf Layout Row containing books and partitions
+            Row(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                // Left Shelf compartment
+                Expanded(
+                  child: Padding(
+                    padding: const EdgeInsets.only(bottom: 12),
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.end,
+                      crossAxisAlignment: CrossAxisAlignment.end,
+                      children: [
+                        for (var i = 0; i < leftCount; i++) ...[
+                          _buildSpineBook(
+                            context: context,
+                            item: items[leftStart + i],
+                            globalIndex: leftStart + i,
+                            height: shelfSpineHeight,
+                            width: shelfSpineWidth,
+                            isMobile: isMobile,
+                          ),
+                          const SizedBox(width: 4),
+                        ],
+                        const SizedBox(width: 8), // Gap before center partition
+                      ],
+                    ),
+                  ),
+                ),
+
+                // Center Compartment with Dividers and Active Book
+                Container(
+                  width: centerWidth,
+                  decoration: BoxDecoration(
+                    border: isMobile
+                        ? null
+                        : const Border(
+                            left: BorderSide(color: Color(0xFF382314), width: 8),
+                            right: BorderSide(color: Color(0xFF382314), width: 8),
+                          ),
+                  ),
+                  child: Stack(
+                    alignment: Alignment.center,
+                    children: [
+                      // Active Book
+                      Positioned(
+                        bottom: 12,
+                        width: activeBookWidth,
+                        height: activeBookHeight,
+                        child: _buildActiveBook(
+                          context: context,
+                          item: activeItem,
+                          detail: activeDetail,
+                          width: activeBookWidth,
+                          height: activeBookHeight,
+                          isMobile: isMobile,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+
+                // Right Shelf compartment
+                Expanded(
+                  child: Padding(
+                    padding: const EdgeInsets.only(bottom: 12),
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.start,
+                      crossAxisAlignment: CrossAxisAlignment.end,
+                      children: [
+                        const SizedBox(width: 8), // Gap after center partition
+                        for (var i = 0; i < rightCount; i++) ...[
+                          _buildSpineBook(
+                            context: context,
+                            item: items[activeIndex + 1 + i],
+                            globalIndex: activeIndex + 1 + i,
+                            height: shelfSpineHeight,
+                            width: shelfSpineWidth,
+                            isMobile: isMobile,
+                          ),
+                          const SizedBox(width: 4),
+                        ],
+                      ],
+                    ),
+                  ),
+                ),
+              ],
             ),
+
+            // Bottom horizontal wood shelf ledge running across the entire width
             Positioned(
               bottom: 0,
               left: 0,
               right: 0,
-              height: marginV,
-              child: MouseRegion(
-                onEnter: (_) => onHoverOff?.call(),
-                child: const SizedBox.expand(),
-              ),
-            ),
-            Positioned(
-              top: marginV,
-              left: 0,
-              right: 0,
-              height: barHeight,
-              child: Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 24),
-                child: ClipRRect(
-                  borderRadius: BorderRadius.circular(18),
-                  child: Row(
-                    children: [
-                      for (var i = 0; i < panels.length; i++)
-                        _Panel(
-                          item: panels[i],
-                          index: i,
-                          isActive: i == clampedActive,
-                          accent: glow,
-                          detail: detailFor(panels[i].itemId),
-                          onSelect: () => onSelect(i),
-                          onInfo: onInfo,
-                        ),
+              height: 12,
+              child: Container(
+                decoration: BoxDecoration(
+                  gradient: const LinearGradient(
+                    colors: [
+                      Color(0xFF5A3D28), // warm ledge highlight
+                      Color(0xFF26180E), // deep wood underside
                     ],
+                    begin: Alignment.topCenter,
+                    end: Alignment.bottomCenter,
                   ),
+                  border: Border(
+                    top: BorderSide(
+                      color: Colors.white.withValues(alpha: 0.08),
+                      width: 1.5,
+                    ),
+                  ),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black.withValues(alpha: 0.65),
+                      blurRadius: 5,
+                      offset: const Offset(0, -2),
+                    ),
+                  ],
                 ),
               ),
             ),
           ],
-        );
-      },
+        ),
+      ),
     );
+  },
+);
   }
-}
 
-class _Panel extends StatelessWidget {
-  final MediaBarSlideItem item;
-  final int index;
-  final bool isActive;
-  final Color accent;
-  final BookshelfDetail? detail;
-  final VoidCallback onSelect;
-  final VoidCallback onInfo;
+  Widget _buildActiveBook({
+    required BuildContext context,
+    required MediaBarSlideItem item,
+    required BookshelfDetail? detail,
+    required double width,
+    required double height,
+    required bool isMobile,
+  }) {
+    final baseColor = glowColorForGenres(item.genres);
+    final imageApi = GetIt.instance<MediaServerClient>().imageApi;
+    final posterUrl = imageApi.getPrimaryImageUrl(item.itemId);
 
-  const _Panel({
-    required this.item,
-    required this.index,
-    required this.isActive,
-    required this.accent,
-    required this.detail,
-    required this.onSelect,
-    required this.onInfo,
-  });
+    // Adjusted centering alignment: center within the cover face area (crease to right edge)
+    final creaseWidth = width * 0.12;
 
-  @override
-  Widget build(BuildContext context) {
-    return Expanded(
-      flex: isActive ? 16 : 1,
-      child: TweenAnimationBuilder<double>(
-        tween: Tween<double>(begin: isActive ? 1 : 0, end: isActive ? 1 : 0),
-        duration: BookshelfLayout.kExpandDuration,
-        curve: BookshelfLayout.kExpandCurve,
-        builder: (context, t, _) {
-          return MouseRegion(
-            onEnter: (_) {
-              if (!isActive) onSelect();
-            },
-            child: GestureDetector(
-              onTap: isActive ? onInfo : onSelect,
-              child: Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 3),
+    const double s = 0.75; // 75% saturation (25% desaturated)
+    const double rCoeff = 0.2126;
+    const double gCoeff = 0.7152;
+    const double bCoeff = 0.0722;
+    
+    final desatMatrix = <double>[
+      rCoeff * (1 - s) + s, gCoeff * (1 - s),     bCoeff * (1 - s),     0, 0,
+      rCoeff * (1 - s),     gCoeff * (1 - s) + s, bCoeff * (1 - s),     0, 0,
+      rCoeff * (1 - s),     gCoeff * (1 - s),     bCoeff * (1 - s) + s, 0, 0,
+      0,                    0,                    0,                    1, 0,
+    ];
+
+    return MouseRegion(
+      cursor: SystemMouseCursors.click,
+      child: GestureDetector(
+        onTap: onInfo,
+        child: Container(
+          width: width,
+          height: height,
+          decoration: BoxDecoration(
+            color: baseColor,
+            borderRadius: const BorderRadius.only(
+              topLeft: Radius.circular(3),
+              bottomLeft: Radius.circular(3),
+              topRight: Radius.circular(8),
+              bottomRight: Radius.circular(8),
+            ),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withValues(alpha: 0.75),
+                blurRadius: 14,
+                offset: const Offset(0, 6),
+              ),
+            ],
+          ),
+          child: Stack(
+            fit: StackFit.expand,
+            children: [
+              // 1. Poster Image covering the entire front cover face (right of the crease)
+              Positioned(
+                left: creaseWidth,
+                right: 0,
+                top: 0,
+                bottom: 0,
                 child: ClipRRect(
-                  borderRadius: BorderRadius.circular(14),
+                  borderRadius: const BorderRadius.only(
+                    topRight: Radius.circular(8),
+                    bottomRight: Radius.circular(8),
+                  ),
                   child: Stack(
                     fit: StackFit.expand,
                     children: [
-                      _backdrop(t),
-                      _scrim(t),
-                      // Idle decoration (fades out as it becomes active).
-                      Opacity(
-                        opacity: 1 - t,
-                        child: IgnorePointer(
-                          ignoring: isActive,
-                          child: _IdlePanelContent(
-                            item: item,
-                            index: index,
-                            accent: accent,
-                          ),
-                        ),
-                      ),
-                      if (t > 0.01)
-                        Opacity(
-                          opacity: t,
-                          child: Padding(
-                            padding: const EdgeInsets.fromLTRB(28, 24, 24, 24),
-                            child: BookshelfActiveCard(
-                              item: item,
-                              detail: detail,
-                              accent: accent,
+                      ColorFiltered(
+                        colorFilter: ColorFilter.matrix(desatMatrix),
+                        child: BoundedNetworkImage(
+                          imageUrl: posterUrl,
+                          minWidth: 150,
+                          maxWidth: 400,
+                          fit: BoxFit.cover,
+                          errorBuilder: (context, error, stackTrace) => Container(
+                            color: Colors.grey[900],
+                            child: const Icon(
+                              Icons.movie_rounded,
+                              color: Colors.white24,
+                              size: 32,
                             ),
                           ),
                         ),
+                      ),
+                      // Subtle warm aged paper tint (BlendMode.multiply)
+                      Positioned.fill(
+                        child: IgnorePointer(
+                          child: Container(
+                            decoration: BoxDecoration(
+                              color: const Color(0xFFC4B293).withValues(alpha: 0.18),
+                              backgroundBlendMode: BlendMode.multiply,
+                            ),
+                          ),
+                        ),
+                      ),
                     ],
                   ),
                 ),
               ),
-            ),
-          );
-        },
-      ),
-    );
-  }
 
-  Widget _backdrop(double t) {
-    final Widget image = item.backdropUrl == null
-        ? ColoredBox(color: AppColorScheme.surface)
-        : BoundedNetworkImage(
-            imageUrl: item.backdropUrl!,
-            minWidth: 320,
-            maxWidth: 1280,
-            errorBuilder: (_, _, _) =>
-                ColoredBox(color: AppColorScheme.surface),
-          );
-
-    // Ken Burns pan/zoom was intentionally dropped for performance; the
-    // backdrop is static and only cross-fades its opacity on expand.
-    final opacity = 0.35 + 0.65 * t;
-    return Opacity(opacity: opacity, child: image);
-  }
-
-  Widget _scrim(double t) {
-    return IgnorePointer(
-      child: DecoratedBox(
-        decoration: BoxDecoration(
-          gradient: LinearGradient(
-            begin: Alignment.bottomLeft,
-            end: Alignment.topRight,
-            colors: [
-              AppColorScheme.scrim.withValues(alpha: 0.7 * t + 0.25),
-              AppColorScheme.scrim.withValues(alpha: 0.15 * t),
+              // 2. Cover highlight & Spine crease shading overlays on top of spine and cover poster
+              DecoratedBox(
+                decoration: BoxDecoration(
+                  borderRadius: const BorderRadius.only(
+                    topLeft: Radius.circular(3),
+                    bottomLeft: Radius.circular(3),
+                    topRight: Radius.circular(8),
+                    bottomRight: Radius.circular(8),
+                  ),
+                  gradient: LinearGradient(
+                    colors: [
+                      Colors.black.withValues(alpha: 0.35), // spine outer edge
+                      Colors.white.withValues(alpha: 0.1),  // spine curve highlight
+                      Colors.black.withValues(alpha: 0.5),  // crease shadow
+                      Colors.transparent,                   // cover starts
+                      Colors.white.withValues(alpha: 0.06), // cover reflection
+                      Colors.black.withValues(alpha: 0.25), // right edge curl shadow
+                    ],
+                    stops: const [0.0, 0.05, 0.08, 0.11, 0.14, 1.0],
+                    begin: Alignment.centerLeft,
+                    end: Alignment.centerRight,
+                  ),
+                ),
+              ),
             ],
           ),
         ),
       ),
     );
   }
-}
 
-class _IdlePanelContent extends StatelessWidget {
-  final MediaBarSlideItem item;
-  final int index;
-  final Color accent;
+  Widget _buildSpineBook({
+    required BuildContext context,
+    required MediaBarSlideItem item,
+    required int globalIndex,
+    required double height,
+    required double width,
+    required bool isMobile,
+  }) {
+    final baseColor = glowColorForGenres(item.genres);
+    final goldColor = const Color(0xFFE5D5B8); // Gold parchment matching the cover Presents text
 
-  const _IdlePanelContent({
-    required this.item,
-    required this.index,
-    required this.accent,
-  });
+    final outlineShadows = [
+      Shadow(
+        color: Colors.black.withValues(alpha: 0.9),
+        offset: const Offset(-0.8, -0.8),
+        blurRadius: 1.2,
+      ),
+      Shadow(
+        color: Colors.black.withValues(alpha: 0.9),
+        offset: const Offset(0.8, -0.8),
+        blurRadius: 1.2,
+      ),
+      Shadow(
+        color: Colors.black.withValues(alpha: 0.9),
+        offset: const Offset(0.8, 0.8),
+        blurRadius: 1.2,
+      ),
+      Shadow(
+        color: Colors.black.withValues(alpha: 0.9),
+        offset: const Offset(-0.8, 0.8),
+        blurRadius: 1.2,
+      ),
+    ];
 
-  @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    return Stack(
-      fit: StackFit.expand,
-      children: [
-        Positioned(
-          top: 60,
-          left: 0,
-          right: 0,
-          child: Center(
-            child: Text(
-              (index + 1).toString().padLeft(2, '0'),
-              style: theme.textTheme.titleMedium?.copyWith(
-                color: AppColorScheme.onSurface.withValues(alpha: 0.85),
-                fontWeight: FontWeight.w800,
-                letterSpacing: 1.5,
+    return MouseRegion(
+      cursor: SystemMouseCursors.click,
+      onEnter: (_) => onSelect(globalIndex),
+      child: GestureDetector(
+        onTap: () => onSelect(globalIndex),
+        child: Container(
+          width: width,
+          height: height,
+          decoration: BoxDecoration(
+            color: baseColor,
+            borderRadius: BorderRadius.circular(6),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withValues(alpha: 0.55),
+                blurRadius: 6,
+                offset: const Offset(0, 3),
               ),
-            ),
+            ],
           ),
-        ),
-        Positioned(
-          top: 100,
-          bottom: 150,
-          left: 0,
-          right: 0,
-          child: Center(
-            child: Container(
-              width: 2,
-              decoration: BoxDecoration(
-                color: accent.withValues(alpha: 0.7),
-                borderRadius: BorderRadius.circular(1),
-              ),
-            ),
-          ),
-        ),
-        Positioned(
-          bottom: 24,
-          left: 0,
-          right: 0,
-          child: Center(
-            child: RotatedBox(
-              quarterTurns: 3,
-              child: Text(
-                item.title.toUpperCase(),
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-                softWrap: false,
-                style: theme.textTheme.titleSmall?.copyWith(
-                  color: AppColorScheme.onSurface,
-                  fontWeight: FontWeight.w700,
-                  letterSpacing: 2.0,
-                  shadows: [
-                    Shadow(
-                      blurRadius: 6,
-                      color: AppColorScheme.scrim.withValues(alpha: 0.8),
-                    ),
-                  ],
+          child: Stack(
+            fit: StackFit.expand,
+            children: [
+              // Cylindrical vertical lighting overlay for 3D spine effect
+              DecoratedBox(
+                decoration: BoxDecoration(
+                  borderRadius: BorderRadius.circular(6),
+                  gradient: LinearGradient(
+                    colors: [
+                      Colors.black.withValues(alpha: 0.35),
+                      Colors.white.withValues(alpha: 0.12),
+                      Colors.transparent,
+                      Colors.black.withValues(alpha: 0.45),
+                    ],
+                    stops: const [0.0, 0.25, 0.6, 1.0],
+                    begin: Alignment.centerLeft,
+                    end: Alignment.centerRight,
+                  ),
                 ),
               ),
-            ),
+
+              // Title, Line, and Index Layout Column
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.center,
+                children: [
+                  // Number at the top of spine
+                  Padding(
+                    padding: const EdgeInsets.only(top: 8),
+                    child: Text(
+                      (globalIndex + 1).toString().padLeft(2, '0'),
+                      style: Theme.of(context).textTheme.labelSmall?.copyWith(
+                            color: goldColor.withValues(alpha: 0.9),
+                            fontWeight: FontWeight.w800,
+                            fontSize: isMobile ? 11.0 : 10.0,
+                            letterSpacing: 0.5,
+                            shadows: outlineShadows,
+                          ),
+                    ),
+                  ),
+
+                  // Divider line below number
+                  Container(
+                    margin: const EdgeInsets.symmetric(vertical: 4),
+                    width: 1.0,
+                    height: 16.0,
+                    color: goldColor.withValues(alpha: 0.25),
+                  ),
+
+                  // Rotated Title running up the spine
+                  Expanded(
+                    child: LayoutBuilder(
+                      builder: (context, constraints) {
+                        final horizontalPadding = isMobile ? 4.0 : 6.0;
+                        final maxTitleWidth = constraints.maxHeight - (2 * horizontalPadding);
+                        final titleStyle = Theme.of(context).textTheme.labelSmall?.copyWith(
+                              color: goldColor,
+                              fontWeight: FontWeight.w700,
+                              fontSize: isMobile ? 11.0 : 10.5,
+                              letterSpacing: 1.2,
+                              shadows: outlineShadows,
+                            );
+                        final textScaler = MediaQuery.textScalerOf(context);
+                        final truncatedTitle = _truncateTitleToLastWord(
+                          title: item.title.toUpperCase(),
+                          style: titleStyle!,
+                          maxWidth: maxTitleWidth,
+                          isMobile: isMobile,
+                          textScaler: textScaler,
+                        );
+                        return RotatedBox(
+                          quarterTurns: 3,
+                          child: Center(
+                            child: Padding(
+                              padding: EdgeInsets.symmetric(
+                                horizontal: horizontalPadding,
+                                vertical: 8,
+                              ),
+                              child: Text(
+                                truncatedTitle,
+                                maxLines: 1,
+                                softWrap: false,
+                                style: titleStyle,
+                              ),
+                            ),
+                          ),
+                        );
+                      },
+                    ),
+                  ),
+                ],
+              ),
+            ],
           ),
         ),
-      ],
+      ),
     );
+  }
+
+  String _truncateTitleToLastWord({
+    required String title,
+    required TextStyle style,
+    required double maxWidth,
+    required bool isMobile,
+    required TextScaler textScaler,
+  }) {
+    final textPainter = TextPainter(
+      text: TextSpan(text: title, style: style),
+      textDirection: TextDirection.ltr,
+      maxLines: 1,
+      textScaler: textScaler,
+    )..layout(maxWidth: double.infinity);
+
+    if (textPainter.width <= maxWidth) {
+      return title;
+    }
+
+    final words = title.split(RegExp(r'\s+'));
+    if (words.isEmpty) return '...';
+
+    for (int i = words.length - 1; i >= 1; i--) {
+      final sublist = words.sublist(0, i);
+      while (sublist.isNotEmpty) {
+        final lastWord = sublist.last;
+        final cleanedLastWord = lastWord.replaceAll(RegExp(r'[^a-zA-Z0-9]+$'), '');
+        if (cleanedLastWord.isEmpty) {
+          sublist.removeLast();
+        } else {
+          sublist[sublist.length - 1] = cleanedLastWord;
+          break;
+        }
+      }
+
+      if (sublist.isEmpty) continue;
+
+      final candidate = '${sublist.join(' ')}...';
+      final candidatePainter = TextPainter(
+        text: TextSpan(text: candidate, style: style),
+        textDirection: TextDirection.ltr,
+        maxLines: 1,
+        textScaler: textScaler,
+      )..layout(maxWidth: double.infinity);
+
+      if (candidatePainter.width <= maxWidth) {
+        return candidate;
+      }
+    }
+
+    final firstWordCleaned = words.first.replaceAll(RegExp(r'[^a-zA-Z0-9]+$'), '');
+    if (firstWordCleaned.isNotEmpty) {
+      return '$firstWordCleaned...';
+    }
+    return '...';
   }
 }

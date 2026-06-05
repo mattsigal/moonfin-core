@@ -1424,6 +1424,13 @@ class _ContentRowsState extends State<_ContentRows>
     return screenHeight * 0.55;
   }
 
+  bool _isBookshelfMode() {
+    final mode = UserPreferences.normalizeMediaBarMode(
+      widget.prefs.get(UserPreferences.mediaBarMode),
+    );
+    return mode == UserPreferences.mediaBarModeBookshelf;
+  }
+
   double _pinnedInfoCollapseOffset() {
     return (_mediaBarHeight() - (_pinTransitionDistance / 2))
         .clamp(0.0, double.infinity);
@@ -1543,7 +1550,8 @@ class _ContentRowsState extends State<_ContentRows>
       setState(() => _mediaBarVisible = false);
     }
     if (_scrollController.hasClients) {
-      final target = _mediaBarHeight()
+      final offsetAdjustment = _isBookshelfMode() ? (_overlayBottom + 8) : 0.0;
+      final target = (_mediaBarHeight() - offsetAdjustment)
           .clamp(0.0, _scrollController.position.maxScrollExtent);
       if (_scrollController.offset < target) {
         _scrollController.jumpTo(target);
@@ -1812,7 +1820,8 @@ class _ContentRowsState extends State<_ContentRows>
           _scrollController.hasClients &&
           rowIndex >= 0 &&
           rowIndex < _rowTopOffsets.length) {
-        final targetOffset = _rowTopOffsets[rowIndex]
+        final offsetAdjustment = _isBookshelfMode() ? (_overlayBottom + 8) : 0.0;
+        final targetOffset = (_rowTopOffsets[rowIndex] - offsetAdjustment)
             .clamp(0.0, _scrollController.position.maxScrollExtent);
         if ((_scrollController.offset - targetOffset).abs() > 10) {
           _scrollController.jumpTo(targetOffset);
@@ -2320,7 +2329,7 @@ class _ContentRowsState extends State<_ContentRows>
     final desktopScale = _desktopUiScaleFactor();
     final navbarIsTop = widget.prefs.get(UserPreferences.navbarPosition) == NavbarPosition.top;
     final navbarIsLeft = !navbarIsTop;
-    final navbarHeight = navbarIsTop && !(PlatformDetection.isTV && includeMediaBar)
+    final navbarHeight = navbarIsTop && !(PlatformDetection.isTV && includeMediaBar && !_isBookshelfMode())
         ? (PlatformDetection.isTV
             ? 95.0
             : PlatformDetection.useMobileUi
