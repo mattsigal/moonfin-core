@@ -24,6 +24,7 @@ class HomeViewModel extends ChangeNotifier {
   final MultiServerRepository _multiServerRepo;
   final HomeRowCacheStore _cacheStore = HomeRowCacheStore();
   final Set<String> _inFlightPagingRowIds = {};
+  final Map<String, int> _rowOffsets = {};
 
   List<HomeRow> _rows = [];
   List<HomeRow> get rows => _rows;
@@ -96,6 +97,8 @@ class HomeViewModel extends ChangeNotifier {
     }
     _isLoading = true;
     notifyListeners();
+    _rowOffsets.clear();
+    _multiServerRepo.clearOffsets();
     try {
       var hydratedFromCache = false;
       if (_rows.isEmpty) {
@@ -345,14 +348,17 @@ class HomeViewModel extends ChangeNotifier {
 
     _inFlightPagingRowIds.add(row.id);
     try {
-      final List<AggregatedItem> items;
+      final int currentOffset = _rowOffsets[row.id] ?? row.items.length;
+      final (List<AggregatedItem> items, int totalCount) result;
       if (_multiServerEnabled && !row.id.startsWith('pluginDynamic:')) {
-        items = await _multiServerRepo.loadMore(row: row);
+        result = await _multiServerRepo.loadMore(row: row);
       } else {
-        items = await _dataSource.loadMore(row: row, serverId: _serverId);
+        result = await _dataSource.loadMore(row: row, serverId: _serverId, offset: currentOffset);
       }
+      _rowOffsets[row.id] = currentOffset + 15;
+
       _rows = List.of(_rows);
-      _rows[rowIndex] = row.copyWith(items: items);
+      _rows[rowIndex] = row.copyWith(items: result.$1, totalCount: result.$2);
       notifyListeners();
     } catch (_) {
     } finally {

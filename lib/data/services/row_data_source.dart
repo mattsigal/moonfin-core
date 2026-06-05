@@ -7,6 +7,7 @@ import 'package:dio/dio.dart';
 
 import '../../preference/home_section_config.dart';
 import '../../preference/user_preferences.dart';
+import '../../preference/preference_constants.dart';
 import '../../l10n/app_localizations.dart';
 import '../../l10n/current_app_localizations.dart';
 import '../models/aggregated_item.dart';
@@ -607,19 +608,6 @@ class RowDataSource {
     );
   }
 
-  List<String>? _favoriteItemTypesForId(String id) {
-    return switch (id) {
-      'favorites_movies' => ['Movie'],
-      'favorites_series' => ['Series'],
-      'favorites_episodes' => ['Episode'],
-      'favorites_people' => ['Person'],
-      'favorites_artists' => ['MusicArtist'],
-      'favorites_musicvideos' => ['MusicVideo'],
-      'favorites_albums' => ['MusicAlbum'],
-      'favorites_songs' => ['Audio'],
-      _ => null,
-    };
-  }
 
   _ParsedStableId? _parseStableId(String id) {
     if (!id.startsWith('pluginDynamic:')) return null;
@@ -649,20 +637,24 @@ class RowDataSource {
     );
   }
 
-  Future<List<AggregatedItem>> loadMore({
+  Future<(List<AggregatedItem>, int)> loadMore({
     required HomeRow row,
     required String serverId,
+    int? offset,
   }) async {
-    if (!row.hasMore || row.items.length >= _maxItems) return row.items;
+    if (!row.hasMore || row.items.length >= _maxItems) {
+      return (row.items, row.totalCount);
+    }
 
     final prefs = GetIt.instance.isRegistered<UserPreferences>()
         ? GetIt.instance<UserPreferences>()
         : null;
     Map<String, dynamic> response;
+    final currentOffset = offset ?? row.items.length;
 
     switch (row.rowType) {
       case HomeRowType.playlists:
-        final pageCount = (row.items.length / _defaultLimit).ceil();
+        final pageCount = (currentOffset / _defaultLimit).ceil();
         final startIndex = pageCount * _defaultLimit;
         response = await _getItemsWithFallback(
           includeItemTypes: ['Playlist'],
@@ -675,11 +667,11 @@ class RowDataSource {
       case HomeRowType.favorites:
         final sortBy = prefs?.get(UserPreferences.favoritesRowSortBy).apiValue ?? _defaultSortBy;
         response = await _getItemsWithFallback(
-          includeItemTypes: _favoriteItemTypesForId(row.id),
+          includeItemTypes: FavoriteTypeFilter.fromRowId(row.id).itemTypes,
           sortBy: sortBy,
           sortOrder: 'Ascending',
           recursive: true,
-          startIndex: row.items.length,
+          startIndex: currentOffset,
           limit: _defaultLimit,
           isFavorite: true,
         );
@@ -696,7 +688,7 @@ class RowDataSource {
           sortBy: sortBy,
           sortOrder: 'Ascending',
           recursive: true,
-          startIndex: row.items.length,
+          startIndex: currentOffset,
           limit: _defaultLimit,
         );
       case HomeRowType.genres:
@@ -705,7 +697,7 @@ class RowDataSource {
         final parsed = _parseStableId(row.id);
         if (row.id == 'genres') {
           final browseItemTypes = normalizeBrowsableGenreItemTypes(includeItemTypes);
-          final pageCount = (row.items.length / _defaultLimit).ceil();
+          final pageCount = (currentOffset / _defaultLimit).ceil();
           final startIndex = pageCount * _defaultLimit;
           try {
             response = await _client.itemsApi.getGenres(
@@ -734,7 +726,8 @@ class RowDataSource {
             includeItemTypes: browseItemTypes,
           );
           final newItems = _parseItems(enrichedResponse, serverId);
-          return [...row.items, ...newItems];
+          final totalCount = enrichedResponse['TotalRecordCount'] as int? ?? (row.items.length + newItems.length);
+          return ([...row.items, ...newItems], totalCount);
         } else {
           final genreId = (parsed != null && parsed.source == HomeSectionPluginSource.genres)
               ? parsed.additionalData
@@ -744,7 +737,7 @@ class RowDataSource {
             sortBy: sortBy,
             sortOrder: 'Ascending',
             recursive: true,
-            startIndex: row.items.length,
+            startIndex: currentOffset,
             limit: _defaultLimit,
             includeItemTypes: includeItemTypes,
             excludeItemTypes: const ['Episode'],
@@ -755,13 +748,14 @@ class RowDataSource {
           final parentId = row.id.substring('latest_'.length);
           final response = await _getLatestItemsWithFallback(
             parentId: parentId,
-            limit: row.items.length + _defaultLimit,
+            limit: currentOffset + _defaultLimit,
           );
           final items = normalizeLatestMediaItems(
             _parseItems(response, serverId),
-            limit: row.items.length + _defaultLimit,
+            limit: currentOffset + _defaultLimit,
           );
-          return items;
+          final totalCount = items.length <= row.items.length ? items.length : _maxItems;
+          return (items, totalCount);
         } else if (row.id.startsWith('favorites_')) {
           final parentId = row.id.substring('favorites_'.length);
           response = await _getItemsWithFallback(
@@ -770,7 +764,7 @@ class RowDataSource {
             sortBy: 'SortName',
             sortOrder: 'Ascending',
             recursive: true,
-            startIndex: row.items.length,
+            startIndex: currentOffset,
             limit: _defaultLimit,
           );
         } else if (row.id.startsWith('collections_')) {
@@ -781,7 +775,7 @@ class RowDataSource {
             sortBy: 'SortName',
             sortOrder: 'Ascending',
             recursive: true,
-            startIndex: row.items.length,
+            startIndex: currentOffset,
             limit: _defaultLimit,
           );
         } else if (row.id.startsWith('lastPlayed_')) {
@@ -792,7 +786,7 @@ class RowDataSource {
             sortOrder: 'Descending',
             filters: const ['IsPlayed'],
             recursive: true,
-            startIndex: row.items.length,
+            startIndex: currentOffset,
             limit: _defaultLimit,
           );
         } else if (row.id.startsWith('albumartist_')) {
@@ -803,7 +797,7 @@ class RowDataSource {
             sortBy: 'SortName',
             sortOrder: 'Ascending',
             recursive: true,
-            startIndex: row.items.length,
+            startIndex: currentOffset,
             limit: _defaultLimit,
             fields: 'PrimaryImageAspectRatio,SortName',
           );
@@ -819,11 +813,11 @@ class RowDataSource {
               sortBy: 'SortName',
               sortOrder: 'Ascending',
               recursive: true,
-              startIndex: row.items.length,
+              startIndex: currentOffset,
               limit: _defaultLimit,
             );
           } else {
-            return row.items;
+            return (row.items, row.totalCount);
           }
         }
       case HomeRowType.resume:
@@ -836,7 +830,7 @@ class RowDataSource {
       case HomeRowType.activeRecordings:
       case HomeRowType.mediaBar:
       case HomeRowType.pluginDynamic:
-        return row.items;
+        return (row.items, row.totalCount);
     }
 
     final newItems =
@@ -851,7 +845,8 @@ class RowDataSource {
                         : null,
               )
             : _parseItems(response, serverId);
-    return [...row.items, ...newItems];
+    final totalCount = response['TotalRecordCount'] as int? ?? (row.items.length + newItems.length);
+    return ([...row.items, ...newItems], totalCount);
   }
 
   Future<Map<String, dynamic>> _getItemsWithFallback({
