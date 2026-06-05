@@ -83,6 +83,228 @@ class _HomeSectionsScreenState extends State<HomeSectionsScreen> {
   HomeSectionConfig? _mediaBarConfig;
   final _focusNodes = <FocusNode>[];
 
+  final Set<String> _emptySectionIds = {};
+  bool _isLoadingEmptyStates = false;
+
+  static FavoriteTypeFilter _favoriteFilterForSection(HomeSectionType type) {
+    return switch (type) {
+      HomeSectionType.favoriteMovies => FavoriteTypeFilter.movie,
+      HomeSectionType.favoriteSeries => FavoriteTypeFilter.series,
+      HomeSectionType.favoriteEpisodes => FavoriteTypeFilter.episode,
+      HomeSectionType.favoritePeople => FavoriteTypeFilter.person,
+      HomeSectionType.favoriteArtists => FavoriteTypeFilter.musicArtist,
+      HomeSectionType.favoriteMusicVideos => FavoriteTypeFilter.musicVideo,
+      HomeSectionType.favoriteAlbums => FavoriteTypeFilter.musicAlbum,
+      HomeSectionType.favoriteSongs => FavoriteTypeFilter.audio,
+      _ => FavoriteTypeFilter.all,
+    };
+  }
+
+  Future<void> _checkEmptyStates() async {
+    if (!mounted) return;
+    setState(() {
+      _isLoadingEmptyStates = true;
+    });
+
+    final client = GetIt.instance<MediaServerClient>();
+    final userId = client.userId;
+
+    final tasks = <Future<void>>[];
+
+    void setEmpty(String stableId, bool isEmpty) {
+      if (isEmpty) {
+        _emptySectionIds.add(stableId);
+      } else {
+        _emptySectionIds.remove(stableId);
+      }
+    }
+
+    for (final section in _sections) {
+      final stableId = section.stableId;
+      if (section.isBuiltin) {
+        switch (section.type) {
+          case HomeSectionType.resume:
+            // Skip Continue Watching as it populates/removes as needed
+            break;
+          case HomeSectionType.resumeAudio:
+            tasks.add(() async {
+              try {
+                final response = await client.itemsApi.getResumeItems(
+                  includeItemTypes: const ['Audio'],
+                  limit: 1,
+                );
+                final items = response['Items'] as List? ?? [];
+                setEmpty(stableId, items.isEmpty);
+              } catch (_) {}
+            }());
+            break;
+          case HomeSectionType.resumeBook:
+            tasks.add(() async {
+              try {
+                final response = await client.itemsApi.getResumeItems(
+                  includeItemTypes: const ['Book'],
+                  limit: 1,
+                );
+                final items = response['Items'] as List? ?? [];
+                setEmpty(stableId, items.isEmpty);
+              } catch (_) {}
+            }());
+            break;
+          case HomeSectionType.nextUp:
+            // Skip Next Up as it's a core empty state fallback/always selectable
+            break;
+          case HomeSectionType.playlists:
+            tasks.add(() async {
+              try {
+                final response = await client.itemsApi.getItems(
+                  includeItemTypes: const ['Playlist'],
+                  limit: 1,
+                  recursive: true,
+                );
+                final total = response['TotalRecordCount'] as int? ?? 0;
+                setEmpty(stableId, total == 0);
+              } catch (_) {}
+            }());
+            break;
+          case HomeSectionType.favoriteMovies:
+          case HomeSectionType.favoriteSeries:
+          case HomeSectionType.favoriteEpisodes:
+          case HomeSectionType.favoritePeople:
+          case HomeSectionType.favoriteArtists:
+          case HomeSectionType.favoriteMusicVideos:
+          case HomeSectionType.favoriteAlbums:
+          case HomeSectionType.favoriteSongs:
+            final filter = _favoriteFilterForSection(section.type);
+            tasks.add(() async {
+              try {
+                final response = await client.itemsApi.getItems(
+                  isFavorite: true,
+                  includeItemTypes: filter.itemTypes,
+                  limit: 1,
+                  recursive: true,
+                );
+                final total = response['TotalRecordCount'] as int? ?? 0;
+                setEmpty(stableId, total == 0);
+              } catch (_) {}
+            }());
+            break;
+          case HomeSectionType.collections:
+            tasks.add(() async {
+              try {
+                final response = await client.itemsApi.getItems(
+                  includeItemTypes: const ['BoxSet'],
+                  limit: 1,
+                  recursive: true,
+                );
+                final total = response['TotalRecordCount'] as int? ?? 0;
+                setEmpty(stableId, total == 0);
+              } catch (_) {}
+            }());
+            break;
+          case HomeSectionType.genres:
+            tasks.add(() async {
+              try {
+                final includeItemTypes = _prefs.get(UserPreferences.genresRowItemFilter).includeItemTypes;
+                final response = await client.itemsApi.getGenres(
+                  userId: userId,
+                  recursive: true,
+                  limit: 1,
+                  includeItemTypes: includeItemTypes,
+                );
+                final total = response['TotalRecordCount'] as int? ?? 0;
+                setEmpty(stableId, total == 0);
+              } catch (_) {}
+            }());
+            break;
+          case HomeSectionType.activeRecordings:
+            tasks.add(() async {
+              try {
+                final response = await client.liveTvApi.getRecordings(
+                  limit: 1,
+                );
+                final items = response['Items'] as List? ?? [];
+                setEmpty(stableId, items.isEmpty);
+              } catch (_) {}
+            }());
+            break;
+          case HomeSectionType.liveTv:
+            tasks.add(() async {
+              try {
+                final response = await client.liveTvApi.getChannels(
+                  userId: userId,
+                  limit: 1,
+                );
+                final items = response['Items'] as List? ?? [];
+                setEmpty(stableId, items.isEmpty);
+              } catch (_) {}
+            }());
+            break;
+          case HomeSectionType.libraryTilesSmall:
+          case HomeSectionType.libraryButtons:
+            tasks.add(() async {
+              try {
+                final response = await client.userViewsApi.getUserViews();
+                final items = response['Items'] as List? ?? [];
+                setEmpty(stableId, items.isEmpty);
+              } catch (_) {}
+            }());
+            break;
+          case HomeSectionType.latestMedia:
+            // Skip Latest Media as it's a core empty state fallback/always selectable
+            break;
+          case HomeSectionType.recentlyReleased:
+            // Skip Recently Released as it's a core empty state fallback/always selectable
+            break;
+          default:
+            break;
+        }
+      } else if (section.isPluginDynamic) {
+        if (section.pluginSource == HomeSectionPluginSource.collections) {
+          final collectionId = section.pluginAdditionalData;
+          if (collectionId != null && collectionId.isNotEmpty) {
+            tasks.add(() async {
+              try {
+                final response = await client.itemsApi.getItems(
+                  parentId: collectionId,
+                  limit: 1,
+                  recursive: true,
+                );
+                final total = response['TotalRecordCount'] as int? ?? 0;
+                setEmpty(stableId, total == 0);
+              } catch (_) {}
+            }());
+          }
+        } else if (section.pluginSource == HomeSectionPluginSource.genres) {
+          final genreId = section.pluginAdditionalData;
+          if (genreId != null && genreId.isNotEmpty) {
+            tasks.add(() async {
+              try {
+                final includeItemTypes = _prefs.get(UserPreferences.genresRowItemFilter).includeItemTypes;
+                final response = await client.itemsApi.getItems(
+                  genreIds: [genreId],
+                  limit: 1,
+                  recursive: true,
+                  includeItemTypes: includeItemTypes,
+                  excludeItemTypes: const ['Episode'],
+                );
+                final total = response['TotalRecordCount'] as int? ?? 0;
+                setEmpty(stableId, total == 0);
+              } catch (_) {}
+            }());
+          }
+        }
+      }
+    }
+
+    await Future.wait(tasks);
+
+    if (mounted) {
+      setState(() {
+        _isLoadingEmptyStates = false;
+      });
+    }
+  }
+
   bool _isFavoriteSectionType(HomeSectionType type) {
     return switch (type) {
       HomeSectionType.favoriteMovies ||
@@ -146,6 +368,7 @@ class _HomeSectionsScreenState extends State<HomeSectionsScreen> {
       _persistSections(pushSync: false);
     }
     _refreshPluginSections();
+    _checkEmptyStates();
   }
 
   bool _ensureBuiltinSectionsPresent() {
@@ -212,6 +435,7 @@ class _HomeSectionsScreenState extends State<HomeSectionsScreen> {
     if (changed) {
       _persistSections(pushSync: false);
     }
+    _checkEmptyStates();
   }
 
   /// Adds plugin-dynamic sections discovered by the Home Screen Sections
@@ -716,6 +940,19 @@ class _HomeSectionsScreenState extends State<HomeSectionsScreen> {
           context,
           Text(l10n.homeSections),
           actions: [
+            if (_isLoadingEmptyStates)
+              const Padding(
+                padding: EdgeInsets.symmetric(horizontal: 12),
+                child: Center(
+                  child: SizedBox(
+                    width: 18,
+                    height: 18,
+                    child: CircularProgressIndicator(
+                      strokeWidth: 2,
+                    ),
+                  ),
+                ),
+              ),
             IconButton(
               icon: const Icon(Icons.restore),
               tooltip: l10n.resetToDefaults,
@@ -781,6 +1018,7 @@ class _HomeSectionsScreenState extends State<HomeSectionsScreen> {
   Widget _buildReorderableList(AppLocalizations l10n) {
     final visibleIndices = _visibleSectionIndices();
     return ReorderableListView.builder(
+      buildDefaultDragHandles: false,
       header: widget.showGeneralOptions ? _buildHeader(l10n) : null,
       itemCount: visibleIndices.length,
       onReorder: (oldIndex, newIndex) {
@@ -809,61 +1047,91 @@ class _HomeSectionsScreenState extends State<HomeSectionsScreen> {
       itemBuilder: (context, index) {
         final sectionIndex = visibleIndices[index];
         final section = _sections[sectionIndex];
+        final isEmpty = _emptySectionIds.contains(section.stableId);
         return Padding(
           key: ValueKey(section.stableId),
           padding: _kHomeSectionTileOuterPadding,
-          child: Container(
-            decoration: _homeSectionTileDecoration(context, focused: false),
-            child: ListTile(
-              focusColor: Colors.transparent,
-              hoverColor: Colors.transparent,
-              contentPadding: _kHomeSectionTileContentPadding,
-              minLeadingWidth: 44,
-              horizontalTitleGap: 14,
-              leading: buildSettingsLeadingIconShell(
-                context,
-                icon: Icon(
-                  section.enabled ? Icons.check_box : Icons.check_box_outline_blank,
+          child: Opacity(
+            opacity: isEmpty ? 0.45 : 1.0,
+            child: Container(
+              decoration: _homeSectionTileDecoration(context, focused: false),
+              child: ListTile(
+                focusColor: Colors.transparent,
+                hoverColor: Colors.transparent,
+                contentPadding: _kHomeSectionTileContentPadding,
+                minLeadingWidth: 44,
+                horizontalTitleGap: 14,
+                leading: buildSettingsLeadingIconShell(
+                  context,
+                  icon: Icon(
+                    (section.enabled && !isEmpty) ? Icons.check_box : Icons.check_box_outline_blank,
+                  ),
+                  focused: false,
+                  iconColor: AppColorScheme.onSurface.withValues(alpha: 0.78),
                 ),
-                focused: false,
-                iconColor: AppColorScheme.onSurface.withValues(alpha: 0.78),
-              ),
-              title: Text(
-                _labelFor(section, l10n),
-                style: const TextStyle(
-                  fontSize: 14,
-                  fontWeight: FontWeight.w600,
-                  fontFamily: kCleanSettingsFontFamily,
-                ),
-              ),
-              subtitle: section.isPluginDynamic
-                  ? Text(
-                      _pluginSubtitle(section),
-                      style: TextStyle(
-                        fontSize: 12,
+                title: Row(
+                  children: [
+                    Text(
+                      _labelFor(section, l10n),
+                      style: const TextStyle(
+                        fontSize: 14,
+                        fontWeight: FontWeight.w600,
                         fontFamily: kCleanSettingsFontFamily,
+                      ),
+                    ),
+                    if (isEmpty) ...[
+                      const SizedBox(width: 8),
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                        decoration: BoxDecoration(
+                          color: Colors.red.withValues(alpha: 0.15),
+                          borderRadius: BorderRadius.circular(4),
+                          border: Border.all(color: Colors.red.withValues(alpha: 0.5), width: 0.8),
+                        ),
+                        child: const Text(
+                          'Empty',
+                          style: TextStyle(
+                            fontSize: 10,
+                            color: Colors.red,
+                            fontWeight: FontWeight.bold,
+                            fontFamily: kCleanSettingsFontFamily,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ],
+                ),
+                subtitle: section.isPluginDynamic
+                    ? Text(
+                        _pluginSubtitle(section),
+                        style: TextStyle(
+                          fontSize: 12,
+                          fontFamily: kCleanSettingsFontFamily,
+                          color: AppColorScheme.onSurface.withValues(alpha: 0.7),
+                        ),
+                      )
+                    : null,
+                onTap: isEmpty
+                    ? null
+                    : () {
+                        setState(() {
+                          _sections[sectionIndex] =
+                              section.copyWith(enabled: !section.enabled);
+                        });
+                        _save();
+                      },
+                trailing: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    ReorderableDragStartListener(
+                      index: index,
+                      child: Icon(
+                        Icons.drag_handle,
                         color: AppColorScheme.onSurface.withValues(alpha: 0.7),
                       ),
-                    )
-                  : null,
-              onTap: () {
-                setState(() {
-                  _sections[sectionIndex] =
-                      section.copyWith(enabled: !section.enabled);
-                });
-                _save();
-              },
-              trailing: Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  ReorderableDragStartListener(
-                    index: index,
-                    child: Icon(
-                      Icons.drag_handle,
-                      color: AppColorScheme.onSurface.withValues(alpha: 0.7),
                     ),
-                  ),
-                ],
+                  ],
+                ),
               ),
             ),
           ),
@@ -883,10 +1151,11 @@ class _HomeSectionsScreenState extends State<HomeSectionsScreen> {
         final visibleIndex = index - (widget.showGeneralOptions ? 1 : 0);
         final sectionIndex = visibleIndices[visibleIndex];
         final section = _sections[sectionIndex];
+        final isEmpty = _emptySectionIds.contains(section.stableId);
         return _HomeSectionTile(
           key: ValueKey(section.stableId),
           focusNode: _focusNodes[sectionIndex],
-          autofocus: visibleIndex == 0,
+          autofocus: visibleIndex == 0 && !isEmpty,
           label: _labelFor(section, l10n),
           subtitle: section.isPluginDynamic
               ? _pluginSubtitle(section)
@@ -894,6 +1163,7 @@ class _HomeSectionsScreenState extends State<HomeSectionsScreen> {
           enabled: section.enabled,
           isFirst: visibleIndex == 0,
           isLast: visibleIndex == visibleIndices.length - 1,
+          isEmpty: isEmpty,
           onToggle: (enabled) {
             setState(() {
               _sections[sectionIndex] = section.copyWith(enabled: enabled);
@@ -951,6 +1221,7 @@ class _HomeSectionTile extends StatefulWidget {
   final bool isFirst;
   final bool isLast;
   final bool autofocus;
+  final bool isEmpty;
   final ValueChanged<bool> onToggle;
   final VoidCallback onMoveUp;
   final VoidCallback onMoveDown;
@@ -964,6 +1235,7 @@ class _HomeSectionTile extends StatefulWidget {
     required this.isFirst,
     required this.isLast,
     this.autofocus = false,
+    this.isEmpty = false,
     required this.onToggle,
     required this.onMoveUp,
     required this.onMoveDown,
@@ -996,6 +1268,7 @@ class _HomeSectionTileState extends State<_HomeSectionTile> {
     return Focus(
       focusNode: widget.focusNode,
       autofocus: widget.autofocus,
+      canRequestFocus: !widget.isEmpty,
       onFocusChange: (f) {
         if (_focused != f && mounted) {
           setState(() => _focused = f);
@@ -1032,69 +1305,96 @@ class _HomeSectionTileState extends State<_HomeSectionTile> {
       },
       child: Padding(
         padding: _kHomeSectionTileOuterPadding,
-        child: AnimatedContainer(
-          duration: const Duration(milliseconds: 90),
-          curve: Curves.easeOut,
-          decoration: _homeSectionTileDecoration(context, focused: _focused),
-          child: ListTile(
-            focusColor: Colors.transparent,
-            hoverColor: Colors.transparent,
-            contentPadding: _kHomeSectionTileContentPadding,
-            minLeadingWidth: 44,
-            horizontalTitleGap: 14,
-            leading: buildSettingsLeadingIconShell(
-              context,
-              icon: Icon(
-                widget.enabled ? Icons.check_box : Icons.check_box_outline_blank,
+        child: Opacity(
+          opacity: widget.isEmpty ? 0.45 : 1.0,
+          child: AnimatedContainer(
+            duration: const Duration(milliseconds: 90),
+            curve: Curves.easeOut,
+            decoration: _homeSectionTileDecoration(context, focused: _focused),
+            child: ListTile(
+              focusColor: Colors.transparent,
+              hoverColor: Colors.transparent,
+              contentPadding: _kHomeSectionTileContentPadding,
+              minLeadingWidth: 44,
+              horizontalTitleGap: 14,
+              leading: buildSettingsLeadingIconShell(
+                context,
+                icon: Icon(
+                  (widget.enabled && !widget.isEmpty) ? Icons.check_box : Icons.check_box_outline_blank,
+                ),
+                focused: _focused,
+                iconColor: _focused
+                    ? AppColors.black.withValues(alpha: 0.54)
+                    : AppColorScheme.onSurface.withValues(alpha: 0.78),
               ),
-              focused: _focused,
-              iconColor: _focused
-                  ? AppColors.black.withValues(alpha: 0.54)
-                  : AppColorScheme.onSurface.withValues(alpha: 0.78),
-            ),
-            title: Text(
-              widget.label,
-              style: TextStyle(
-                fontSize: 14,
-                fontWeight: FontWeight.w600,
-                fontFamily: kCleanSettingsFontFamily,
-                color: _focused
-                    ? AppColors.black.withValues(alpha: 0.87)
-                    : AppColorScheme.onSurface,
-              ),
-            ),
-            subtitle: widget.subtitle != null
-                ? Text(
-                    widget.subtitle!,
+              title: Row(
+                children: [
+                  Text(
+                    widget.label,
                     style: TextStyle(
-                      fontSize: 12,
+                      fontSize: 14,
+                      fontWeight: FontWeight.w600,
                       fontFamily: kCleanSettingsFontFamily,
+                      color: _focused
+                          ? AppColors.black.withValues(alpha: 0.87)
+                          : AppColorScheme.onSurface,
+                    ),
+                  ),
+                  if (widget.isEmpty) ...[
+                    const SizedBox(width: 8),
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                      decoration: BoxDecoration(
+                        color: Colors.red.withValues(alpha: 0.15),
+                        borderRadius: BorderRadius.circular(4),
+                        border: Border.all(color: Colors.red.withValues(alpha: 0.5), width: 0.8),
+                      ),
+                      child: const Text(
+                        'Empty',
+                        style: TextStyle(
+                          fontSize: 10,
+                          color: Colors.red,
+                          fontWeight: FontWeight.bold,
+                          fontFamily: kCleanSettingsFontFamily,
+                        ),
+                      ),
+                    ),
+                  ],
+                ],
+              ),
+              subtitle: widget.subtitle != null
+                  ? Text(
+                      widget.subtitle!,
+                      style: TextStyle(
+                        fontSize: 12,
+                        fontFamily: kCleanSettingsFontFamily,
+                        color: _focused
+                            ? AppColors.black.withValues(alpha: 0.54)
+                            : AppColorScheme.onSurface.withValues(alpha: 0.7),
+                      ),
+                    )
+                  : null,
+              trailing: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  if (!widget.isFirst)
+                    Icon(
+                      Icons.arrow_left,
+                      size: 18,
                       color: _focused
                           ? AppColors.black.withValues(alpha: 0.54)
                           : AppColorScheme.onSurface.withValues(alpha: 0.7),
                     ),
-                  )
-                : null,
-            trailing: Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                if (!widget.isFirst)
-                  Icon(
-                    Icons.arrow_left,
-                    size: 18,
-                    color: _focused
-                        ? AppColors.black.withValues(alpha: 0.54)
-                        : AppColorScheme.onSurface.withValues(alpha: 0.7),
-                  ),
-                if (!widget.isLast)
-                  Icon(
-                    Icons.arrow_right,
-                    size: 18,
-                    color: _focused
-                        ? AppColors.black.withValues(alpha: 0.54)
-                        : AppColorScheme.onSurface.withValues(alpha: 0.7),
-                  ),
-              ],
+                  if (!widget.isLast)
+                    Icon(
+                      Icons.arrow_right,
+                      size: 18,
+                      color: _focused
+                          ? AppColors.black.withValues(alpha: 0.54)
+                          : AppColorScheme.onSurface.withValues(alpha: 0.7),
+                    ),
+                ],
+              ),
             ),
           ),
         ),

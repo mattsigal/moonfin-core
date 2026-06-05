@@ -220,6 +220,7 @@ class HomeViewModel extends ChangeNotifier {
             sectionRows = const <HomeRow>[];
           }
           final loadedRows = sectionRows
+              .map((r) => r.copyWith(items: _filterEmptyElements(r.items)))
               .where((r) => r.items.isNotEmpty || r.rowType == HomeRowType.liveTv)
               .toList();
           final placeholder = _placeholderForConfig(cfg);
@@ -290,6 +291,17 @@ class HomeViewModel extends ChangeNotifier {
     return rows.where((row) => _rowBelongsToConfig(row, cfg)).toList(growable: false);
   }
 
+  List<AggregatedItem> _filterEmptyElements(List<AggregatedItem> items) {
+    return items.where((item) {
+      if (item.type == 'BoxSet' || item.type == 'Playlist') {
+        if (item.childCount == 0 || item.recursiveItemCount == 0) {
+          return false;
+        }
+      }
+      return true;
+    }).toList();
+  }
+
   bool _rowBelongsToConfig(HomeRow row, HomeSectionConfig cfg) {
     if (cfg.isPluginDynamic) {
       return row.id == cfg.stableId;
@@ -357,8 +369,9 @@ class HomeViewModel extends ChangeNotifier {
       }
       _rowOffsets[row.id] = currentOffset + 15;
 
+      final filteredItems = _filterEmptyElements(result.$1);
       _rows = List.of(_rows);
-      _rows[rowIndex] = row.copyWith(items: result.$1, totalCount: result.$2);
+      _rows[rowIndex] = row.copyWith(items: filteredItems, totalCount: result.$2);
       notifyListeners();
     } catch (_) {
     } finally {
