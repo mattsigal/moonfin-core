@@ -2952,7 +2952,7 @@ class AppLocalizationsKn extends AppLocalizations {
   String get lastUser => 'ಕೊನೆಯ ಬಳಕೆದಾರ';
 
   @override
-  String get specificUser => 'ನಿರ್ದಿಷ್ಟ ಬಳಕೆದಾರ';
+  String get currentUser => 'Current User';
 
   @override
   String get alwaysAuthenticate => 'ಯಾವಾಗಲೂ ಪ್ರಮಾಣೀಕರಿಸಿ';

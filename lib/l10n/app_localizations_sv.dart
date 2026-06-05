@@ -2946,7 +2946,7 @@ class AppLocalizationsSv extends AppLocalizations {
   String get lastUser => 'Senaste användare';
 
   @override
-  String get specificUser => 'Specifik användare';
+  String get currentUser => 'Current User';
 
   @override
   String get alwaysAuthenticate => 'Autentisera alltid';

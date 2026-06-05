@@ -6,6 +6,8 @@ import 'package:go_router/go_router.dart';
 import 'package:moonfin_design/moonfin_design.dart';
 import 'package:server_core/server_core.dart';
 
+import 'package:jellyfin_preference/jellyfin_preference.dart';
+
 import '../../auth/models/server.dart';
 import '../../auth/models/user.dart';
 import '../../auth/repositories/server_repository.dart';
@@ -14,9 +16,11 @@ import '../../auth/repositories/user_repository.dart';
 import '../../auth/store/authentication_store.dart';
 import '../../l10n/app_localizations.dart';
 import '../../util/platform_detection.dart';
+import '../../util/pin_code_util.dart';
 import '../navigation/destinations.dart';
 import '../screens/settings/settings_side_panel.dart';
 import 'overlay_sheet.dart';
+import 'pin_entry_dialog.dart';
 import 'remote_control_dialog.dart';
 import 'settings/settings_panel.dart';
 
@@ -103,7 +107,6 @@ class _AccountDialogState extends State<_AccountDialog> {
     }
     return '$base&tag=$tag';
   }
-
   Future<void> _switchAccount(_StoredAccount account) async {
     if (_busy) return;
 
@@ -112,12 +115,31 @@ class _AccountDialogState extends State<_AccountDialog> {
       return;
     }
 
+    final store = GetIt.instance<PreferenceStore>();
+    final pinUtil = PinCodeUtil(store, account.user.id);
+
+    if (pinUtil.isPinEnabled) {
+      final verified = await PinEntryDialog.show(
+        context,
+        mode: PinEntryMode.verify,
+        onVerify: pinUtil.verifyPin,
+        onForgotPin: () {
+          if (mounted) {
+            Navigator.of(context).pop();
+            GoRouter.of(context).go(
+              '${Destinations.login}?serverId=${account.server.id}&username=${Uri.encodeComponent(account.user.name)}',
+            );
+          }
+        },
+      );
+      if (!verified) return;
+    }
+
     setState(() => _busy = true);
     final ok = await _sessionRepo.switchCurrentSession(
       serverId: account.server.id,
       userId: account.user.id,
     );
-
     if (!mounted) return;
     setState(() => _busy = false);
     final router = GoRouter.of(context);

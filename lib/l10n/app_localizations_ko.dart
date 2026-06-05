@@ -2875,7 +2875,7 @@ class AppLocalizationsKo extends AppLocalizations {
   String get lastUser => '마지막 사용자';
 
   @override
-  String get specificUser => '특정 사용자';
+  String get currentUser => 'Current User';
 
   @override
   String get alwaysAuthenticate => '항상 인증';

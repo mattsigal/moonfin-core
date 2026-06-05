@@ -2931,7 +2931,7 @@ class AppLocalizationsHi extends AppLocalizations {
   String get lastUser => 'अंतिम उपयोगकर्ता';
 
   @override
-  String get specificUser => 'विशिष्ट उपयोगकर्ता';
+  String get currentUser => 'Current User';
 
   @override
   String get alwaysAuthenticate => 'हमेशा प्रमाणित करें';

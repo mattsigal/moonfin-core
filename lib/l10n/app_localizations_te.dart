@@ -2951,7 +2951,7 @@ class AppLocalizationsTe extends AppLocalizations {
   String get lastUser => 'చివరి వినియోగదారు';
 
   @override
-  String get specificUser => 'నిర్దిష్ట వినియోగదారు';
+  String get currentUser => 'Current User';
 
   @override
   String get alwaysAuthenticate => 'ఎల్లప్పుడూ ప్రమాణీకరించండి';

@@ -2938,7 +2938,7 @@ class AppLocalizationsCs extends AppLocalizations {
   String get lastUser => 'Poslední uživatel';
 
   @override
-  String get specificUser => 'Konkrétní uživatel';
+  String get currentUser => 'Current User';
 
   @override
   String get alwaysAuthenticate => 'Vždy ověřit';

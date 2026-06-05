@@ -2950,7 +2950,7 @@ class AppLocalizationsPl extends AppLocalizations {
   String get lastUser => 'Ostatni użytkownik';
 
   @override
-  String get specificUser => 'Konkretny użytkownik';
+  String get currentUser => 'Current User';
 
   @override
   String get alwaysAuthenticate => 'Zawsze uwierzytelniaj';

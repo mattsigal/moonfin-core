@@ -2956,7 +2956,7 @@ class AppLocalizationsBg extends AppLocalizations {
   String get lastUser => 'Последен потребител';
 
   @override
-  String get specificUser => 'Конкретен потребител';
+  String get currentUser => 'Current User';
 
   @override
   String get alwaysAuthenticate => 'Винаги удостоверявай';

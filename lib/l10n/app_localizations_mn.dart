@@ -2943,7 +2943,7 @@ class AppLocalizationsMn extends AppLocalizations {
   String get lastUser => 'Сүүлийн хэрэглэгч';
 
   @override
-  String get specificUser => 'Тодорхой хэрэглэгч';
+  String get currentUser => 'Current User';
 
   @override
   String get alwaysAuthenticate => 'Үргэлж баталгаажуулах';

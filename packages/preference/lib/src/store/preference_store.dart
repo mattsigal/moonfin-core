@@ -131,8 +131,11 @@ class PreferenceStore {
 
   dynamic _getEnumDynamic(EnumPreference<dynamic> preference) {
     try {
-      final stored = _requirePrefs.getString(preference.key);
+      var stored = _requirePrefs.getString(preference.key);
       if (stored == null || stored.isEmpty) return preference.defaultValue;
+      if (stored == 'specificUser') {
+        stored = 'currentUser';
+      }
       for (final v in preference.values) {
         if ((v as Enum).name == stored) return v;
       }

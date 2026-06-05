@@ -2954,7 +2954,7 @@ class AppLocalizationsHu extends AppLocalizations {
   String get lastUser => 'Utolsó felhasználó';
 
   @override
-  String get specificUser => 'Konkrét felhasználó';
+  String get currentUser => 'Current User';
 
   @override
   String get alwaysAuthenticate => 'Mindig hitelesítsen';

@@ -2882,7 +2882,7 @@ class AppLocalizationsJa extends AppLocalizations {
   String get lastUser => '最後のユーザー';
 
   @override
-  String get specificUser => '特定のユーザー';
+  String get currentUser => 'Current User';
 
   @override
   String get alwaysAuthenticate => '常に認証する';

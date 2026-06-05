@@ -11,6 +11,7 @@ import '../../../auth/store/authentication_preferences.dart';
 import '../../../auth/store/credential_store.dart';
 import '../../../l10n/app_localizations.dart';
 import '../../../util/pin_code_util.dart';
+import '../../../preference/preference_constants.dart';
 import '../../navigation/destinations.dart';
 import '../../widgets/overlay_sheet.dart';
 import '../../widgets/pin_entry_dialog.dart';
@@ -71,7 +72,26 @@ class _StartupScreenState extends State<StartupScreen>
       return;
     }
 
-    final restored = authPrefs.shouldAlwaysAuthenticate
+    final behavior = authPrefs.loginBehavior;
+    String? targetServerId;
+    String? targetUserId;
+
+    if (behavior == UserSelectBehavior.lastUser) {
+      targetServerId = authPrefs.savedLastServerId;
+      targetUserId = authPrefs.savedLastUserId;
+    } else if (behavior == UserSelectBehavior.currentUser) {
+      targetServerId = authPrefs.savedAutoLoginServerId;
+      targetUserId = authPrefs.savedAutoLoginUserId;
+    }
+
+    bool pinEnabledForAutoLoginUser = false;
+    if (targetUserId != null && targetUserId.isNotEmpty) {
+      final store = GetIt.instance<PreferenceStore>();
+      final pinUtil = PinCodeUtil(store, targetUserId);
+      pinEnabledForAutoLoginUser = pinUtil.isPinEnabled;
+    }
+
+    final restored = (authPrefs.shouldAlwaysAuthenticate || pinEnabledForAutoLoginUser)
         ? false
         : await session.restoreSession();
 
@@ -104,7 +124,13 @@ class _StartupScreenState extends State<StartupScreen>
 
       if (mounted) context.go(Destinations.home);
     } else {
-      if (mounted) context.go(Destinations.serverSelect);
+      if (mounted) {
+        if (pinEnabledForAutoLoginUser && targetServerId != null && targetServerId.isNotEmpty) {
+          context.go('${Destinations.server}?serverId=$targetServerId');
+        } else {
+          context.go(Destinations.serverSelect);
+        }
+      }
     }
   }
 

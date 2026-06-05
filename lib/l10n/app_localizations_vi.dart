@@ -2944,7 +2944,7 @@ class AppLocalizationsVi extends AppLocalizations {
   String get lastUser => 'Người dùng cuối cùng';
 
   @override
-  String get specificUser => 'Người dùng cụ thể';
+  String get currentUser => 'Current User';
 
   @override
   String get alwaysAuthenticate => 'Luôn xác thực';

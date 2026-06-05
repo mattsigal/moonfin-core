@@ -2959,7 +2959,7 @@ class AppLocalizationsDe extends AppLocalizations {
   String get lastUser => 'Letzter Benutzer';
 
   @override
-  String get specificUser => 'Bestimmter Benutzer';
+  String get currentUser => 'Current User';
 
   @override
   String get alwaysAuthenticate => 'Immer authentifizieren';

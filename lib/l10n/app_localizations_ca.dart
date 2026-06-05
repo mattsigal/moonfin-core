@@ -2975,7 +2975,7 @@ class AppLocalizationsCa extends AppLocalizations {
   String get lastUser => 'Últim usuari';
 
   @override
-  String get specificUser => 'Usuari específic';
+  String get currentUser => 'Current User';
 
   @override
   String get alwaysAuthenticate => 'Autenticar-se sempre';

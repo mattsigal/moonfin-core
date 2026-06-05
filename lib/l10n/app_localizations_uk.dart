@@ -2948,7 +2948,7 @@ class AppLocalizationsUk extends AppLocalizations {
   String get lastUser => 'Останній користувач';
 
   @override
-  String get specificUser => 'Конкретний користувач';
+  String get currentUser => 'Current User';
 
   @override
   String get alwaysAuthenticate => 'Завжди автентифікувати';

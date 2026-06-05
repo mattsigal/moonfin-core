@@ -2922,7 +2922,7 @@ class AppLocalizationsFa extends AppLocalizations {
   String get lastUser => 'آخرین کاربر';
 
   @override
-  String get specificUser => 'کاربر خاص';
+  String get currentUser => 'Current User';
 
   @override
   String get alwaysAuthenticate => 'همیشه احراز هویت';

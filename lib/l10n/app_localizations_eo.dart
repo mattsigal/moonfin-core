@@ -2936,7 +2936,7 @@ class AppLocalizationsEo extends AppLocalizations {
   String get lastUser => 'Lasta Uzanto';
 
   @override
-  String get specificUser => 'Specifa Uzanto';
+  String get currentUser => 'Current User';
 
   @override
   String get alwaysAuthenticate => 'Ĉiam Aŭtentikigi';

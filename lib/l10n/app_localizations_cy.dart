@@ -2947,7 +2947,7 @@ class AppLocalizationsCy extends AppLocalizations {
   String get lastUser => 'Defnyddiwr Diwethaf';
 
   @override
-  String get specificUser => 'Defnyddiwr Penodol';
+  String get currentUser => 'Current User';
 
   @override
   String get alwaysAuthenticate => 'Dilysu bob amser';

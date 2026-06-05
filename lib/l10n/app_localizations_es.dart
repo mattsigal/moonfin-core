@@ -2960,7 +2960,7 @@ class AppLocalizationsEs extends AppLocalizations {
   String get lastUser => 'Último usuario';
 
   @override
-  String get specificUser => 'Usuario específico';
+  String get currentUser => 'Current User';
 
   @override
   String get alwaysAuthenticate => 'Siempre autenticar';
@@ -10983,9 +10983,6 @@ class AppLocalizationsEs419 extends AppLocalizationsEs {
 
   @override
   String get lastUser => 'Último usuario';
-
-  @override
-  String get specificUser => 'Usuario específico';
 
   @override
   String get alwaysAuthenticate => 'Autenticar siempre';
@@ -19019,9 +19016,6 @@ class AppLocalizationsEsAr extends AppLocalizationsEs {
   String get lastUser => 'Último usuario';
 
   @override
-  String get specificUser => 'Usuario específico';
-
-  @override
   String get alwaysAuthenticate => 'Autenticar siempre';
 
   @override
@@ -27053,9 +27047,6 @@ class AppLocalizationsEsDo extends AppLocalizationsEs {
   String get lastUser => 'Último usuario';
 
   @override
-  String get specificUser => 'Usuario específico';
-
-  @override
   String get alwaysAuthenticate => 'Autenticar siempre';
 
   @override
@@ -35085,9 +35076,6 @@ class AppLocalizationsEsMx extends AppLocalizationsEs {
 
   @override
   String get lastUser => 'Último usuario';
-
-  @override
-  String get specificUser => 'Usuario específico';
 
   @override
   String get alwaysAuthenticate => 'Autenticar siempre';

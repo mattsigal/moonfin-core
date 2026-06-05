@@ -2975,7 +2975,7 @@ class AppLocalizationsGl extends AppLocalizations {
   String get lastUser => 'Último Usuario';
 
   @override
-  String get specificUser => 'Usuario específico';
+  String get currentUser => 'Current User';
 
   @override
   String get alwaysAuthenticate => 'Autenticarse sempre';

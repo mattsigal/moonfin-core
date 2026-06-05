@@ -2967,7 +2967,7 @@ class AppLocalizationsTl extends AppLocalizations {
   String get lastUser => 'Huling Gumagamit';
 
   @override
-  String get specificUser => 'Partikular na Gumagamit';
+  String get currentUser => 'Current User';
 
   @override
   String get alwaysAuthenticate => 'Palaging Authenticate';

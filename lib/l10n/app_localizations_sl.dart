@@ -2950,7 +2950,7 @@ class AppLocalizationsSl extends AppLocalizations {
   String get lastUser => 'Zadnji uporabnik';
 
   @override
-  String get specificUser => 'Določen uporabnik';
+  String get currentUser => 'Current User';
 
   @override
   String get alwaysAuthenticate => 'Vedno preveri pristnost';

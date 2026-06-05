@@ -2937,7 +2937,7 @@ class AppLocalizationsNb extends AppLocalizations {
   String get lastUser => 'Siste bruker';
 
   @override
-  String get specificUser => 'Spesifikk bruker';
+  String get currentUser => 'Current User';
 
   @override
   String get alwaysAuthenticate => 'Autentiser alltid';

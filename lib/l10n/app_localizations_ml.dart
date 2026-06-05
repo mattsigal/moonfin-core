@@ -2958,7 +2958,7 @@ class AppLocalizationsMl extends AppLocalizations {
   String get lastUser => 'അവസാന ഉപയോക്താവ്';
 
   @override
-  String get specificUser => 'നിർദ്ദിഷ്ട ഉപയോക്താവ്';
+  String get currentUser => 'Current User';
 
   @override
   String get alwaysAuthenticate => 'എപ്പോഴും പ്രാമാണീകരിക്കുക';

@@ -2939,7 +2939,7 @@ class AppLocalizationsTr extends AppLocalizations {
   String get lastUser => 'Son Kullanıcı';
 
   @override
-  String get specificUser => 'Belirli Kullanıcı';
+  String get currentUser => 'Current User';
 
   @override
   String get alwaysAuthenticate => 'Daima Kimlik Doğrula';

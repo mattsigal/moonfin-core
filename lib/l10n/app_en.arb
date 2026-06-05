@@ -4076,9 +4076,9 @@
   "@lastUser": {
     "description": "Option: last user"
   },
-  "specificUser": "Specific User",
-  "@specificUser": {
-    "description": "Option: specific user"
+  "currentUser": "Current User",
+  "@currentUser": {
+    "description": "Option: current user"
   },
   "alwaysAuthenticate": "Always Authenticate",
   "@alwaysAuthenticate": {

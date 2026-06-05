@@ -2939,7 +2939,7 @@ class AppLocalizationsDa extends AppLocalizations {
   String get lastUser => 'Sidste bruger';
 
   @override
-  String get specificUser => 'Specifik bruger';
+  String get currentUser => 'Current User';
 
   @override
   String get alwaysAuthenticate => 'Autentificer altid';

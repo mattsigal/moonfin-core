@@ -2956,7 +2956,7 @@ class AppLocalizationsRo extends AppLocalizations {
   String get lastUser => 'Ultimul utilizator';
 
   @override
-  String get specificUser => 'Utilizator specific';
+  String get currentUser => 'Current User';
 
   @override
   String get alwaysAuthenticate => 'Autentificați-vă întotdeauna';

@@ -2939,7 +2939,7 @@ class AppLocalizationsLt extends AppLocalizations {
   String get lastUser => 'Paskutinis vartotojas';
 
   @override
-  String get specificUser => 'Konkretus vartotojas';
+  String get currentUser => 'Current User';
 
   @override
   String get alwaysAuthenticate => 'Visada autentifikuoti';

@@ -2927,7 +2927,7 @@ class AppLocalizationsAr extends AppLocalizations {
   String get lastUser => 'المستخدم الأخير';
 
   @override
-  String get specificUser => 'مستخدم محدد';
+  String get currentUser => 'Current User';
 
   @override
   String get alwaysAuthenticate => 'المصادقة دائما';

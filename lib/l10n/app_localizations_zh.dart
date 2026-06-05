@@ -2855,7 +2855,7 @@ class AppLocalizationsZh extends AppLocalizations {
   String get lastUser => '最后一个用户';
 
   @override
-  String get specificUser => '特定用户';
+  String get currentUser => 'Current User';
 
   @override
   String get alwaysAuthenticate => '始终进行身份验证';
@@ -10498,9 +10498,6 @@ class AppLocalizationsZhHans extends AppLocalizationsZh {
 
   @override
   String get lastUser => '最后一个用户';
-
-  @override
-  String get specificUser => '特定用户';
 
   @override
   String get alwaysAuthenticate => '始终进行身份验证';
@@ -18180,9 +18177,6 @@ class AppLocalizationsZhHant extends AppLocalizationsZh {
 
   @override
   String get lastUser => '最後一個用戶';
-
-  @override
-  String get specificUser => '特定用戶';
 
   @override
   String get alwaysAuthenticate => '始終進行身份驗證';

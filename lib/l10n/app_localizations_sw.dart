@@ -2960,7 +2960,7 @@ class AppLocalizationsSw extends AppLocalizations {
   String get lastUser => 'Mtumiaji wa Mwisho';
 
   @override
-  String get specificUser => 'Mtumiaji Maalum';
+  String get currentUser => 'Current User';
 
   @override
   String get alwaysAuthenticate => 'Thibitisha kila wakati';

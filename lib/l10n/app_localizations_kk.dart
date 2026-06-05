@@ -2950,7 +2950,7 @@ class AppLocalizationsKk extends AppLocalizations {
   String get lastUser => 'Соңғы пайдаланушы';
 
   @override
-  String get specificUser => 'Арнайы пайдаланушы';
+  String get currentUser => 'Current User';
 
   @override
   String get alwaysAuthenticate => 'Әрқашан аутентификация';

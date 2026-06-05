@@ -5381,11 +5381,11 @@ abstract class AppLocalizations {
   /// **'Last User'**
   String get lastUser;
 
-  /// Option: specific user
+  /// Option: current user
   ///
   /// In en, this message translates to:
-  /// **'Specific User'**
-  String get specificUser;
+  /// **'Current User'**
+  String get currentUser;
 
   /// Setting for always authenticate
   ///

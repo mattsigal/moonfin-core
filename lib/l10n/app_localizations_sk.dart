@@ -2948,7 +2948,7 @@ class AppLocalizationsSk extends AppLocalizations {
   String get lastUser => 'Posledný používateľ';
 
   @override
-  String get specificUser => 'Konkrétny používateľ';
+  String get currentUser => 'Current User';
 
   @override
   String get alwaysAuthenticate => 'Vždy overiť';

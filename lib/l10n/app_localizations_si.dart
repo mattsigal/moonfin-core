@@ -2934,7 +2934,7 @@ class AppLocalizationsSi extends AppLocalizations {
   String get lastUser => 'අවසාන පරිශීලකයා';
 
   @override
-  String get specificUser => 'විශේෂිත පරිශීලක';
+  String get currentUser => 'Current User';
 
   @override
   String get alwaysAuthenticate => 'සැමවිටම සත්‍යාපනය කරන්න';

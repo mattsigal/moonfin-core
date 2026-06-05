@@ -2942,7 +2942,7 @@ class AppLocalizationsId extends AppLocalizations {
   String get lastUser => 'Pengguna Terakhir';
 
   @override
-  String get specificUser => 'Pengguna Tertentu';
+  String get currentUser => 'Current User';
 
   @override
   String get alwaysAuthenticate => 'Selalu Otentikasi';

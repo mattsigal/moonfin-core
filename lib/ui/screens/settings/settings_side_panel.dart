@@ -453,7 +453,7 @@ class _AuthenticationCategoryScreen extends StatelessWidget {
             labelOf: (v) => switch (v) {
               UserSelectBehavior.disabled => l10n.disabled,
               UserSelectBehavior.lastUser => l10n.lastUser,
-              UserSelectBehavior.specificUser => l10n.specificUser,
+              UserSelectBehavior.currentUser => l10n.currentUser,
             },
           ),
           SwitchPreferenceTile(

@@ -2932,7 +2932,7 @@ class AppLocalizationsBn extends AppLocalizations {
   String get lastUser => 'শেষ ব্যবহারকারী';
 
   @override
-  String get specificUser => 'নির্দিষ্ট ব্যবহারকারী';
+  String get currentUser => 'Current User';
 
   @override
   String get alwaysAuthenticate => 'সর্বদা প্রমাণীকরণ';

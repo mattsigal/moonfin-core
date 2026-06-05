@@ -87,7 +87,7 @@ class SessionRepository {
       case UserSelectBehavior.lastUser:
         serverId = _authPrefs.savedLastServerId;
         userId = _authPrefs.savedLastUserId;
-      case UserSelectBehavior.specificUser:
+      case UserSelectBehavior.currentUser:
         serverId = _authPrefs.savedAutoLoginServerId;
         userId = _authPrefs.savedAutoLoginUserId;
     }

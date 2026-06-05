@@ -2908,7 +2908,7 @@ class AppLocalizationsHe extends AppLocalizations {
   String get lastUser => 'משתמש אחרון';
 
   @override
-  String get specificUser => 'משתמש ספציפי';
+  String get currentUser => 'Current User';
 
   @override
   String get alwaysAuthenticate => 'אימות תמיד';

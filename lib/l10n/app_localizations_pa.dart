@@ -2935,7 +2935,7 @@ class AppLocalizationsPa extends AppLocalizations {
   String get lastUser => 'ਆਖਰੀ ਉਪਭੋਗਤਾ';
 
   @override
-  String get specificUser => 'ਖਾਸ ਉਪਭੋਗਤਾ';
+  String get currentUser => 'Current User';
 
   @override
   String get alwaysAuthenticate => 'ਹਮੇਸ਼ਾ ਪ੍ਰਮਾਣਿਤ ਕਰੋ';
