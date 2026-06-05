@@ -940,16 +940,7 @@ class PlaybackManager {
       } catch (_) {}
 
       if (_isPreroll(item)) {
-        final hadNext = queueService.next();
-        if (hadNext) {
-          await _playCurrentItem(
-            startPosition: startPosition,
-            enableDirectPlay: enableDirectPlay,
-            enableDirectStream: enableDirectStream,
-            enableTranscoding: enableTranscoding,
-            allowStartupRecovery: allowStartupRecovery,
-          );
-        }
+        await next();
         return;
       }
 
