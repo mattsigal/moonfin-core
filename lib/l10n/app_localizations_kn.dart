@@ -12,7 +12,7 @@ class AppLocalizationsKn extends AppLocalizations {
   String get appTitle => 'ಮೂನ್ಫಿನ್';
 
   @override
-  String get accountPreferences => 'Account Preferences';
+  String get accountPreferences => 'ACCOUNT PREFERENCES';
 
   @override
   String get interfaceLanguage => 'Interface Language';

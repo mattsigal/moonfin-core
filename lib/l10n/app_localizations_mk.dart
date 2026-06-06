@@ -12,7 +12,7 @@ class AppLocalizationsMk extends AppLocalizations {
   String get appTitle => 'Месечината';
 
   @override
-  String get accountPreferences => 'Account Preferences';
+  String get accountPreferences => 'ACCOUNT PREFERENCES';
 
   @override
   String get interfaceLanguage => 'Interface Language';

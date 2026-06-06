@@ -12,7 +12,7 @@ class AppLocalizationsBe extends AppLocalizations {
   String get appTitle => 'Месяцовы плаўнік';
 
   @override
-  String get accountPreferences => 'Account Preferences';
+  String get accountPreferences => 'ACCOUNT PREFERENCES';
 
   @override
   String get interfaceLanguage => 'Interface Language';

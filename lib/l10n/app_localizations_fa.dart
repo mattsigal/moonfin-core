@@ -12,7 +12,7 @@ class AppLocalizationsFa extends AppLocalizations {
   String get appTitle => 'باله ماه';
 
   @override
-  String get accountPreferences => 'Account Preferences';
+  String get accountPreferences => 'ACCOUNT PREFERENCES';
 
   @override
   String get interfaceLanguage => 'Interface Language';

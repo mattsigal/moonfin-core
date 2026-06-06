@@ -12,7 +12,7 @@ class AppLocalizationsAf extends AppLocalizations {
   String get appTitle => 'Maanvin';
 
   @override
-  String get accountPreferences => 'Account Preferences';
+  String get accountPreferences => 'ACCOUNT PREFERENCES';
 
   @override
   String get interfaceLanguage => 'Interface Language';

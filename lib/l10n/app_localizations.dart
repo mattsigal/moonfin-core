@@ -230,7 +230,7 @@ abstract class AppLocalizations {
   /// Section header for account preferences settings
   ///
   /// In en, this message translates to:
-  /// **'Account Preferences'**
+  /// **'ACCOUNT PREFERENCES'**
   String get accountPreferences;
 
   /// Label for the app interface language setting
