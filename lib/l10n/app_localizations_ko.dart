@@ -12,7 +12,7 @@ class AppLocalizationsKo extends AppLocalizations {
   String get appTitle => '달지느러미';
 
   @override
-  String get accountPreferences => 'Account Preferences';
+  String get accountPreferences => 'ACCOUNT PREFERENCES';
 
   @override
   String get interfaceLanguage => 'Interface Language';

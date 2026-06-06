@@ -12,7 +12,7 @@ class AppLocalizationsHe extends AppLocalizations {
   String get appTitle => 'סנפיר ירח';
 
   @override
-  String get accountPreferences => 'Account Preferences';
+  String get accountPreferences => 'ACCOUNT PREFERENCES';
 
   @override
   String get interfaceLanguage => 'Interface Language';

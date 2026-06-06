@@ -12,7 +12,7 @@ class AppLocalizationsHi extends AppLocalizations {
   String get appTitle => 'मूनफ़िन';
 
   @override
-  String get accountPreferences => 'Account Preferences';
+  String get accountPreferences => 'ACCOUNT PREFERENCES';
 
   @override
   String get interfaceLanguage => 'Interface Language';

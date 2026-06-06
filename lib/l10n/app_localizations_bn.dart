@@ -12,7 +12,7 @@ class AppLocalizationsBn extends AppLocalizations {
   String get appTitle => 'মুনফিন';
 
   @override
-  String get accountPreferences => 'Account Preferences';
+  String get accountPreferences => 'ACCOUNT PREFERENCES';
 
   @override
   String get interfaceLanguage => 'Interface Language';

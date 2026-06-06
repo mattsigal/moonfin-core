@@ -12,7 +12,7 @@ class AppLocalizationsSq extends AppLocalizations {
   String get appTitle => 'Fina e hënës';
 
   @override
-  String get accountPreferences => 'Account Preferences';
+  String get accountPreferences => 'ACCOUNT PREFERENCES';
 
   @override
   String get interfaceLanguage => 'Interface Language';

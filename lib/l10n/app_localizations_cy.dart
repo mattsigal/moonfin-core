@@ -12,7 +12,7 @@ class AppLocalizationsCy extends AppLocalizations {
   String get appTitle => 'Lleuad';
 
   @override
-  String get accountPreferences => 'Account Preferences';
+  String get accountPreferences => 'ACCOUNT PREFERENCES';
 
   @override
   String get interfaceLanguage => 'Interface Language';

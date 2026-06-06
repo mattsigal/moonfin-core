@@ -12,7 +12,7 @@ class AppLocalizationsTe extends AppLocalizations {
   String get appTitle => 'మూన్‌ఫిన్';
 
   @override
-  String get accountPreferences => 'Account Preferences';
+  String get accountPreferences => 'ACCOUNT PREFERENCES';
 
   @override
   String get interfaceLanguage => 'Interface Language';
