@@ -503,6 +503,10 @@ void registerPlaybackModule() {
 
 MediaServerClient? _currentActiveResolverClient;
 
+void resetActiveStreamResolver() {
+  _currentActiveResolverClient = null;
+}
+
 void setActiveStreamResolver(MediaServerClient client) {
   if (identical(client, _currentActiveResolverClient) &&
       _getIt.isRegistered<MediaStreamResolver>() &&
@@ -544,7 +548,8 @@ void setActiveStreamResolver(MediaServerClient client) {
 Future<void> _ensureResolverForItem(dynamic item) async {
   if (item is! AggregatedItem) return;
   final factory = _getIt<MediaServerClientFactory>();
-  final client = factory.getClientIfExists(item.serverId) ?? _getIt<MediaServerClient>();
+  final client = factory.getClientIfExists(item.serverId);
+  if (client == null) return;
   setActiveStreamResolver(client);
 }
 

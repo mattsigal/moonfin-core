@@ -30,11 +30,13 @@ class MediaServerClientFactory {
     final client = _clients[serverId];
     if (client != null) return client;
 
-    final normalizedInput = normalizeServerBaseUrl(serverId);
-    if (normalizedInput.isNotEmpty) {
-      for (final activeClient in _clients.values) {
-        if (normalizeServerBaseUrl(activeClient.baseUrl) == normalizedInput) {
-          return activeClient;
+    if (serverId.contains('://')) {
+      final normalizedInput = normalizeServerBaseUrl(serverId);
+      if (normalizedInput.isNotEmpty) {
+        for (final activeClient in _clients.values) {
+          if (normalizeServerBaseUrl(activeClient.baseUrl) == normalizedInput) {
+            return activeClient;
+          }
         }
       }
     }

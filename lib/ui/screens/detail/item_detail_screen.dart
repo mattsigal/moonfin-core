@@ -4564,22 +4564,36 @@ class _ActionButtonsState extends State<_ActionButtons> {
       context.replace(Destinations.item(item.id, serverId: item.serverId));
 
       final isPhoto = item.type == 'Photo';
-      final isSeries = item.type == 'Series';
-      final totalEpisodes = isSeries
-          ? (item.recursiveItemCount ?? 0)
-          : (item.childCount ?? item.recursiveItemCount ?? 0);
-      final unplayed = item.unplayedItemCount ?? totalEpisodes;
-      final isFullyWatched = item.isPlayed || unplayed == 0;
-      final isFullyUnwatched = unplayed == totalEpisodes;
-      final isPartiallyWatched = !isFullyWatched && !isFullyUnwatched;
-
-      final hasProgress = isSeries
-          ? isPartiallyWatched
-          : ((item.playedPercentage ?? 0) > 0 ||
-             (item.playbackPosition?.inMilliseconds ?? 0) > 0);
-
-      _play(context, item, resume: !isPhoto && hasProgress);
+      final ws = _computeWatchState(item);
+      _play(context, item, resume: !isPhoto && ws.hasProgress);
     });
+  }
+
+  // ---------------------------------------------------------------------------
+  // Watch-state helper — avoids repeating the same 6-line block in three places
+  // ---------------------------------------------------------------------------
+
+  ({bool isFullyWatched, bool isFullyUnwatched, bool isPartiallyWatched,
+    bool hasProgress})
+  _computeWatchState(AggregatedItem item) {
+    final isSeries = item.type == 'Series';
+    final totalEpisodes = isSeries
+        ? (item.recursiveItemCount ?? 0)
+        : (item.childCount ?? item.recursiveItemCount ?? 0);
+    final unplayed = item.unplayedItemCount ?? totalEpisodes;
+    final isFullyWatched = item.isPlayed || unplayed == 0;
+    final isFullyUnwatched = unplayed == totalEpisodes;
+    final isPartiallyWatched = !isFullyWatched && !isFullyUnwatched;
+    final hasProgress = isSeries
+        ? isPartiallyWatched
+        : ((item.playedPercentage ?? 0) > 0 ||
+           (item.playbackPosition?.inMilliseconds ?? 0) > 0);
+    return (
+      isFullyWatched: isFullyWatched,
+      isFullyUnwatched: isFullyUnwatched,
+      isPartiallyWatched: isPartiallyWatched,
+      hasProgress: hasProgress,
+    );
   }
 
   List<Map<String, dynamic>> _streamsForTrackSelectors(
@@ -4633,18 +4647,10 @@ class _ActionButtonsState extends State<_ActionButtons> {
     final isPhoto = item.type == 'Photo';
     final isBook = _isReadableBookItem(item);
     final isSeries = item.type == 'Series';
-    final totalEpisodes = item.type == 'Series'
-        ? (item.recursiveItemCount ?? 0)
-        : (item.childCount ?? item.recursiveItemCount ?? 0);
-    final unplayed = item.unplayedItemCount ?? totalEpisodes;
-    final isFullyWatched = item.isPlayed || unplayed == 0;
-    final isFullyUnwatched = unplayed == totalEpisodes;
-    final isPartiallyWatched = !isFullyWatched && !isFullyUnwatched;
-
-    final hasProgress = isSeries
-        ? isPartiallyWatched
-        : ((item.playedPercentage ?? 0) > 0 ||
-           (item.playbackPosition?.inMilliseconds ?? 0) > 0);
+    final ws = _computeWatchState(item);
+    final isFullyWatched = ws.isFullyWatched;
+    final isFullyUnwatched = ws.isFullyUnwatched;
+    final hasProgress = ws.hasProgress;
     final selectedSource = _selectedMediaSourceForItem(
       item,
       widget.selectedMediaSourceId,
@@ -4683,12 +4689,10 @@ class _ActionButtonsState extends State<_ActionButtons> {
           final s = nextUp.parentIndexNumber;
           final e = nextUp.indexNumber;
           if (s != null && e != null) {
-            if (_isCompact(context)) {
-              if (s == 1 && e == 1) {
-                playButtonLabel = l10n.play;
-              } else {
-                playButtonLabel = 'S${s}E$e';
-              }
+            if (s == 1 && e == 1) {
+              playButtonLabel = l10n.play;
+            } else if (_isCompact(context)) {
+              playButtonLabel = 'S${s}E$e';
             } else {
               playButtonLabel = 'Resume from S$s:E$e';
             }
@@ -5569,12 +5573,9 @@ class _ActionButtonsState extends State<_ActionButtons> {
               throw PlaybackStartupRecoveryAbortedException();
             }
 
-            final totalEpisodes = item.type == 'Series'
-                ? (item.recursiveItemCount ?? 0)
-                : (item.childCount ?? item.recursiveItemCount ?? 0);
-            final unplayed = item.unplayedItemCount ?? totalEpisodes;
-            final isFullyWatched = item.isPlayed || unplayed == 0;
-            final isFullyUnwatched = unplayed == totalEpisodes;
+            final ws = _computeWatchState(item);
+            final isFullyWatched = ws.isFullyWatched;
+            final isFullyUnwatched = ws.isFullyUnwatched;
 
             AggregatedItem targetEpisode;
             if (isFullyWatched || isFullyUnwatched) {
