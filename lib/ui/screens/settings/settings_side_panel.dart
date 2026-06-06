@@ -2726,7 +2726,7 @@ class _AutomationQueueScreenState extends State<_AutomationQueueScreen> {
               'intro:doNothing,outro:doNothing': l10n.settingsDoNothing,
             },
           ),
-          if (mediaSegmentActions == _promptSkipSegments)
+          if (mediaSegmentActions == _promptSkipSegments || showNextUpOptions)
             EnumPreferenceTile<MediaSegmentCountdown>(
               preference: UserPreferences.mediaSegmentCountdown,
               title: l10n.settingsMediaSegmentCountdown,

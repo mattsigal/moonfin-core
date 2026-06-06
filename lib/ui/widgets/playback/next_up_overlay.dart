@@ -136,9 +136,14 @@ class _NextUpOverlayState extends State<NextUpOverlay>
                           animation: _countdownController,
                           builder: (context, _) {
                             final remainingMs = widget.timeoutMs * (1.0 - _countdownController.value);
-                            final seconds = (remainingMs / 1000).ceil();
+                            final remainingSeconds = (remainingMs / 1000).ceil();
+                            final int minutes = remainingSeconds ~/ 60;
+                            final int secs = remainingSeconds % 60;
+                            final timerText = remainingSeconds >= 60
+                                ? '$minutes:${secs.toString().padLeft(2, '0')}'
+                                : ':${secs.toString().padLeft(2, '0')}';
                             return Text(
-                              'Ends in :${seconds.toString().padLeft(2, '0')}',
+                              'Ends in $timerText',
                               style: const TextStyle(
                                 color: Colors.white54,
                                 fontSize: 12,
