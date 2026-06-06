@@ -4562,7 +4562,23 @@ class _ActionButtonsState extends State<_ActionButtons> {
       // Consume autoPlay from the current detail route so back navigation
       // doesn't re-trigger playback.
       context.replace(Destinations.item(item.id, serverId: item.serverId));
-      _play(context, item);
+
+      final isPhoto = item.type == 'Photo';
+      final isSeries = item.type == 'Series';
+      final totalEpisodes = isSeries
+          ? (item.recursiveItemCount ?? 0)
+          : (item.childCount ?? item.recursiveItemCount ?? 0);
+      final unplayed = item.unplayedItemCount ?? totalEpisodes;
+      final isFullyWatched = item.isPlayed || unplayed == 0;
+      final isFullyUnwatched = unplayed == totalEpisodes;
+      final isPartiallyWatched = !isFullyWatched && !isFullyUnwatched;
+
+      final hasProgress = isSeries
+          ? isPartiallyWatched
+          : ((item.playedPercentage ?? 0) > 0 ||
+             (item.playbackPosition?.inMilliseconds ?? 0) > 0);
+
+      _play(context, item, resume: !isPhoto && hasProgress);
     });
   }
 
@@ -4617,7 +4633,9 @@ class _ActionButtonsState extends State<_ActionButtons> {
     final isPhoto = item.type == 'Photo';
     final isBook = _isReadableBookItem(item);
     final isSeries = item.type == 'Series';
-    final totalEpisodes = item.childCount ?? item.recursiveItemCount ?? 0;
+    final totalEpisodes = item.type == 'Series'
+        ? (item.recursiveItemCount ?? 0)
+        : (item.childCount ?? item.recursiveItemCount ?? 0);
     final unplayed = item.unplayedItemCount ?? totalEpisodes;
     final isFullyWatched = item.isPlayed || unplayed == 0;
     final isFullyUnwatched = unplayed == totalEpisodes;
@@ -4665,7 +4683,15 @@ class _ActionButtonsState extends State<_ActionButtons> {
           final s = nextUp.parentIndexNumber;
           final e = nextUp.indexNumber;
           if (s != null && e != null) {
-            playButtonLabel = 'Resume from S$s:E$e';
+            if (_isCompact(context)) {
+              if (s == 1 && e == 1) {
+                playButtonLabel = l10n.play;
+              } else {
+                playButtonLabel = 'S${s}E$e';
+              }
+            } else {
+              playButtonLabel = 'Resume from S$s:E$e';
+            }
           } else {
             playButtonLabel = 'Resume';
           }
@@ -5518,7 +5544,7 @@ class _ActionButtonsState extends State<_ActionButtons> {
         switch (item.type) {
           case 'Series':
             const episodeQueueFields =
-                'Overview,MediaStreams,MediaSources,RunTimeTicks,Trickplay';
+                'Overview,MediaStreams,MediaSources,RunTimeTicks,Trickplay,UserData';
             
             final client = _clientForItem(item);
             final data = await client.itemsApi.getEpisodes(
@@ -5543,7 +5569,9 @@ class _ActionButtonsState extends State<_ActionButtons> {
               throw PlaybackStartupRecoveryAbortedException();
             }
 
-            final totalEpisodes = item.childCount ?? item.recursiveItemCount ?? 0;
+            final totalEpisodes = item.type == 'Series'
+                ? (item.recursiveItemCount ?? 0)
+                : (item.childCount ?? item.recursiveItemCount ?? 0);
             final unplayed = item.unplayedItemCount ?? totalEpisodes;
             final isFullyWatched = item.isPlayed || unplayed == 0;
             final isFullyUnwatched = unplayed == totalEpisodes;
@@ -5643,7 +5671,29 @@ class _ActionButtonsState extends State<_ActionButtons> {
             );
 
           case 'Episode':
-            final episodes = viewModel.episodes;
+            var episodes = viewModel.episodes;
+            if (episodes.isEmpty || !episodes.any((e) => e.id == item.id)) {
+              final seriesId = item.seriesId;
+              final seasonId = item.seasonId;
+              if (seriesId != null && seriesId.isNotEmpty) {
+                try {
+                  const episodeQueueFields =
+                      'Overview,MediaStreams,MediaSources,RunTimeTicks,Trickplay,UserData';
+                  final client = _clientForItem(item);
+                  final data = await client.itemsApi.getEpisodes(
+                    seriesId,
+                    seasonId: seasonId,
+                    fields: episodeQueueFields,
+                  );
+                  episodes = _mapRawItemsForServer(
+                    data['Items'],
+                    item.serverId,
+                  );
+                } catch (_) {}
+              }
+            }
+            if (!context.mounted) return;
+
             if (episodes.length > 1) {
               final startIndex = episodes.indexWhere((e) => e.id == item.id);
               final idx = startIndex >= 0 ? startIndex : 0;
