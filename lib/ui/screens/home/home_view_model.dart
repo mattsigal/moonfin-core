@@ -910,7 +910,13 @@ class HomeViewModel extends ChangeNotifier {
           for (final item in nextUpRow?.items ?? []) {
             mergedItemsMap.putIfAbsent(item.id, () => item);
           }
-          _applyMergedResumeResult(mergedItemsMap.values.toList());
+          final sorted = mergedItemsMap.values.toList()
+            ..sort((a, b) {
+              final aDate = a.rawData['UserData']?['LastPlayedDate'] as String? ?? '';
+              final bDate = b.rawData['UserData']?['LastPlayedDate'] as String? ?? '';
+              return bDate.compareTo(aDate);
+            });
+          _applyMergedResumeResult(sorted);
         } else {
           final results = await Future.wait([
             _dataSource.loadResume(_serverId),
@@ -923,7 +929,13 @@ class HomeViewModel extends ChangeNotifier {
           for (final item in results[1].items) {
             mergedItemsMap.putIfAbsent(item.id, () => item);
           }
-          _applyMergedResumeResult(mergedItemsMap.values.toList());
+          final sorted = mergedItemsMap.values.toList()
+            ..sort((a, b) {
+              final aDate = a.rawData['UserData']?['LastPlayedDate'] as String? ?? '';
+              final bDate = b.rawData['UserData']?['LastPlayedDate'] as String? ?? '';
+              return bDate.compareTo(aDate);
+            });
+          _applyMergedResumeResult(sorted);
         }
       } catch (_) {
       } finally {
