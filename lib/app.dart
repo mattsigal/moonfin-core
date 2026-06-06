@@ -393,6 +393,13 @@ class _GlobalShortcutScopeState extends State<_GlobalShortcutScope>
       await navigatorState.maybePop();
       return true;
     }
+    if (!appRouter.canPop()) {
+      if (!_exitDialogShowing) {
+        _exitDialogShowing = true;
+        unawaited(_showExitConfirmation());
+      }
+      return true;
+    }
     return false;
   }
 
