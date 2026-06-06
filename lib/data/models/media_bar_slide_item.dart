@@ -5,6 +5,7 @@ class MediaBarSlideItem {
   final String? overview;
   final String? backdropUrl;
   final String? logoUrl;
+  final String? posterUrl;
   final String? officialRating;
   final int? year;
   final List<String> genres;
@@ -23,6 +24,7 @@ class MediaBarSlideItem {
     this.overview,
     this.backdropUrl,
     this.logoUrl,
+    this.posterUrl,
     this.officialRating,
     this.year,
     this.genres = const [],

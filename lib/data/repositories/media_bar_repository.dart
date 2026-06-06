@@ -336,6 +336,9 @@ class MediaBarRepository {
       ? _client.imageApi.getLogoImageUrl(itemId, tag: logoTag, maxWidth: 600)
         : null;
 
+    final primaryTag = (data['ImageTags'] as Map?)?['Primary'] as String?;
+    final posterUrl = _client.imageApi.getPrimaryImageUrl(itemId, tag: primaryTag);
+
     final runTimeTicks = data['RunTimeTicks'] as int?;
 
     return MediaBarSlideItem(
@@ -345,6 +348,7 @@ class MediaBarRepository {
       overview: data['Overview'] as String?,
       backdropUrl: backdropUrl,
       logoUrl: logoUrl,
+      posterUrl: posterUrl,
       officialRating: data['OfficialRating'] as String?,
       year: data['ProductionYear'] as int?,
       genres: (data['Genres'] as List?)?.cast<String>().take(3).toList() ?? const [],

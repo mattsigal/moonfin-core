@@ -331,6 +331,16 @@ class _MediaBarState extends State<MediaBar> with WidgetsBindingObserver {
     int centerIndex,
   ) {
     if (!mounted || items.isEmpty) return;
+    final dpr = MediaQuery.devicePixelRatioOf(context);
+    final screenWidth = MediaQuery.sizeOf(context).width;
+
+    // Calculate dimensions matching layout constraints exactly to maximize memory cache hits.
+    final isMobile = PlatformDetection.useMobileUi;
+    final contentHeight = widget.height - (isMobile ? 108.0 : 0.0);
+    final activeBookHeight = contentHeight * 0.84;
+    final activeBookWidth = activeBookHeight * 0.72;
+    final posterCacheW = (activeBookWidth * 0.88 * dpr).round().clamp(150, 400);
+    final backdropCacheW = (screenWidth * dpr).round().clamp(640, 1280);
 
     final warmIndices = <int>{
       centerIndex,
@@ -338,27 +348,54 @@ class _MediaBarState extends State<MediaBar> with WidgetsBindingObserver {
       if (centerIndex + 2 < items.length) centerIndex + 2,
       if (centerIndex + 3 < items.length) centerIndex + 3,
       if (centerIndex - 1 >= 0) centerIndex - 1,
+      if (centerIndex - 2 >= 0) centerIndex - 2,
     };
 
+    final isBookshelf = _isBookshelfMode();
+
     Future<void>(() async {
+      // Allow active and adjacent images to load first without network contention
+      await Future<void>.delayed(const Duration(milliseconds: 1500));
       for (var i = 0; i < items.length; i++) {
         if (warmIndices.contains(i)) continue;
 
         final item = items[i];
         if (!mounted) return;
+
+        // Add a brief delay between items to prevent clogging the network queue
+        await Future<void>.delayed(const Duration(milliseconds: 200));
+        if (!mounted) return;
+
         try {
-          if (item.backdropUrl != null) {
-            await precacheImage(
-              CachedNetworkImageProvider(item.backdropUrl!),
-              context,
-            );
-            if (!mounted) return;
-          }
-          if (item.logoUrl != null) {
-            await precacheImage(
-              CachedNetworkImageProvider(item.logoUrl!),
-              context,
-            );
+          if (isBookshelf) {
+            if (item.posterUrl != null) {
+              await precacheImage(
+                ResizeImage(
+                  CachedNetworkImageProvider(item.posterUrl!),
+                  width: posterCacheW,
+                ),
+                context,
+              );
+            }
+          } else {
+            if (item.backdropUrl != null) {
+              await precacheImage(
+                ResizeImage(
+                  CachedNetworkImageProvider(
+                    item.backdropUrl!,
+                  ),
+                  width: backdropCacheW,
+                ),
+                context,
+              );
+              if (!mounted) return;
+            }
+            if (item.logoUrl != null) {
+              await precacheImage(
+                CachedNetworkImageProvider(item.logoUrl!),
+                context,
+              );
+            }
           }
         } catch (_) {}
       }
@@ -489,22 +526,63 @@ class _MediaBarState extends State<MediaBar> with WidgetsBindingObserver {
 
   void _prefetchAround(List<MediaBarSlideItem> items, int centerIndex) {
     if (!mounted || items.isEmpty) return;
-
-    final next = centerIndex + 1;
-    if (next >= items.length) return;
-    final item = items[next];
     final dpr = MediaQuery.devicePixelRatioOf(context);
-    final cacheW = (widget.height * 16 / 9 * dpr).round();
-    if (item.backdropUrl != null) {
-      precacheImage(
-        ResizeImage(
-          CachedNetworkImageProvider(item.backdropUrl!),
-          width: cacheW,
-        ),
-        context,
-      );
+    final screenWidth = MediaQuery.sizeOf(context).width;
+
+    // Calculate dimensions matching layout constraints exactly to maximize memory cache hits.
+    final isMobile = PlatformDetection.useMobileUi;
+    final contentHeight = widget.height - (isMobile ? 108.0 : 0.0);
+    final activeBookHeight = contentHeight * 0.84;
+    final activeBookWidth = activeBookHeight * 0.72;
+    final posterCacheW = (activeBookWidth * 0.88 * dpr).round().clamp(150, 400);
+    final backdropCacheW = (screenWidth * dpr).round().clamp(640, 1280);
+
+    final isBookshelf = _isBookshelfMode();
+
+    // Prefetch close items (next 2 slides and previous 2 slides)
+    final indicesToPrefetch = [
+      centerIndex + 1,
+      centerIndex + 2,
+      centerIndex - 1,
+      centerIndex - 2,
+    ];
+    for (final idx in indicesToPrefetch) {
+      if (idx >= 0 && idx < items.length) {
+        final item = items[idx];
+
+        if (isBookshelf) {
+          if (item.posterUrl != null) {
+            precacheImage(
+              ResizeImage(
+                CachedNetworkImageProvider(item.posterUrl!),
+                width: posterCacheW,
+              ),
+              context,
+            );
+          }
+        } else {
+          if (item.backdropUrl != null) {
+            precacheImage(
+              ResizeImage(
+                CachedNetworkImageProvider(
+                  item.backdropUrl!,
+                ),
+                width: backdropCacheW,
+              ),
+              context,
+            );
+          }
+
+          if (item.logoUrl != null) {
+            precacheImage(
+              CachedNetworkImageProvider(item.logoUrl!),
+              context,
+          );
+        }
+      }
     }
   }
+}
 
   void _setPaused(bool paused) {
     if (_isPaused == paused) return;
@@ -1935,8 +2013,7 @@ class _MediaBarState extends State<MediaBar> with WidgetsBindingObserver {
     final items = widget.viewModel.items;
     if (index < 0 || index >= items.length) return;
     if (index == _currentIndex) return;
-    setState(() => _currentIndex = index);
-    _startAutoAdvance();
+    _goToPage(index);
     unawaited(widget.viewModel.ensureBookshelfDetail(items[index].itemId));
   }
 

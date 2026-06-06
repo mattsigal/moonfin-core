@@ -1,10 +1,10 @@
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:get_it/get_it.dart';
 import 'package:server_core/server_core.dart';
 
 import '../../../data/models/bookshelf_detail.dart';
 import '../../../data/models/media_bar_slide_item.dart';
-import '../bounded_network_image.dart';
 import 'bookshelf_glow.dart';
 
 class BookshelfLayout extends StatelessWidget {
@@ -277,7 +277,7 @@ class BookshelfLayout extends StatelessWidget {
   }) {
     final baseColor = glowColorForGenres(item.genres);
     final imageApi = GetIt.instance<MediaServerClient>().imageApi;
-    final posterUrl = imageApi.getPrimaryImageUrl(item.itemId);
+    final posterUrl = item.posterUrl ?? imageApi.getPrimaryImageUrl(item.itemId);
 
     // Adjusted centering alignment: center within the cover face area (crease to right edge)
     final creaseWidth = width * 0.12;
@@ -294,6 +294,46 @@ class BookshelfLayout extends StatelessWidget {
       0,                    0,                    0,                    1, 0,
     ];
 
+    final dpr = MediaQuery.devicePixelRatioOf(context);
+    final cacheW = (width * 0.88 * dpr).round().clamp(150, 400);
+
+    return CachedNetworkImage(
+      imageUrl: posterUrl,
+      memCacheWidth: cacheW,
+      maxWidthDiskCache: cacheW,
+      fadeInDuration: const Duration(milliseconds: 250),
+      fadeOutDuration: Duration.zero,
+      placeholder: (context, url) => const SizedBox.shrink(),
+      errorWidget: (context, url, error) => _buildActualBookWidget(
+        context: context,
+        width: width,
+        height: height,
+        creaseWidth: creaseWidth,
+        baseColor: baseColor,
+        desatMatrix: desatMatrix,
+        imageProvider: null,
+      ),
+      imageBuilder: (context, imageProvider) => _buildActualBookWidget(
+        context: context,
+        width: width,
+        height: height,
+        creaseWidth: creaseWidth,
+        baseColor: baseColor,
+        desatMatrix: desatMatrix,
+        imageProvider: imageProvider,
+      ),
+    );
+  }
+
+  Widget _buildActualBookWidget({
+    required BuildContext context,
+    required double width,
+    required double height,
+    required double creaseWidth,
+    required Color baseColor,
+    required List<double> desatMatrix,
+    required ImageProvider? imageProvider,
+  }) {
     return MouseRegion(
       cursor: SystemMouseCursors.click,
       child: GestureDetector(
@@ -336,20 +376,19 @@ class BookshelfLayout extends StatelessWidget {
                     children: [
                       ColorFiltered(
                         colorFilter: ColorFilter.matrix(desatMatrix),
-                        child: BoundedNetworkImage(
-                          imageUrl: posterUrl,
-                          minWidth: 150,
-                          maxWidth: 400,
-                          fit: BoxFit.cover,
-                          errorBuilder: (context, error, stackTrace) => Container(
-                            color: Colors.grey[900],
-                            child: const Icon(
-                              Icons.movie_rounded,
-                              color: Colors.white24,
-                              size: 32,
-                            ),
-                          ),
-                        ),
+                        child: imageProvider != null
+                            ? Image(
+                                image: imageProvider,
+                                fit: BoxFit.cover,
+                              )
+                            : Container(
+                                color: Colors.grey[900],
+                                child: const Icon(
+                                  Icons.movie_rounded,
+                                  color: Colors.white24,
+                                  size: 32,
+                                ),
+                              ),
                       ),
                       // Subtle warm aged paper tint (BlendMode.multiply)
                       Positioned.fill(
