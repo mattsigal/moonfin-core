@@ -7,7 +7,6 @@ import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:get_it/get_it.dart';
 import 'package:go_router/go_router.dart';
-import 'package:moonfin_design/moonfin_design.dart';
 import 'package:window_manager/window_manager.dart';
 
 import 'data/services/app_update_service.dart';
@@ -729,12 +728,6 @@ class _ConnectivityListenerState extends ConsumerState<_ConnectivityListener>
           }
 
           final key = event.logicalKey;
-          if (key.isBackKey) {
-            DialogBackSuppressor.markDismissed();
-            Navigator.of(ctx).pop();
-            return KeyEventResult.handled;
-          }
-
           if (key.isDirectional) {
             if (!okFocusNode.hasFocus && okFocusNode.canRequestFocus) {
               okFocusNode.requestFocus();
@@ -752,7 +745,7 @@ class _ConnectivityListenerState extends ConsumerState<_ConnectivityListener>
             TextButton(
               focusNode: okFocusNode,
               autofocus: true,
-              onPressed: () => Navigator.of(ctx).pop(),
+              onPressed: () => Navigator.of(ctx, rootNavigator: true).pop(),
               child: Text(l10n.ok),
             ),
           ],

@@ -40,6 +40,19 @@ VoidCallback createDialogBackCloseHandler(BuildContext dialogContext) {
   };
 }
 
+void _safeRestoreFocus(FocusNode? node) {
+  try {
+    if (node != null &&
+        node.context != null &&
+        node.context!.mounted &&
+        node.canRequestFocus) {
+      node.requestFocus();
+    }
+  } catch (_) {
+    // Avoid crash on disposed or unmounted focus node
+  }
+}
+
 /// Drop-in replacement for [showDialog] that captures the currently focused
 /// node before opening and restores focus to it after the dialog closes.
 /// Use this everywhere [showDialog] is called from a TV-facing screen so
@@ -82,9 +95,7 @@ Future<T?> showFocusRestoringDialog<T>({
     routeSettings: routeSettings,
     barrierLabel: barrierLabel,
   ).whenComplete(() {
-    if (previousFocus != null && previousFocus.canRequestFocus) {
-      previousFocus.requestFocus();
-    }
+    _safeRestoreFocus(previousFocus);
   });
 }
 
@@ -144,9 +155,7 @@ Future<T?> showFocusRestoringModalBottomSheet<T>({
     transitionAnimationController: transitionAnimationController,
     anchorPoint: anchorPoint,
   ).whenComplete(() {
-    if (previousFocus != null && previousFocus.canRequestFocus) {
-      previousFocus.requestFocus();
-    }
+    _safeRestoreFocus(previousFocus);
   });
 }
 
@@ -178,10 +187,8 @@ class OverlaySheetController {
         animationDuration: animationDuration,
         onClosed: (restoreFocus) {
           entry.remove();
-          if (restoreFocus &&
-              previousFocus != null &&
-              previousFocus.canRequestFocus) {
-            previousFocus.requestFocus();
+          if (restoreFocus) {
+            _safeRestoreFocus(previousFocus);
           }
         },
       ),
