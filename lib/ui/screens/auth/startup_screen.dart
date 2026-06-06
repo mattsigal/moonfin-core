@@ -73,14 +73,20 @@ class _StartupScreenState extends State<StartupScreen>
     }
 
     final behavior = authPrefs.loginBehavior;
-    String? targetServerId;
     String? targetUserId;
 
+    // Always start with the last-used server as a universal fallback so that
+    // any edge case where a behavior-specific ID is not set still lands on
+    // the correct server's user-select page rather than the Add Server screen.
+    String? targetServerId = authPrefs.savedLastServerId.isNotEmpty
+        ? authPrefs.savedLastServerId
+        : null;
+
     if (behavior == UserSelectBehavior.lastUser) {
-      targetServerId = authPrefs.savedLastServerId;
       targetUserId = authPrefs.savedLastUserId;
     } else if (behavior == UserSelectBehavior.currentUser) {
-      targetServerId = authPrefs.savedAutoLoginServerId;
+      final autoServerId = authPrefs.savedAutoLoginServerId;
+      if (autoServerId.isNotEmpty) targetServerId = autoServerId;
       targetUserId = authPrefs.savedAutoLoginUserId;
     }
 
@@ -125,7 +131,9 @@ class _StartupScreenState extends State<StartupScreen>
       if (mounted) context.go(Destinations.home);
     } else {
       if (mounted) {
-        if (pinEnabledForAutoLoginUser && targetServerId != null && targetServerId.isNotEmpty) {
+        if (targetServerId != null && targetServerId.isNotEmpty) {
+          // A previously-used server is known — go straight to user selection
+          // for that server rather than the Add Server page.
           context.go('${Destinations.server}?serverId=$targetServerId');
         } else {
           context.go(Destinations.serverSelect);
