@@ -33,6 +33,9 @@ import 'util/global_shortcut_focus.dart';
 import 'util/focus/input_mode_tracker.dart';
 import 'util/platform_detection.dart';
 import 'ui/widgets/overlay_sheet.dart';
+import 'package:moonfin_design/moonfin_design.dart';
+import 'util/focus/key_event_utils.dart';
+import 'ui/widgets/focus/request_initial_focus.dart';
 
 class MoonfinApp extends StatefulWidget {
   const MoonfinApp({super.key});
@@ -720,48 +723,11 @@ class _ConnectivityListenerState extends ConsumerState<_ConnectivityListener>
       return;
     }
 
-    final okFocusNode = FocusNode(debugLabel: 'AdminMessageOkButton');
-    final dialogScopeNode = FocusScopeNode(debugLabel: 'AdminMessageDialogScope');
-    final l10n = AppLocalizations.of(navContext);
     showFocusRestoringDialog<void>(
       context: navContext,
       barrierDismissible: false,
-      builder: (ctx) => FocusScope(
-        node: dialogScopeNode,
-        autofocus: true,
-        onKeyEvent: (node, event) {
-          if (!event.isActionable) {
-            return KeyEventResult.ignored;
-          }
-
-          final key = event.logicalKey;
-          if (key.isDirectional) {
-            if (!okFocusNode.hasFocus && okFocusNode.canRequestFocus) {
-              okFocusNode.requestFocus();
-            }
-            return KeyEventResult.handled;
-          }
-
-          return KeyEventResult.ignored;
-        },
-        child: AlertDialog(
-          icon: const Icon(Icons.campaign_outlined),
-          title: Text(l10n.adminSendMessage),
-          content: Text(message),
-          actions: [
-            TextButton(
-              focusNode: okFocusNode,
-              autofocus: true,
-              onPressed: () => Navigator.of(ctx, rootNavigator: true).pop(),
-              child: Text(l10n.ok),
-            ),
-          ],
-        ),
-      ),
-    ).whenComplete(() {
-      okFocusNode.dispose();
-      dialogScopeNode.dispose();
-    });
+      builder: (ctx) => _AdminMessageDialog(message: message),
+    );
   }
 
   Future<void> _runDesktopUpdateCheck() async {
@@ -818,5 +784,131 @@ class _ConnectivityListenerState extends ConsumerState<_ConnectivityListener>
     _wasOnline = isOnline;
 
     return widget.child;
+  }
+}
+
+class _AdminMessageDialog extends StatefulWidget {
+  final String message;
+
+  const _AdminMessageDialog({required this.message});
+
+  @override
+  State<_AdminMessageDialog> createState() => _AdminMessageDialogState();
+}
+
+class _AdminMessageDialogState extends State<_AdminMessageDialog> {
+  final _okFocusNode = FocusNode(debugLabel: 'AdminMessageOkButton');
+  final _dialogScopeNode = FocusScopeNode(debugLabel: 'AdminMessageDialogScope');
+  bool _focused = false;
+
+  @override
+  void dispose() {
+    _okFocusNode.dispose();
+    _dialogScopeNode.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
+    return FocusScope(
+      node: _dialogScopeNode,
+      autofocus: true,
+      onKeyEvent: (node, event) {
+        if (!event.isActionable) {
+          return KeyEventResult.ignored;
+        }
+
+        final key = event.logicalKey;
+        if (key.isDirectional) {
+          if (!_okFocusNode.hasFocus && _okFocusNode.canRequestFocus) {
+            _okFocusNode.requestFocus();
+          }
+          return KeyEventResult.handled;
+        }
+
+        return KeyEventResult.ignored;
+      },
+      child: RequestInitialFocus(
+        targetNode: _okFocusNode,
+        child: Dialog(
+          backgroundColor: Colors.transparent,
+          child: ConstrainedBox(
+            constraints: const BoxConstraints(maxWidth: 500),
+            child: Container(
+              padding: const EdgeInsets.all(32),
+              decoration: BoxDecoration(
+                color: AppColorScheme.surface,
+                borderRadius: BorderRadius.circular(16),
+                border: Border.fromBorderSide(ThemeRegistry.active.borders.chipBorder),
+              ),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Icon(
+                    Icons.campaign_outlined,
+                    size: 40,
+                    color: AppColorScheme.accent,
+                  ),
+                  const SizedBox(height: 24),
+                  Text(
+                    l10n.adminSendMessage,
+                    style: TextStyle(
+                      fontSize: 28,
+                      fontWeight: FontWeight.w600,
+                      color: AppColorScheme.onSurface,
+                      decoration: TextDecoration.none,
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+                  Text(
+                    widget.message,
+                    textAlign: TextAlign.center,
+                    style: TextStyle(
+                      fontSize: 18,
+                      fontWeight: FontWeight.w400,
+                      color: AppColorScheme.onSurface.withValues(alpha: 0.7),
+                      decoration: TextDecoration.none,
+                    ),
+                  ),
+                  const SizedBox(height: 24),
+                  Focus(
+                    focusNode: _okFocusNode,
+                    autofocus: true,
+                    onFocusChange: (f) => setState(() => _focused = f),
+                    onKeyEvent: (node, event) => handleOneShotSelect(event, () {
+                      Navigator.of(context, rootNavigator: true).pop();
+                    }),
+                    child: GestureDetector(
+                      onTap: () {
+                        Navigator.of(context, rootNavigator: true).pop();
+                      },
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+                        decoration: BoxDecoration(
+                          color: _focused
+                              ? AppColorScheme.onSurface
+                              : AppColorScheme.onSurface.withValues(alpha: 0.1),
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                        child: Text(
+                          l10n.ok,
+                          style: TextStyle(
+                            fontSize: 18,
+                            fontWeight: FontWeight.w500,
+                            color: _focused ? AppColors.black : AppColorScheme.onSurface,
+                            decoration: TextDecoration.none,
+                          ),
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
   }
 }
