@@ -7,6 +7,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:get_it/get_it.dart';
 import 'package:go_router/go_router.dart';
+import 'package:moonfin_design/moonfin_design.dart';
 import 'package:window_manager/window_manager.dart';
 
 import 'data/services/app_update_service.dart';

@@ -16,22 +16,20 @@ class AppTheme {
 
     final themedShadows = spec.textGlow;
 
-    const kNeonFontScale = 0.92;
-
     TextStyle? neonDisplay(TextStyle? style) {
       if (style == null) return null;
       return style.copyWith(
-        fontSize: (style.fontSize ?? 14) * kNeonFontScale,
         color: c.accent,
         shadows: themedShadows,
         letterSpacing: (style.letterSpacing ?? 0) + 0.4,
+        fontWeight: FontWeight.bold,
       );
     }
 
     TextStyle? neonBody(TextStyle? style) {
       if (style == null) return null;
       return style.copyWith(
-        fontSize: (style.fontSize ?? 14) * kNeonFontScale,
+        fontFamily: 'NeonPulseBody',
         color: c.onSurface,
         letterSpacing: 0.6,
       );
