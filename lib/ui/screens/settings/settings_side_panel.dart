@@ -29,6 +29,7 @@ import '../../../playback/audio_capability_profile.dart';
 import '../../../playback/external_player_service.dart';
 import '../../../preference/preference_constants.dart';
 import '../../../preference/user_preferences.dart';
+import '../../../preference/seerr_preferences.dart';
 import '../../navigation/destinations.dart';
 import '../../widgets/overlay_sheet.dart';
 import '../../widgets/settings/preference_binding.dart';
@@ -942,7 +943,7 @@ class _HomeScreenCategoryScreenState extends State<_HomeScreenCategoryScreen> {
     );
     final showGenresRows = _prefs.get(UserPreferences.displayGenresRows);
     final showPlaylistsRows = _prefs.get(UserPreferences.displayPlaylistsRows);
-    final showSeerrRowsToggle = _prefs.get(UserPreferences.seerrEnabled);
+    final showSeerrRowsToggle = GetIt.instance<SeerrPreferences>().enabled;
     final rowsStyle = _prefs.get(UserPreferences.homeRowsStyle);
     return Scaffold(
       appBar: buildSettingsAppBar(context, Text(l10n.homeScreen)),
@@ -1034,31 +1035,31 @@ class _HomeScreenCategoryScreenState extends State<_HomeScreenCategoryScreen> {
               labelOf: (v) => v.displayName,
               onChanged: _onGenresItemFilterChanged,
             ),
-            SwitchPreferenceTile(
-              preference: UserPreferences.displayPlaylistsRows,
-              title: l10n.displayPlaylistsRows,
-              subtitle: l10n.displayPlaylistsRowsSubtitle,
-              icon: Icons.playlist_play,
-              onChanged: _onPlaylistsRowsToggleChanged,
-            ),
-            if (showPlaylistsRows)
-              EnumPreferenceTile<LibrarySortBy>(
-                preference: UserPreferences.playlistsRowSortBy,
-                title: l10n.playlistsRowSorting,
-                description: l10n.playlistsRowSortingDescription,
-                icon: Icons.sort,
-                labelOf: (v) => v.displayName,
-                onChanged: _onPlaylistsSortChanged,
-              ),
-            if (showSeerrRowsToggle)
-              SwitchPreferenceTile(
-                preference: UserPreferences.displaySeerrRows,
-                title: l10n.displaySeerrRows,
-                subtitle: l10n.displaySeerrRowsSubtitle,
-                icon: Icons.search,
-                onChanged: _onSeerrRowsToggleChanged,
-              ),
           ],
+          SwitchPreferenceTile(
+            preference: UserPreferences.displayPlaylistsRows,
+            title: l10n.displayPlaylistsRows,
+            subtitle: l10n.displayPlaylistsRowsSubtitle,
+            icon: Icons.playlist_play,
+            onChanged: _onPlaylistsRowsToggleChanged,
+          ),
+          if (showPlaylistsRows)
+            EnumPreferenceTile<LibrarySortBy>(
+              preference: UserPreferences.playlistsRowSortBy,
+              title: l10n.playlistsRowSorting,
+              description: l10n.playlistsRowSortingDescription,
+              icon: Icons.sort,
+              labelOf: (v) => v.displayName,
+              onChanged: _onPlaylistsSortChanged,
+            ),
+          if (showSeerrRowsToggle)
+            SwitchPreferenceTile(
+              preference: UserPreferences.displaySeerrRows,
+              title: l10n.displaySeerrRows,
+              subtitle: l10n.displaySeerrRowsSubtitle,
+              icon: Icons.search,
+              onChanged: _onSeerrRowsToggleChanged,
+            ),
 
           _SectionHeader(l10n.appearance),
           SwitchPreferenceTile(

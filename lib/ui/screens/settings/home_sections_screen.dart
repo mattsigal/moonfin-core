@@ -12,6 +12,7 @@ import '../../../data/services/plugin_sync_service.dart';
 import '../../../preference/home_section_config.dart';
 import '../../../preference/preference_constants.dart';
 import '../../../preference/user_preferences.dart';
+import '../../../preference/seerr_preferences.dart';
 import '../../../util/platform_detection.dart';
 import '../../widgets/overlay_sheet.dart';
 import '../../widgets/poster_size_settings_dialog.dart';
@@ -358,7 +359,7 @@ class _HomeSectionsScreenState extends State<HomeSectionsScreen> {
         _prefs.get(UserPreferences.displayCollectionsRows);
     final showGenresRows = _prefs.get(UserPreferences.displayGenresRows);
     final showPlaylistsRows = _prefs.get(UserPreferences.displayPlaylistsRows);
-    final showSeerrRows = _prefs.get(UserPreferences.seerrEnabled) &&
+    final showSeerrRows = GetIt.instance<SeerrPreferences>().enabled &&
         _prefs.get(UserPreferences.displaySeerrRows);
 
     final hiddenByFavorites =

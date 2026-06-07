@@ -146,7 +146,7 @@ class HomeViewModel extends ChangeNotifier {
       final showPlaylistsRows =
           _prefs.get(UserPreferences.displayPlaylistsRows);
       final showSeerrRows =
-          _prefs.get(UserPreferences.seerrEnabled) &&
+          GetIt.instance<SeerrPreferences>().enabled &&
           _prefs.get(UserPreferences.displaySeerrRows);
 
       // Plugin-dynamic sections only make sense on the active server.
