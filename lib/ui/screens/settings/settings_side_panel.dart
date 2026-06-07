@@ -938,8 +938,6 @@ class _HomeScreenCategoryScreenState extends State<_HomeScreenCategoryScreen> {
 
   void _onSeerrRowsToggleChanged() {
     _pushPersonalizationSync();
-    final isDisplayOn = _prefs.get(UserPreferences.displaySeerrRows);
-    _prefs.set(UserPreferences.showSeerrButton, !isDisplayOn);
     if (!mounted) return;
     setState(() {});
   }
