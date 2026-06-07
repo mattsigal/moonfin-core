@@ -50,6 +50,7 @@ class _MobileBottomNavBarState extends State<MobileBottomNavBar> {
     super.initState();
     _prefs.addListener(_onPrefsChanged);
     _viewsRepo.addListener(_onViewsChanged);
+    GetIt.instance<PluginSyncService>().addListener(_onPrefsChanged);
     _userSub = _userRepo.currentUserStream.listen((_) => _loadUserImage());
     _loadUserImage();
     _loadLibraries();
@@ -57,6 +58,9 @@ class _MobileBottomNavBarState extends State<MobileBottomNavBar> {
 
   @override
   void dispose() {
+    try {
+      GetIt.instance<PluginSyncService>().removeListener(_onPrefsChanged);
+    } catch (_) {}
     _prefs.removeListener(_onPrefsChanged);
     try {
       _viewsRepo.removeListener(_onViewsChanged);

@@ -409,9 +409,15 @@ class _CardImage extends StatelessWidget {
               children: [
                 Container(
                   color: Theme.of(context).colorScheme.surfaceContainerHighest,
+                  padding: (itemType == 'Network' || itemType == 'Studio')
+                      ? const EdgeInsets.all(8.0)
+                      : EdgeInsets.zero,
                   child: imageUrl != null
                       ? BoundedNetworkImage(
                           imageUrl: imageUrl!,
+                          fit: (itemType == 'Network' || itemType == 'Studio')
+                              ? BoxFit.contain
+                              : BoxFit.cover,
                           fadeInDuration: Duration.zero,
                           scale: isCircular ? 0.8 : 0.9,
                           maxWidth: aspectRatio > 1.2 ? 960 : 640,

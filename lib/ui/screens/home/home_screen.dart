@@ -2118,8 +2118,14 @@ class _ContentRowsState extends State<_ContentRows>
       return _libraryRowExtent(rowHeight, metadataScale: metadataScale);
     }
 
-    final isRowsV2 = prefs.get(UserPreferences.homeRowsStyle) == HomeRowsStyle.v2;
-    final rowImageType = isRowsV2 ? ImageType.poster : _homeRowImageTypeForRow(row, prefs);
+    final isSeerrRowOverride = row.id == 'seerr_movie_genres' ||
+        row.id == 'seerr_series_genres' ||
+        row.id == 'seerr_studios' ||
+        row.id == 'seerr_networks';
+    final isRowsV2 = prefs.get(UserPreferences.homeRowsStyle) == HomeRowsStyle.v2 && !isSeerrRowOverride;
+    final rowImageType = isSeerrRowOverride
+        ? ImageType.thumb
+        : (isRowsV2 ? ImageType.poster : _homeRowImageTypeForRow(row, prefs));
     final platformScale = PlatformDetection.isTV ? 0.8 : desktopScale;
     var maxCardHeight = 220.0 * metadataScale;
     if (isRowsV2) {
@@ -2738,9 +2744,14 @@ class _ContentRowsState extends State<_ContentRows>
     required AppLocalizations l10n,
   }) {
     final suppressFocusGlow = ThemeRegistry.active.borders.focusGlow.isNotEmpty;
-    final isRowsV2 = prefs.get(UserPreferences.homeRowsStyle) == HomeRowsStyle.v2;
-    final rowImageType =
-        isRowsV2 ? ImageType.poster : _homeRowImageTypeForRow(row, prefs);
+    final isSeerrRowOverride = row.id == 'seerr_movie_genres' ||
+        row.id == 'seerr_series_genres' ||
+        row.id == 'seerr_studios' ||
+        row.id == 'seerr_networks';
+    final isRowsV2 = prefs.get(UserPreferences.homeRowsStyle) == HomeRowsStyle.v2 && !isSeerrRowOverride;
+    final rowImageType = isSeerrRowOverride
+        ? ImageType.thumb
+        : (isRowsV2 ? ImageType.poster : _homeRowImageTypeForRow(row, prefs));
     final desktopScale = _desktopUiScaleFactor();
     final metadataScale = PlatformDetection.useDesktopUi ? desktopScale : 1.0;
     final platformScale = PlatformDetection.isTV ? 0.8 : desktopScale;
@@ -3546,6 +3557,12 @@ class _ContentRowsState extends State<_ContentRows>
   }
 
   static ImageType _homeRowImageTypeForRow(HomeRow row, UserPreferences prefs) {
+    if (row.id == 'seerr_movie_genres' ||
+        row.id == 'seerr_series_genres' ||
+        row.id == 'seerr_studios' ||
+        row.id == 'seerr_networks') {
+      return ImageType.thumb;
+    }
     if (row.rowType == HomeRowType.latestMedia && _isLatestMusicRow(row)) {
       return ImageType.poster;
     }
@@ -3598,6 +3615,12 @@ class _ContentRowsState extends State<_ContentRows>
     HomeRow row,
     ImageType imageType,
   ) {
+    if (row.id == 'seerr_movie_genres' ||
+        row.id == 'seerr_series_genres' ||
+        row.id == 'seerr_studios' ||
+        row.id == 'seerr_networks') {
+      return 16 / 9;
+    }
     double thumbAspectRatio() {
       return switch (item.type) {
         'MusicAlbum' || 'MusicArtist' || 'Audio' || 'Playlist' || 'Person' => 1,

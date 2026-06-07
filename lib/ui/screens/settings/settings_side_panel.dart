@@ -925,6 +925,7 @@ class _HomeScreenCategoryScreenState extends State<_HomeScreenCategoryScreen> {
 
   void _onSeerrRowsToggleChanged() {
     _pushPersonalizationSync();
+    _prefs.notifyPreferenceChanged();
     if (!mounted) return;
     setState(() {});
   }

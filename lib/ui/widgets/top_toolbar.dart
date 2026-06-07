@@ -116,6 +116,7 @@ class _TopToolbarState extends State<TopToolbar> {
     _userSub = _userRepo.currentUserStream.listen((_) => _loadUserImage());
     _prefs.addListener(_onPrefsChanged);
     _viewsRepo.addListener(_onUserViewsChanged);
+    GetIt.instance<PluginSyncService>().addListener(_onPrefsChanged);
     _loadLibraries();
   }
 
@@ -145,6 +146,9 @@ class _TopToolbarState extends State<TopToolbar> {
     _userSub?.cancel();
     try {
       _viewsRepo.removeListener(_onUserViewsChanged);
+    } catch (_) {}
+    try {
+      GetIt.instance<PluginSyncService>().removeListener(_onPrefsChanged);
     } catch (_) {}
     _prefs.removeListener(_onPrefsChanged);
     _currentTime.dispose();
