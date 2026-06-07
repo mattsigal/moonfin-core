@@ -3,6 +3,7 @@ import 'package:moonfin_design/moonfin_design.dart';
 
 import '../../../data/models/gallery_detail.dart';
 import '../../../data/models/media_bar_slide_item.dart';
+import '../../../util/platform_detection.dart';
 
 class GalleryActiveCard extends StatelessWidget {
   final MediaBarSlideItem item;
@@ -46,7 +47,8 @@ class GalleryActiveCard extends StatelessWidget {
     }
     return LayoutBuilder(
       builder: (context, constraints) {
-        final wide = constraints.maxWidth > 720;
+        final wide =
+            !PlatformDetection.useMobileUi || constraints.maxWidth > 720;
         final left = _LeftColumn(item: item, accent: accent, ratings: ratings);
         final right = _RightCard(detail: detail, accent: accent);
 
