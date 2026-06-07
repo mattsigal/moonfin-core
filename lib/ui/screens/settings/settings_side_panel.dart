@@ -1027,23 +1027,23 @@ class _HomeScreenCategoryScreenState extends State<_HomeScreenCategoryScreen> {
               labelOf: (v) => v.displayName,
               onChanged: _onGenresItemFilterChanged,
             ),
-            SwitchPreferenceTile(
-              preference: UserPreferences.displayPlaylistsRows,
-              title: l10n.displayPlaylistsRows,
-              subtitle: l10n.displayPlaylistsRowsSubtitle,
-              icon: Icons.playlist_play,
-              onChanged: _onPlaylistsRowsToggleChanged,
-            ),
-            if (showPlaylistsRows)
-              EnumPreferenceTile<LibrarySortBy>(
-                preference: UserPreferences.playlistsRowSortBy,
-                title: l10n.playlistsRowSorting,
-                description: l10n.playlistsRowSortingDescription,
-                icon: Icons.sort,
-                labelOf: (v) => v.displayName,
-                onChanged: _onPlaylistsSortChanged,
-              ),
           ],
+          SwitchPreferenceTile(
+            preference: UserPreferences.displayPlaylistsRows,
+            title: l10n.displayPlaylistsRows,
+            subtitle: l10n.displayPlaylistsRowsSubtitle,
+            icon: Icons.playlist_play,
+            onChanged: _onPlaylistsRowsToggleChanged,
+          ),
+          if (showPlaylistsRows)
+            EnumPreferenceTile<LibrarySortBy>(
+              preference: UserPreferences.playlistsRowSortBy,
+              title: l10n.playlistsRowSorting,
+              description: l10n.playlistsRowSortingDescription,
+              icon: Icons.sort,
+              labelOf: (v) => v.displayName,
+              onChanged: _onPlaylistsSortChanged,
+            ),
 
           _SectionHeader(l10n.appearance),
           SwitchPreferenceTile(
