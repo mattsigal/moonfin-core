@@ -352,6 +352,15 @@ class _HomeSectionsScreenState extends State<HomeSectionsScreen> {
         type == HomeSectionType.seerrTrending;
   }
 
+  void _addSection(HomeSectionConfig cfg) {
+    final insertIdx = _sections.indexWhere((s) => s.isBuiltin && _isSeerrSectionType(s.type));
+    if (insertIdx >= 0) {
+      _sections.insert(insertIdx, cfg);
+    } else {
+      _sections.add(cfg);
+    }
+  }
+
   bool _isHiddenByRowVisibilityGates(HomeSectionConfig section) {
     final showFavoritesRows = _prefs.get(UserPreferences.displayFavoritesRows);
     final showCollectionsRows =
@@ -425,16 +434,36 @@ class _HomeSectionsScreenState extends State<HomeSectionsScreen> {
         continue;
       }
       if (existingTypes.contains(type)) continue;
+
+      final isSeerr = _isSeerrSectionType(type);
+      final idx = isSeerr ? _sections.length : insertIndex;
+
       _sections.insert(
-        insertIndex,
+        idx,
         HomeSectionConfig(
           type: type,
           enabled: false,
           order: nextOrder++,
         ),
       );
-      insertIndex++;
+      if (!isSeerr) {
+        insertIndex++;
+      }
       changed = true;
+    }
+
+    // Migration: if Seerr rows exist before dynamic sections, move them to the end.
+    final lastDynamicIndex = _sections.lastIndexWhere((s) => s.isPluginDynamic);
+    if (lastDynamicIndex >= 0) {
+      final firstSeerrIndex =
+          _sections.indexWhere((s) => s.isBuiltin && _isSeerrSectionType(s.type));
+      if (firstSeerrIndex >= 0 && firstSeerrIndex < lastDynamicIndex) {
+        final seerrConfigs =
+            _sections.where((s) => s.isBuiltin && _isSeerrSectionType(s.type)).toList();
+        _sections.removeWhere((s) => s.isBuiltin && _isSeerrSectionType(s.type));
+        _sections.addAll(seerrConfigs);
+        changed = true;
+      }
     }
 
     return changed;
@@ -577,7 +606,7 @@ class _HomeSectionsScreenState extends State<HomeSectionsScreen> {
           changed = true;
         }
       } else {
-        _sections.add(cfg);
+        _addSection(cfg);
         changed = true;
       }
     }
@@ -734,7 +763,7 @@ class _HomeSectionsScreenState extends State<HomeSectionsScreen> {
           changed = true;
         }
       } else {
-        _sections.add(cfg);
+        _addSection(cfg);
         changed = true;
       }
     }
@@ -789,7 +818,7 @@ class _HomeSectionsScreenState extends State<HomeSectionsScreen> {
           changed = true;
         }
       } else {
-        _sections.add(cfg);
+        _addSection(cfg);
         changed = true;
       }
     }
@@ -847,7 +876,7 @@ class _HomeSectionsScreenState extends State<HomeSectionsScreen> {
             changed = true;
           }
         } else {
-          _sections.add(cfg);
+          _addSection(cfg);
           changed = true;
         }
       }
@@ -906,7 +935,7 @@ class _HomeSectionsScreenState extends State<HomeSectionsScreen> {
             changed = true;
           }
         } else {
-          _sections.add(cfg);
+          _addSection(cfg);
           changed = true;
         }
       }
@@ -1250,7 +1279,16 @@ class _HomeSectionsScreenState extends State<HomeSectionsScreen> {
                           color: AppColorScheme.onSurface.withValues(alpha: 0.7),
                         ),
                       )
-                    : null,
+                    : (_isSeerrSectionType(section.type)
+                        ? Text(
+                            'seerr Discovery rows',
+                            style: TextStyle(
+                              fontSize: 12,
+                              fontFamily: kCleanSettingsFontFamily,
+                              color: AppColorScheme.onSurface.withValues(alpha: 0.7),
+                            ),
+                          )
+                        : null),
                 onTap: isEmpty
                     ? null
                     : () {
@@ -1299,7 +1337,9 @@ class _HomeSectionsScreenState extends State<HomeSectionsScreen> {
           label: _labelFor(section, l10n),
           subtitle: section.isPluginDynamic
               ? _pluginSubtitle(section)
-              : null,
+              : (_isSeerrSectionType(section.type)
+                  ? 'seerr Discovery rows'
+                  : null),
           enabled: section.enabled,
           isFirst: visibleIndex == 0,
           isLast: visibleIndex == visibleIndices.length - 1,
