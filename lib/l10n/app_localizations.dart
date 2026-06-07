@@ -13268,13 +13268,13 @@ abstract class AppLocalizations {
   /// No description provided for @displaySeerrRows.
   ///
   /// In en, this message translates to:
-  /// **'Display seerr Discovery Rows'**
+  /// **'Display Seerr Discovery Rows'**
   String get displaySeerrRows;
 
   /// No description provided for @displaySeerrRowsSubtitle.
   ///
   /// In en, this message translates to:
-  /// **'Show seerr discovery rows in Home Sections.'**
+  /// **'Show Seerr discovery rows in Home Sections.'**
   String get displaySeerrRowsSubtitle;
 
   /// No description provided for @appearance.

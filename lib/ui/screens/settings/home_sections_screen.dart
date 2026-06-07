@@ -349,7 +349,11 @@ class _HomeSectionsScreenState extends State<HomeSectionsScreen> {
         type == HomeSectionType.seerrUpcomingMovies ||
         type == HomeSectionType.seerrPopularSeries ||
         type == HomeSectionType.seerrUpcomingSeries ||
-        type == HomeSectionType.seerrTrending;
+        type == HomeSectionType.seerrTrending ||
+        type == HomeSectionType.seerrMovieGenres ||
+        type == HomeSectionType.seerrStudios ||
+        type == HomeSectionType.seerrSeriesGenres ||
+        type == HomeSectionType.seerrNetworks;
   }
 
   void _addSection(HomeSectionConfig cfg) {
@@ -1084,6 +1088,10 @@ class _HomeSectionsScreenState extends State<HomeSectionsScreen> {
     HomeSectionType.seerrPopularSeries => l10n.popularSeries,
     HomeSectionType.seerrUpcomingSeries => l10n.upcomingSeries,
     HomeSectionType.seerrTrending => l10n.trending,
+    HomeSectionType.seerrMovieGenres => l10n.movieGenres,
+    HomeSectionType.seerrStudios => l10n.studios,
+    HomeSectionType.seerrSeriesGenres => l10n.seriesGenres,
+    HomeSectionType.seerrNetworks => l10n.networks,
     HomeSectionType.none => l10n.none,
   };
 
@@ -1281,7 +1289,7 @@ class _HomeSectionsScreenState extends State<HomeSectionsScreen> {
                       )
                     : (_isSeerrSectionType(section.type)
                         ? Text(
-                            'seerr Discovery rows',
+                            'Seerr Discovery Rows',
                             style: TextStyle(
                               fontSize: 12,
                               fontFamily: kCleanSettingsFontFamily,
@@ -1338,7 +1346,7 @@ class _HomeSectionsScreenState extends State<HomeSectionsScreen> {
           subtitle: section.isPluginDynamic
               ? _pluginSubtitle(section)
               : (_isSeerrSectionType(section.type)
-                  ? 'seerr Discovery rows'
+                  ? 'Seerr Discovery Rows'
                   : null),
           enabled: section.enabled,
           isFirst: visibleIndex == 0,

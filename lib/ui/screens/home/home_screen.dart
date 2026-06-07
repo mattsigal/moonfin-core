@@ -2791,12 +2791,14 @@ class _ContentRowsState extends State<_ContentRows>
           posterSize.portraitHeight.toDouble() * platformScale + (46 * metadataScale);
     }
 
+    final isSeerrRow = row.id.startsWith('seerr_');
     return _buildTitledRow(
       key: _rowContainerKey(rowIndex),
       title: _localizedRowTitle(row, l10n),
+      subtitle: isSeerrRow ? 'Seerr Discovery Rows' : null,
       rowIndex: rowIndex,
       hasItems: row.items.isNotEmpty,
-      height: maxCardHeight + (10 * metadataScale),
+      height: maxCardHeight + (10 * metadataScale) + (isSeerrRow ? 18.0 : 0.0),
       child: LockedFocusRow<AggregatedItem>(
         key: _rowKey(rowIndex),
         items: row.items,
@@ -2850,11 +2852,28 @@ class _ContentRowsState extends State<_ContentRows>
           } else if (row.rowType == HomeRowType.genres && row.id == 'genres') {
             context.push(Destinations.genre(item.name, genreId: item.id));
           } else if (item.serverId == 'seerr') {
-            final mediaType = item.type == 'Series' || item.type == 'tv' ? 'tv' : 'movie';
-            context.push(
-              Destinations.seerrMedia(item.id),
-              extra: {'mediaType': mediaType},
-            );
+            final filterType = item.rawData['FilterType'] as String?;
+            if (filterType != null) {
+              final mediaType = item.rawData['MediaType'] as String? ?? 'movie';
+              final filterId = item.id;
+              final filterName = item.rawData['FilterName'] as String? ?? item.name;
+              final uri = Uri(
+                path: Destinations.seerrBrowse,
+                queryParameters: {
+                  'filterId': filterId,
+                  'filterName': filterName,
+                  'mediaType': mediaType,
+                  'filterType': filterType,
+                },
+              );
+              context.push(uri.toString());
+            } else {
+              final mediaType = item.type == 'Series' || item.type == 'tv' ? 'tv' : 'movie';
+              context.push(
+                Destinations.seerrMedia(item.id),
+                extra: {'mediaType': mediaType},
+              );
+            }
           } else {
             context.push(Destinations.itemOrPhoto(
               item.id,
@@ -2947,11 +2966,28 @@ class _ContentRowsState extends State<_ContentRows>
             } else if (row.rowType == HomeRowType.genres && row.id == 'genres') {
               context.push(Destinations.genre(item.name, genreId: item.id));
             } else if (item.serverId == 'seerr') {
-              final mediaType = item.type == 'Series' || item.type == 'tv' ? 'tv' : 'movie';
-              context.push(
-                Destinations.seerrMedia(item.id),
-                extra: {'mediaType': mediaType},
-              );
+              final filterType = item.rawData['FilterType'] as String?;
+              if (filterType != null) {
+                final mediaType = item.rawData['MediaType'] as String? ?? 'movie';
+                final filterId = item.id;
+                final filterName = item.rawData['FilterName'] as String? ?? item.name;
+                final uri = Uri(
+                  path: Destinations.seerrBrowse,
+                  queryParameters: {
+                    'filterId': filterId,
+                    'filterName': filterName,
+                    'mediaType': mediaType,
+                    'filterType': filterType,
+                  },
+                );
+                context.push(uri.toString());
+              } else {
+                final mediaType = item.type == 'Series' || item.type == 'tv' ? 'tv' : 'movie';
+                context.push(
+                  Destinations.seerrMedia(item.id),
+                  extra: {'mediaType': mediaType},
+                );
+              }
             } else {
               context.push(Destinations.itemOrPhoto(
                 item.id,
@@ -3241,6 +3277,7 @@ class _ContentRowsState extends State<_ContentRows>
   Widget _buildTitledRow({
     Key? key,
     required String title,
+    String? subtitle,
     required int rowIndex,
     required bool hasItems,
     required double height,
@@ -3266,12 +3303,27 @@ class _ContentRowsState extends State<_ContentRows>
           child: Row(
             children: [
               Expanded(
-                child: Text(
-                  title,
-                  style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                        color: AppColorScheme.onSurface,
-                        fontWeight: FontWeight.w600,
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Text(
+                      title,
+                      style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                            color: AppColorScheme.onSurface,
+                            fontWeight: FontWeight.w600,
+                          ),
+                    ),
+                    if (subtitle != null && subtitle.isNotEmpty) ...[
+                      const SizedBox(height: 2),
+                      Text(
+                        subtitle,
+                        style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                              color: AppColorScheme.onSurface.withValues(alpha: 0.5),
+                            ),
                       ),
+                    ],
+                  ],
                 ),
               ),
               if (showHeaderControls) ...[
@@ -3416,10 +3468,12 @@ class _ContentRowsState extends State<_ContentRows>
     if (item.serverId == 'seerr') {
       final backdrop = item.rawData['BackdropPath'] as String?;
       if (backdrop != null && backdrop.isNotEmpty) {
+        if (backdrop.startsWith('http')) return backdrop;
         return 'https://image.tmdb.org/t/p/w1280$backdrop';
       }
       final poster = item.rawData['PosterPath'] as String?;
       if (poster != null && poster.isNotEmpty) {
+        if (poster.startsWith('http')) return poster;
         return 'https://image.tmdb.org/t/p/w300$poster';
       }
       return null;
@@ -3570,19 +3624,23 @@ class _ContentRowsState extends State<_ContentRows>
       if (imageType == ImageType.thumb || imageType == ImageType.banner) {
         final backdrop = item.rawData['BackdropPath'] as String?;
         if (backdrop != null && backdrop.isNotEmpty) {
+          if (backdrop.startsWith('http')) return backdrop;
           return 'https://image.tmdb.org/t/p/w1280$backdrop';
         }
         final poster = item.rawData['PosterPath'] as String?;
         if (poster != null && poster.isNotEmpty) {
+          if (poster.startsWith('http')) return poster;
           return 'https://image.tmdb.org/t/p/w300$poster';
         }
       } else {
         final poster = item.rawData['PosterPath'] as String?;
         if (poster != null && poster.isNotEmpty) {
+          if (poster.startsWith('http')) return poster;
           return 'https://image.tmdb.org/t/p/w300$poster';
         }
         final backdrop = item.rawData['BackdropPath'] as String?;
         if (backdrop != null && backdrop.isNotEmpty) {
+          if (backdrop.startsWith('http')) return backdrop;
           return 'https://image.tmdb.org/t/p/w1280$backdrop';
         }
       }

@@ -624,7 +624,8 @@ class _TopToolbarState extends State<TopToolbar> {
     final showSeerr =
         seerrEnabledLocally &&
         pluginSync.pluginAvailable &&
-        pluginSync.seerrInfoAvailable;
+        pluginSync.seerrInfoAvailable &&
+        !_prefs.get(UserPreferences.displaySeerrRows);
     final l10n = AppLocalizations.of(context);
     final seerrDisplayName = seerrPrefs.moonfinDisplayName.trim();
     final seerrNavLabel = seerrDisplayName.isNotEmpty

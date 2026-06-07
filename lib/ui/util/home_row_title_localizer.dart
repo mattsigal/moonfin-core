@@ -46,6 +46,14 @@ String localizeHomeRowTitle({
       return l10n.upcomingSeries;
     case 'seerr_trending':
       return l10n.trending;
+    case 'seerr_movie_genres':
+      return l10n.movieGenres;
+    case 'seerr_studios':
+      return l10n.studios;
+    case 'seerr_series_genres':
+      return l10n.seriesGenres;
+    case 'seerr_networks':
+      return l10n.networks;
   }
 
   if (row.id.startsWith('resume_')) return l10n.continueWatching;

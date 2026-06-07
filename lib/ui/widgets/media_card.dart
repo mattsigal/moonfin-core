@@ -242,7 +242,7 @@ class _MediaCardState extends State<MediaCard> with FocusStateMixin {
             if (widget.subtitleWidget != null) ...[
               SizedBox(height: widget.title != null ? 2 : 6),
               widget.subtitleWidget!,
-            ] else if (widget.subtitle != null)
+            ] else if (widget.subtitle != null && widget.subtitle!.isNotEmpty)
               SizedBox(
                 height: subtitleLineHeight,
                 child: showMarquee

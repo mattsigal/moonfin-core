@@ -1057,9 +1057,13 @@ class _HomeScreenCategoryScreenState extends State<_HomeScreenCategoryScreen> {
             title: l10n.displaySeerrRows,
             subtitle: seerrEnabledOnAccount
                 ? l10n.displaySeerrRowsSubtitle
-                : '${l10n.displaySeerrRowsSubtitle} (Requires seerr login in Plugins)',
+                : '${l10n.displaySeerrRowsSubtitle} (Requires Seerr login in Plugins)',
             enabled: seerrEnabledOnAccount,
-            icon: Icons.search,
+            iconBuilder: (size, color) => Image.asset(
+              'assets/icons/seerr.png',
+              width: size,
+              height: size,
+            ),
             onChanged: _onSeerrRowsToggleChanged,
           ),
 

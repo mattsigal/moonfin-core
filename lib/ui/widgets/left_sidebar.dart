@@ -830,7 +830,8 @@ class _LeftSidebarState extends State<LeftSidebar> {
                   ),
                 if (pluginSync.pluginAvailable &&
                     pluginSync.seerrInfoAvailable &&
-                    seerrEnabledLocally)
+                    seerrEnabledLocally &&
+                    !_prefs.get(UserPreferences.displaySeerrRows))
                   _SidebarItem(
                     baseColor: nextSidebarColor(),
                     iconBuilder: (size, color) => seerrPrefs.isSeerrVariant

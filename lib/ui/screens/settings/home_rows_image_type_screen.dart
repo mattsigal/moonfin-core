@@ -80,6 +80,10 @@ class _HomeRowsImageTypeScreenState extends State<HomeRowsImageTypeScreen> {
     HomeSectionType.seerrPopularSeries => l10n.popularSeries,
     HomeSectionType.seerrUpcomingSeries => l10n.upcomingSeries,
     HomeSectionType.seerrTrending => l10n.trending,
+    HomeSectionType.seerrMovieGenres => l10n.movieGenres,
+    HomeSectionType.seerrStudios => l10n.studios,
+    HomeSectionType.seerrSeriesGenres => l10n.seriesGenres,
+    HomeSectionType.seerrNetworks => l10n.networks,
     HomeSectionType.none => l10n.none,
   };
 

@@ -19,6 +19,7 @@ import 'package:get_it/get_it.dart';
 import '../../../data/repositories/seerr_repository.dart';
 import '../../../data/services/seerr/seerr_api_models.dart';
 import '../../../preference/seerr_preferences.dart';
+import '../../../data/viewmodels/seerr_discover_view_model.dart';
 
 class HomeViewModel extends ChangeNotifier {
   final RowDataSource _dataSource;
@@ -86,7 +87,11 @@ class HomeViewModel extends ChangeNotifier {
         type == HomeSectionType.seerrUpcomingMovies ||
         type == HomeSectionType.seerrPopularSeries ||
         type == HomeSectionType.seerrUpcomingSeries ||
-        type == HomeSectionType.seerrTrending;
+        type == HomeSectionType.seerrTrending ||
+        type == HomeSectionType.seerrMovieGenres ||
+        type == HomeSectionType.seerrStudios ||
+        type == HomeSectionType.seerrSeriesGenres ||
+        type == HomeSectionType.seerrNetworks;
   }
 
   ImageApi imageApiForServer(String serverId) {
@@ -412,6 +417,14 @@ class HomeViewModel extends ChangeNotifier {
         return row.id == 'seerr_upcoming_series';
       case HomeSectionType.seerrTrending:
         return row.id == 'seerr_trending';
+      case HomeSectionType.seerrMovieGenres:
+        return row.id == 'seerr_movie_genres';
+      case HomeSectionType.seerrStudios:
+        return row.id == 'seerr_studios';
+      case HomeSectionType.seerrSeriesGenres:
+        return row.id == 'seerr_series_genres';
+      case HomeSectionType.seerrNetworks:
+        return row.id == 'seerr_networks';
       case HomeSectionType.mediaBar:
       case HomeSectionType.recentlyReleased:
       case HomeSectionType.resumeBook:
@@ -623,6 +636,14 @@ class HomeViewModel extends ChangeNotifier {
         return const {'seerrUpcomingSeries'};
       case HomeSectionType.seerrTrending:
         return const {'seerrTrending'};
+      case HomeSectionType.seerrMovieGenres:
+        return const {'seerrMovieGenres'};
+      case HomeSectionType.seerrStudios:
+        return const {'seerrStudios'};
+      case HomeSectionType.seerrSeriesGenres:
+        return const {'seerrSeriesGenres'};
+      case HomeSectionType.seerrNetworks:
+        return const {'seerrNetworks'};
       case HomeSectionType.mediaBar:
       case HomeSectionType.none:
         return const <String>{};
@@ -810,6 +831,14 @@ class HomeViewModel extends ChangeNotifier {
         return _loadSeerrRow(SeerrRowType.upcomingSeries, l10n.upcomingSeries, 'seerr_upcoming_series');
       case HomeSectionType.seerrTrending:
         return _loadSeerrRow(SeerrRowType.trending, l10n.trending, 'seerr_trending');
+      case HomeSectionType.seerrMovieGenres:
+        return _loadSeerrRow(SeerrRowType.movieGenres, l10n.movieGenres, 'seerr_movie_genres');
+      case HomeSectionType.seerrStudios:
+        return _loadSeerrRow(SeerrRowType.studios, l10n.studios, 'seerr_studios');
+      case HomeSectionType.seerrSeriesGenres:
+        return _loadSeerrRow(SeerrRowType.seriesGenres, l10n.seriesGenres, 'seerr_series_genres');
+      case HomeSectionType.seerrNetworks:
+        return _loadSeerrRow(SeerrRowType.networks, l10n.networks, 'seerr_networks');
       case HomeSectionType.recentlyReleased:
       case HomeSectionType.resumeBook:
       case HomeSectionType.none:
@@ -966,6 +995,26 @@ class HomeViewModel extends ChangeNotifier {
           id: 'seerr_trending', title: l10n.trending,
           rowType: HomeRowType.pluginDynamic, isLoading: true,
         );
+      case HomeSectionType.seerrMovieGenres:
+        return HomeRow(
+          id: 'seerr_movie_genres', title: l10n.movieGenres,
+          rowType: HomeRowType.pluginDynamic, isLoading: true,
+        );
+      case HomeSectionType.seerrStudios:
+        return HomeRow(
+          id: 'seerr_studios', title: l10n.studios,
+          rowType: HomeRowType.pluginDynamic, isLoading: true,
+        );
+      case HomeSectionType.seerrSeriesGenres:
+        return HomeRow(
+          id: 'seerr_series_genres', title: l10n.seriesGenres,
+          rowType: HomeRowType.pluginDynamic, isLoading: true,
+        );
+      case HomeSectionType.seerrNetworks:
+        return HomeRow(
+          id: 'seerr_networks', title: l10n.networks,
+          rowType: HomeRowType.pluginDynamic, isLoading: true,
+        );
       case HomeSectionType.liveTv:
       case HomeSectionType.activeRecordings:
       case HomeSectionType.mediaBar:
@@ -1098,7 +1147,113 @@ class HomeViewModel extends ChangeNotifier {
 
       List<SeerrDiscoverItem> rawItems = [];
 
-      if (type == SeerrRowType.recentRequests) {
+      if (type == SeerrRowType.movieGenres) {
+        final genres = await repo.getGenreSliderMovies();
+        final aggregatedItems = genres.map((genre) {
+          final backdrop = genre.backdrops.isNotEmpty ? genre.backdrops.first : '';
+          return AggregatedItem(
+            id: genre.id.toString(),
+            serverId: 'seerr',
+            rawData: {
+              'Name': genre.name,
+              'Type': 'Genre',
+              'Overview': '',
+              'PosterPath': backdrop,
+              'BackdropPath': backdrop,
+              'MediaType': 'movie',
+              'FilterType': 'genre',
+              'FilterName': genre.name,
+            },
+          );
+        }).toList();
+        return [
+          HomeRow(
+            id: rowId,
+            title: title,
+            rowType: HomeRowType.pluginDynamic,
+            items: aggregatedItems,
+          )
+        ];
+      } else if (type == SeerrRowType.seriesGenres) {
+        final genres = await repo.getGenreSliderTv();
+        final aggregatedItems = genres.map((genre) {
+          final backdrop = genre.backdrops.isNotEmpty ? genre.backdrops.first : '';
+          return AggregatedItem(
+            id: genre.id.toString(),
+            serverId: 'seerr',
+            rawData: {
+              'Name': genre.name,
+              'Type': 'Genre',
+              'Overview': '',
+              'PosterPath': backdrop,
+              'BackdropPath': backdrop,
+              'MediaType': 'tv',
+              'FilterType': 'genre',
+              'FilterName': genre.name,
+            },
+          );
+        }).toList();
+        return [
+          HomeRow(
+            id: rowId,
+            title: title,
+            rowType: HomeRowType.pluginDynamic,
+            items: aggregatedItems,
+          )
+        ];
+      } else if (type == SeerrRowType.networks) {
+        final networks = SeerrDiscoverViewModel.popularNetworks;
+        final aggregatedItems = networks.map((network) {
+          return AggregatedItem(
+            id: network.id.toString(),
+            serverId: 'seerr',
+            rawData: {
+              'Name': network.name,
+              'Type': 'Network',
+              'Overview': '',
+              'PosterPath': network.logoPath ?? '',
+              'BackdropPath': network.logoPath ?? '',
+              'MediaType': 'tv',
+              'FilterType': 'network',
+              'FilterName': network.name,
+            },
+          );
+        }).toList();
+        return [
+          HomeRow(
+            id: rowId,
+            title: title,
+            rowType: HomeRowType.pluginDynamic,
+            items: aggregatedItems,
+          )
+        ];
+      } else if (type == SeerrRowType.studios) {
+        final studios = SeerrDiscoverViewModel.popularStudios;
+        final aggregatedItems = studios.map((studio) {
+          return AggregatedItem(
+            id: studio.id.toString(),
+            serverId: 'seerr',
+            rawData: {
+              'Name': studio.name,
+              'Type': 'Studio',
+              'Overview': '',
+              'PosterPath': studio.logoPath ?? '',
+              'BackdropPath': studio.logoPath ?? '',
+              'MediaType': 'movie',
+              'FilterType': 'studio',
+              'FilterName': studio.name,
+            },
+          );
+        }).toList();
+        return [
+          HomeRow(
+            id: rowId,
+            title: title,
+            rowType: HomeRowType.pluginDynamic,
+            items: aggregatedItems,
+          )
+        ];
+      } else if (type == SeerrRowType.recentRequests) {
         final user = await repo.getCurrentUser();
         final response = await repo.getRequests(
           requestedBy: user.canViewAllRequests ? null : user.id,
@@ -1197,7 +1352,7 @@ class HomeViewModel extends ChangeNotifier {
         )
       ];
     } catch (e) {
-      debugPrint('[SeerrHomeRow] Failed to load seerr row $type: $e');
+      debugPrint('[SeerrHomeRow] Failed to load Seerr row $type: $e');
       return [];
     }
   }
@@ -1220,7 +1375,7 @@ class HomeViewModel extends ChangeNotifier {
   }
 
   Future<SeerrDiscoverItem> _enrichSeerrItem(SeerrRepository repo, SeerrDiscoverItem item) async {
-    if (item.backdropPath != null && item.voteAverage != null) {
+    if (item.backdropPath != null && item.voteAverage != null && (item.releaseDate != null || item.firstAirDate != null)) {
       return item;
     }
     final tmdbId = item.mediaInfo?.tmdbId ?? item.id;
@@ -1238,8 +1393,8 @@ class HomeViewModel extends ChangeNotifier {
           posterPath: details.posterPath ?? item.posterPath,
           backdropPath: details.backdropPath ?? item.backdropPath,
           overview: details.overview ?? item.overview,
-          releaseDate: item.releaseDate,
-          firstAirDate: item.firstAirDate,
+          releaseDate: item.releaseDate ?? details.firstAirDate,
+          firstAirDate: item.firstAirDate ?? details.firstAirDate,
           originalLanguage: item.originalLanguage,
           genreIds: item.genreIds,
           voteAverage: details.voteAverage ?? item.voteAverage,
@@ -1263,8 +1418,8 @@ class HomeViewModel extends ChangeNotifier {
         posterPath: details.posterPath ?? item.posterPath,
         backdropPath: details.backdropPath ?? item.backdropPath,
         overview: details.overview ?? item.overview,
-        releaseDate: item.releaseDate,
-        firstAirDate: item.firstAirDate,
+        releaseDate: item.releaseDate ?? details.releaseDate,
+        firstAirDate: item.firstAirDate ?? details.releaseDate,
         originalLanguage: item.originalLanguage,
         genreIds: item.genreIds,
         voteAverage: details.voteAverage ?? item.voteAverage,

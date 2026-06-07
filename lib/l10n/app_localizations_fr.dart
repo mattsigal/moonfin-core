@@ -7545,11 +7545,11 @@ class AppLocalizationsFr extends AppLocalizations {
       'Sort Playlist rows by date added, release date, alphabetically, and more.';
 
   @override
-  String get displaySeerrRows => 'Display seerr Discovery Rows';
+  String get displaySeerrRows => 'Display Seerr Discovery Rows';
 
   @override
   String get displaySeerrRowsSubtitle =>
-      'Show seerr discovery rows in Home Sections.';
+      'Show Seerr discovery rows in Home Sections.';
 
   @override
   String get appearance => 'Apparence';

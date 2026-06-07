@@ -225,6 +225,10 @@ enum HomeSectionType {
   seerrPopularSeries('seerr_popular_series'),
   seerrUpcomingSeries('seerr_upcoming_series'),
   seerrTrending('seerr_trending'),
+  seerrMovieGenres('seerr_movie_genres'),
+  seerrStudios('seerr_studios'),
+  seerrSeriesGenres('seerr_series_genres'),
+  seerrNetworks('seerr_networks'),
   none('none');
 
   const HomeSectionType(this.serializedName);

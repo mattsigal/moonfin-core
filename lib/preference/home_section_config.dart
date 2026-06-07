@@ -201,6 +201,10 @@ class HomeSectionConfig {
         HomeSectionConfig(type: HomeSectionType.seerrPopularSeries, enabled: false, order: 25),
         HomeSectionConfig(type: HomeSectionType.seerrUpcomingSeries, enabled: false, order: 26),
         HomeSectionConfig(type: HomeSectionType.seerrTrending, enabled: false, order: 27),
+        HomeSectionConfig(type: HomeSectionType.seerrMovieGenres, enabled: false, order: 28),
+        HomeSectionConfig(type: HomeSectionType.seerrStudios, enabled: false, order: 29),
+        HomeSectionConfig(type: HomeSectionType.seerrSeriesGenres, enabled: false, order: 30),
+        HomeSectionConfig(type: HomeSectionType.seerrNetworks, enabled: false, order: 31),
       ];
 
   static List<HomeSectionConfig> fromJsonString(String jsonString) {

@@ -282,7 +282,8 @@ class _MobileBottomNavBarState extends State<MobileBottomNavBar> {
       return seerrPrefs.enabled &&
           _prefs.get(UserPreferences.seerrEnabled) &&
           pluginSync.pluginAvailable &&
-          pluginSync.seerrInfoAvailable;
+          pluginSync.seerrInfoAvailable &&
+          !_prefs.get(UserPreferences.displaySeerrRows);
     } catch (_) {
       return false;
     }
