@@ -235,20 +235,40 @@ class HomeViewModel extends ChangeNotifier {
               .toList();
           final placeholder = _placeholderForConfig(cfg);
           final loadedIds = loadedRows.map((r) => r.id).toSet();
-          _rows = List.of(_rows);
-          int insertIndex = -1;
-          if (placeholder != null) {
-            insertIndex = _rows.indexWhere((r) => r.id == placeholder.id);
-          }
-          if (insertIndex < 0 && loadedIds.isNotEmpty) {
-            insertIndex = _rows.indexWhere((r) => loadedIds.contains(r.id));
+          // Find the row that immediately follows this section's placeholder /
+          // existing rows, so we can re-anchor after removals.
+
+          String? anchorId;
+          {
+            // Walk forward past the section's current rows to find the next
+            // sibling row that won't be removed.
+            bool pastSection = false;
+            for (final r in _rows) {
+              final willRemove = (placeholder != null && r.id == placeholder.id) ||
+                  loadedIds.contains(r.id) ||
+                  _rowBelongsToConfig(r, cfg);
+              if (willRemove) {
+                pastSection = true;
+              } else if (pastSection) {
+                anchorId = r.id;
+                break;
+              }
+            }
           }
           _rows.removeWhere((r) =>
               (placeholder != null && r.id == placeholder.id) ||
-              loadedIds.contains(r.id));
+              loadedIds.contains(r.id) ||
+              // Also clear any stale rows that belonged to this section from a
+              // prior load but were not included in the fresh result. This
+              // prevents phantom rows when the section's row-set changes
+              // (e.g. library added/removed, latestItemsExcludes updated).
+              _rowBelongsToConfig(r, cfg));
 
           if (loadedRows.isNotEmpty) {
-            if (insertIndex < 0 || insertIndex > _rows.length) {
+            final insertIndex = anchorId != null
+                ? _rows.indexWhere((r) => r.id == anchorId)
+                : -1;
+            if (insertIndex < 0) {
               _rows.addAll(loadedRows);
             } else {
               _rows.insertAll(insertIndex, loadedRows);
@@ -325,7 +345,11 @@ class HomeViewModel extends ChangeNotifier {
       case HomeSectionType.nextUp:
         return row.rowType == HomeRowType.nextUp;
       case HomeSectionType.latestMedia:
-        return row.rowType == HomeRowType.latestMedia;
+        // Only claim rows that belong to the built-in latest-media section.
+        // Plugin-dynamic rows (per-collection, per-playlist, etc.) have IDs
+        // starting with 'pluginDynamic:' and must NOT be claimed here.
+        return row.rowType == HomeRowType.latestMedia &&
+            !row.id.startsWith('pluginDynamic:');
       case HomeSectionType.favoriteMovies:
       case HomeSectionType.favoriteSeries:
       case HomeSectionType.favoriteEpisodes:
@@ -337,15 +361,21 @@ class HomeViewModel extends ChangeNotifier {
         return row.rowType == HomeRowType.favorites &&
             row.id == _favoriteRowIdForSection(cfg.type);
       case HomeSectionType.collections:
-        return row.rowType == HomeRowType.collections;
+        // Only claim the single aggregated collections row (id == 'collections').
+        // Individual per-collection plugin rows have stableId-based IDs and
+        // must NOT be claimed by the built-in section.
+        return row.rowType == HomeRowType.collections &&
+            !row.id.startsWith('pluginDynamic:');
       case HomeSectionType.genres:
-        return row.rowType == HomeRowType.genres;
+        return row.rowType == HomeRowType.genres &&
+            !row.id.startsWith('pluginDynamic:');
       case HomeSectionType.libraryTilesSmall:
         return row.rowType == HomeRowType.libraryTiles;
       case HomeSectionType.libraryButtons:
         return row.rowType == HomeRowType.libraryTilesSmall;
       case HomeSectionType.playlists:
-        return row.rowType == HomeRowType.playlists;
+        return row.rowType == HomeRowType.playlists &&
+            !row.id.startsWith('pluginDynamic:');
       case HomeSectionType.liveTv:
         return row.rowType == HomeRowType.liveTv ||
             row.rowType == HomeRowType.liveTvOnNow;
@@ -743,8 +773,9 @@ class HomeViewModel extends ChangeNotifier {
         .cast<Map<String, dynamic>>()
         .where((data) {
           final id = data['Id'] as String;
-          final collectionType = data['CollectionType'] as String?;
-          if (collectionType == 'playlists' ||
+          final collectionType = (data['CollectionType'] as String?)?.toLowerCase();
+          if (collectionType == 'music' ||
+              collectionType == 'playlists' ||
               collectionType == 'boxsets' ||
               collectionType == 'livetv') {
             return false;
