@@ -288,6 +288,11 @@ class UserPreferences extends ChangeNotifier {
     defaultValue: false,
   );
 
+  static final displaySeerrRows = Preference(
+    key: 'pref_display_seerr_rows',
+    defaultValue: false,
+  );
+
   static final favoritesRowSortBy = EnumPreference(
     key: 'pref_favorites_row_sort_by',
     defaultValue: LibrarySortBy.name,

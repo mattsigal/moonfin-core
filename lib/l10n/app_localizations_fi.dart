@@ -7486,6 +7486,13 @@ class AppLocalizationsFi extends AppLocalizations {
       'Sort Playlist rows by date added, release date, alphabetically, and more.';
 
   @override
+  String get displaySeerrRows => 'Display seerr Discovery Rows';
+
+  @override
+  String get displaySeerrRowsSubtitle =>
+      'Show seerr discovery rows in Home Sections.';
+
+  @override
   String get appearance => 'Ulkonäkö';
 
   @override

@@ -342,12 +342,24 @@ class _HomeSectionsScreenState extends State<HomeSectionsScreen> {
     return type == HomeSectionType.playlists;
   }
 
+  bool _isSeerrSectionType(HomeSectionType type) {
+    return type == HomeSectionType.seerrRecentRequests ||
+        type == HomeSectionType.seerrRecentlyAdded ||
+        type == HomeSectionType.seerrPopularMovies ||
+        type == HomeSectionType.seerrUpcomingMovies ||
+        type == HomeSectionType.seerrPopularSeries ||
+        type == HomeSectionType.seerrUpcomingSeries ||
+        type == HomeSectionType.seerrTrending;
+  }
+
   bool _isHiddenByRowVisibilityGates(HomeSectionConfig section) {
     final showFavoritesRows = _prefs.get(UserPreferences.displayFavoritesRows);
     final showCollectionsRows =
         _prefs.get(UserPreferences.displayCollectionsRows);
     final showGenresRows = _prefs.get(UserPreferences.displayGenresRows);
     final showPlaylistsRows = _prefs.get(UserPreferences.displayPlaylistsRows);
+    final showSeerrRows = _prefs.get(UserPreferences.seerrEnabled) &&
+        _prefs.get(UserPreferences.displaySeerrRows);
 
     final hiddenByFavorites =
       !showFavoritesRows && _isFavoriteSectionType(section.type);
@@ -363,7 +375,12 @@ class _HomeSectionsScreenState extends State<HomeSectionsScreen> {
       ((section.isBuiltin && _isPlaylistsSectionType(section.type)) ||
         (section.isPluginDynamic &&
           section.pluginSource == HomeSectionPluginSource.playlists));
-    return hiddenByFavorites || hiddenByCollections || hiddenByGenres || hiddenByPlaylists;
+    final hiddenBySeerr = !showSeerrRows && _isSeerrSectionType(section.type);
+    return hiddenByFavorites ||
+        hiddenByCollections ||
+        hiddenByGenres ||
+        hiddenByPlaylists ||
+        hiddenBySeerr;
   }
 
   List<int> _visibleSectionIndices() {
@@ -1032,6 +1049,13 @@ class _HomeSectionsScreenState extends State<HomeSectionsScreen> {
     HomeSectionType.collections => l10n.collections,
     HomeSectionType.genres => l10n.genres,
     HomeSectionType.liveTv => l10n.liveTV,
+    HomeSectionType.seerrRecentRequests => l10n.recentRequests,
+    HomeSectionType.seerrRecentlyAdded => l10n.recentlyAdded,
+    HomeSectionType.seerrPopularMovies => l10n.popularMovies,
+    HomeSectionType.seerrUpcomingMovies => l10n.upcomingMovies,
+    HomeSectionType.seerrPopularSeries => l10n.popularSeries,
+    HomeSectionType.seerrUpcomingSeries => l10n.upcomingSeries,
+    HomeSectionType.seerrTrending => l10n.trending,
     HomeSectionType.none => l10n.none,
   };
 

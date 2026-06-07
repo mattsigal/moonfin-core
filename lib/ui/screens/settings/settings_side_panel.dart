@@ -922,6 +922,12 @@ class _HomeScreenCategoryScreenState extends State<_HomeScreenCategoryScreen> {
     setState(() {});
   }
 
+  void _onSeerrRowsToggleChanged() {
+    _pushPersonalizationSync();
+    if (!mounted) return;
+    setState(() {});
+  }
+
   void _onPlaylistsSortChanged() {
     _pushPersonalizationSync();
     _reloadHomeRows();
@@ -936,6 +942,7 @@ class _HomeScreenCategoryScreenState extends State<_HomeScreenCategoryScreen> {
     );
     final showGenresRows = _prefs.get(UserPreferences.displayGenresRows);
     final showPlaylistsRows = _prefs.get(UserPreferences.displayPlaylistsRows);
+    final showSeerrRowsToggle = _prefs.get(UserPreferences.seerrEnabled);
     final rowsStyle = _prefs.get(UserPreferences.homeRowsStyle);
     return Scaffold(
       appBar: buildSettingsAppBar(context, Text(l10n.homeScreen)),
@@ -1042,6 +1049,14 @@ class _HomeScreenCategoryScreenState extends State<_HomeScreenCategoryScreen> {
                 icon: Icons.sort,
                 labelOf: (v) => v.displayName,
                 onChanged: _onPlaylistsSortChanged,
+              ),
+            if (showSeerrRowsToggle)
+              SwitchPreferenceTile(
+                preference: UserPreferences.displaySeerrRows,
+                title: l10n.displaySeerrRows,
+                subtitle: l10n.displaySeerrRowsSubtitle,
+                icon: Icons.search,
+                onChanged: _onSeerrRowsToggleChanged,
               ),
           ],
 

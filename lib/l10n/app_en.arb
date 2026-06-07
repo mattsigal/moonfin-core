@@ -7063,6 +7063,8 @@
   "displayPlaylistsRowsSubtitle": "Show Playlist rows in Home Sections.",
   "playlistsRowSorting": "Playlist Row Sorting",
   "playlistsRowSortingDescription": "Sort Playlist rows by date added, release date, alphabetically, and more.",
+  "displaySeerrRows": "Display seerr Discovery Rows",
+  "displaySeerrRowsSubtitle": "Show seerr discovery rows in Home Sections.",
   "appearance": "Appearance",
   "cardSize": "Card Size",
   "externalPlayerApp": "External player app",

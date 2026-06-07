@@ -13265,6 +13265,18 @@ abstract class AppLocalizations {
   /// **'Sort Playlist rows by date added, release date, alphabetically, and more.'**
   String get playlistsRowSortingDescription;
 
+  /// No description provided for @displaySeerrRows.
+  ///
+  /// In en, this message translates to:
+  /// **'Display seerr Discovery Rows'**
+  String get displaySeerrRows;
+
+  /// No description provided for @displaySeerrRowsSubtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Show seerr discovery rows in Home Sections.'**
+  String get displaySeerrRowsSubtitle;
+
   /// No description provided for @appearance.
   ///
   /// In en, this message translates to:

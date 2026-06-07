@@ -32,6 +32,20 @@ String localizeHomeRowTitle({
       return l10n.onNow;
     case 'activeRecordings':
       return l10n.activeRecordings;
+    case 'seerr_recent_requests':
+      return l10n.recentRequests;
+    case 'seerr_recently_added':
+      return l10n.recentlyAdded;
+    case 'seerr_popular_movies':
+      return l10n.popularMovies;
+    case 'seerr_upcoming_movies':
+      return l10n.upcomingMovies;
+    case 'seerr_popular_series':
+      return l10n.popularSeries;
+    case 'seerr_upcoming_series':
+      return l10n.upcomingSeries;
+    case 'seerr_trending':
+      return l10n.trending;
   }
 
   if (row.id.startsWith('resume_')) return l10n.continueWatching;

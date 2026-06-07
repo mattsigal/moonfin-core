@@ -2849,6 +2849,12 @@ class _ContentRowsState extends State<_ContentRows>
             _navigateToLibrary(context, item);
           } else if (row.rowType == HomeRowType.genres && row.id == 'genres') {
             context.push(Destinations.genre(item.name, genreId: item.id));
+          } else if (item.serverId == 'seerr') {
+            final mediaType = item.type == 'Series' || item.type == 'tv' ? 'tv' : 'movie';
+            context.push(
+              Destinations.seerrMedia(item.id),
+              extra: {'mediaType': mediaType},
+            );
           } else {
             context.push(Destinations.itemOrPhoto(
               item.id,
@@ -2940,6 +2946,12 @@ class _ContentRowsState extends State<_ContentRows>
               _navigateToLibrary(context, item);
             } else if (row.rowType == HomeRowType.genres && row.id == 'genres') {
               context.push(Destinations.genre(item.name, genreId: item.id));
+            } else if (item.serverId == 'seerr') {
+              final mediaType = item.type == 'Series' || item.type == 'tv' ? 'tv' : 'movie';
+              context.push(
+                Destinations.seerrMedia(item.id),
+                extra: {'mediaType': mediaType},
+              );
             } else {
               context.push(Destinations.itemOrPhoto(
                 item.id,
@@ -3401,6 +3413,17 @@ class _ContentRowsState extends State<_ContentRows>
     bool useSeriesThumbs,
     double requestScale,
   ) {
+    if (item.serverId == 'seerr') {
+      final backdrop = item.rawData['BackdropPath'] as String?;
+      if (backdrop != null && backdrop.isNotEmpty) {
+        return 'https://image.tmdb.org/t/p/w1280$backdrop';
+      }
+      final poster = item.rawData['PosterPath'] as String?;
+      if (poster != null && poster.isNotEmpty) {
+        return 'https://image.tmdb.org/t/p/w300$poster';
+      }
+      return null;
+    }
     final maxW = (height * 16 / 9 * requestScale).toInt();
     final maxH = (height * requestScale).toInt();
     if (!useSeriesThumbs) {
@@ -3543,6 +3566,28 @@ class _ContentRowsState extends State<_ContentRows>
     double requestScale,
     {bool isMyMediaRow = false}
   ) {
+    if (item.serverId == 'seerr') {
+      if (imageType == ImageType.thumb || imageType == ImageType.banner) {
+        final backdrop = item.rawData['BackdropPath'] as String?;
+        if (backdrop != null && backdrop.isNotEmpty) {
+          return 'https://image.tmdb.org/t/p/w1280$backdrop';
+        }
+        final poster = item.rawData['PosterPath'] as String?;
+        if (poster != null && poster.isNotEmpty) {
+          return 'https://image.tmdb.org/t/p/w300$poster';
+        }
+      } else {
+        final poster = item.rawData['PosterPath'] as String?;
+        if (poster != null && poster.isNotEmpty) {
+          return 'https://image.tmdb.org/t/p/w300$poster';
+        }
+        final backdrop = item.rawData['BackdropPath'] as String?;
+        if (backdrop != null && backdrop.isNotEmpty) {
+          return 'https://image.tmdb.org/t/p/w1280$backdrop';
+        }
+      }
+      return null;
+    }
     final itemThumbTag = _tagForType(item, 'Thumb');
     final itemBannerTag = _tagForType(item, 'Banner');
     final parentThumbItemId = item.rawData['ParentThumbItemId'] as String?;

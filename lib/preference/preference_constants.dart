@@ -218,6 +218,13 @@ enum HomeSectionType {
   collections('collections'),
   genres('genres'),
   liveTv('livetv'),
+  seerrRecentRequests('seerr_recent_requests'),
+  seerrRecentlyAdded('seerr_recently_added'),
+  seerrPopularMovies('seerr_popular_movies'),
+  seerrUpcomingMovies('seerr_upcoming_movies'),
+  seerrPopularSeries('seerr_popular_series'),
+  seerrUpcomingSeries('seerr_upcoming_series'),
+  seerrTrending('seerr_trending'),
   none('none');
 
   const HomeSectionType(this.serializedName);

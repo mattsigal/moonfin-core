@@ -73,6 +73,13 @@ class _HomeRowsImageTypeScreenState extends State<HomeRowsImageTypeScreen> {
     HomeSectionType.collections => l10n.collections,
     HomeSectionType.genres => l10n.genres,
     HomeSectionType.liveTv => l10n.liveTV,
+    HomeSectionType.seerrRecentRequests => l10n.recentRequests,
+    HomeSectionType.seerrRecentlyAdded => l10n.recentlyAdded,
+    HomeSectionType.seerrPopularMovies => l10n.popularMovies,
+    HomeSectionType.seerrUpcomingMovies => l10n.upcomingMovies,
+    HomeSectionType.seerrPopularSeries => l10n.popularSeries,
+    HomeSectionType.seerrUpcomingSeries => l10n.upcomingSeries,
+    HomeSectionType.seerrTrending => l10n.trending,
     HomeSectionType.none => l10n.none,
   };
 
