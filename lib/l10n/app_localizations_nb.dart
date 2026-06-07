@@ -2686,6 +2686,9 @@ class AppLocalizationsNb extends AppLocalizations {
   String get showLibrariesInToolbar => 'Vis biblioteker i verktøylinjen';
 
   @override
+  String get showSeerrButton => 'Show Seerr Button';
+
+  @override
   String get navbarOpacity => 'Navbar opasitet';
 
   @override
@@ -6871,6 +6874,10 @@ class AppLocalizationsNb extends AppLocalizations {
   @override
   String get settingsShowLibrariesButtonInNavigation =>
       'Vis bibliotek-knappen i navigasjonslinjen';
+
+  @override
+  String get settingsShowSeerrButtonInNavigation =>
+      'Show the Seerr button in the navigation bar';
 
   @override
   String get settingsLibraryVisibilitySubtitle =>

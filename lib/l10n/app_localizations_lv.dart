@@ -2701,6 +2701,9 @@ class AppLocalizationsLv extends AppLocalizations {
   String get showLibrariesInToolbar => 'Rādīt bibliotēkas rīkjoslā';
 
   @override
+  String get showSeerrButton => 'Show Seerr Button';
+
+  @override
   String get navbarOpacity => 'Navigācijas joslas necaurredzamība';
 
   @override
@@ -6904,6 +6907,10 @@ class AppLocalizationsLv extends AppLocalizations {
   @override
   String get settingsShowLibrariesButtonInNavigation =>
       'Parādiet bibliotēkas pogu navigācijas joslā';
+
+  @override
+  String get settingsShowSeerrButtonInNavigation =>
+      'Show the Seerr button in the navigation bar';
 
   @override
   String get settingsLibraryVisibilitySubtitle =>

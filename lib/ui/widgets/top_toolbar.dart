@@ -621,15 +621,8 @@ class _TopToolbarState extends State<TopToolbar> {
     final showSyncPlay =
         _prefs.get(UserPreferences.syncPlayEnabled) &&
         _prefs.get(UserPreferences.showSyncPlayButton);
-    final pluginSync = GetIt.instance<PluginSyncService>();
     final seerrPrefs = GetIt.instance<SeerrPreferences>();
-    final seerrEnabledLocally =
-        seerrPrefs.enabled && _prefs.get(UserPreferences.seerrEnabled);
-    final showSeerr =
-        seerrEnabledLocally &&
-        pluginSync.pluginAvailable &&
-        pluginSync.seerrInfoAvailable &&
-        !_prefs.get(UserPreferences.displaySeerrRows);
+    final showSeerr = _prefs.get(UserPreferences.showSeerrButton);
     final l10n = AppLocalizations.of(context);
     final seerrDisplayName = seerrPrefs.moonfinDisplayName.trim();
     final seerrNavLabel = seerrDisplayName.isNotEmpty

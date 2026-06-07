@@ -2718,6 +2718,9 @@ class AppLocalizationsFr extends AppLocalizations {
       'Afficher les bibliothèques dans la barre d’outils';
 
   @override
+  String get showSeerrButton => 'Show Seerr Button';
+
+  @override
   String get navbarOpacity => 'Opacité de la barre de navigation';
 
   @override
@@ -6949,6 +6952,10 @@ class AppLocalizationsFr extends AppLocalizations {
   @override
   String get settingsShowLibrariesButtonInNavigation =>
       'Afficher le bouton des bibliothèques dans la barre de navigation';
+
+  @override
+  String get settingsShowSeerrButtonInNavigation =>
+      'Show the Seerr button in the navigation bar';
 
   @override
   String get settingsLibraryVisibilitySubtitle =>

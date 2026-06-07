@@ -2688,6 +2688,9 @@ class AppLocalizationsTr extends AppLocalizations {
   String get showLibrariesInToolbar => 'Kitaplıkları Araç Çubuğunda Göster';
 
   @override
+  String get showSeerrButton => 'Show Seerr Button';
+
+  @override
   String get navbarOpacity => 'Gezinti Çubuğunun Opaklığı';
 
   @override
@@ -6873,6 +6876,10 @@ class AppLocalizationsTr extends AppLocalizations {
   @override
   String get settingsShowLibrariesButtonInNavigation =>
       'Gezinti çubuğunda kitaplıklar düğmesini göster';
+
+  @override
+  String get settingsShowSeerrButtonInNavigation =>
+      'Show the Seerr button in the navigation bar';
 
   @override
   String get settingsLibraryVisibilitySubtitle =>

@@ -2701,6 +2701,9 @@ class AppLocalizationsFi extends AppLocalizations {
   String get showLibrariesInToolbar => 'Näytä kirjastot työkalupalkissa';
 
   @override
+  String get showSeerrButton => 'Show Seerr Button';
+
+  @override
   String get navbarOpacity => 'Navbarin läpinäkyvyys';
 
   @override
@@ -6897,6 +6900,10 @@ class AppLocalizationsFi extends AppLocalizations {
   @override
   String get settingsShowLibrariesButtonInNavigation =>
       'Näytä kirjastot-painike navigointipalkissa';
+
+  @override
+  String get settingsShowSeerrButtonInNavigation =>
+      'Show the Seerr button in the navigation bar';
 
   @override
   String get settingsLibraryVisibilitySubtitle =>

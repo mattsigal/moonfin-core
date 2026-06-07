@@ -2691,6 +2691,9 @@ class AppLocalizationsUg extends AppLocalizations {
   String get showLibrariesInToolbar => 'قورالبالدىقىدا كۈتۈپخانىلارنى كۆرسەت';
 
   @override
+  String get showSeerrButton => 'Show Seerr Button';
+
+  @override
   String get navbarOpacity => 'Navbar Opacity';
 
   @override
@@ -6880,6 +6883,10 @@ class AppLocalizationsUg extends AppLocalizations {
   @override
   String get settingsShowLibrariesButtonInNavigation =>
       'يولباشچى ستونىدىكى كۈتۈپخانىلار كۇنۇپكىسىنى كۆرسەت';
+
+  @override
+  String get settingsShowSeerrButtonInNavigation =>
+      'Show the Seerr button in the navigation bar';
 
   @override
   String get settingsLibraryVisibilitySubtitle =>

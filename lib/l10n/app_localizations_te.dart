@@ -2701,6 +2701,9 @@ class AppLocalizationsTe extends AppLocalizations {
   String get showLibrariesInToolbar => 'టూల్‌బార్‌లో లైబ్రరీలను చూపండి';
 
   @override
+  String get showSeerrButton => 'Show Seerr Button';
+
+  @override
   String get navbarOpacity => 'నవబార్ అస్పష్టత';
 
   @override
@@ -6911,6 +6914,10 @@ class AppLocalizationsTe extends AppLocalizations {
   @override
   String get settingsShowLibrariesButtonInNavigation =>
       'నావిగేషన్ బార్‌లో లైబ్రరీల బటన్‌ను చూపండి';
+
+  @override
+  String get settingsShowSeerrButtonInNavigation =>
+      'Show the Seerr button in the navigation bar';
 
   @override
   String get settingsLibraryVisibilitySubtitle =>

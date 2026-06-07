@@ -2623,6 +2623,9 @@ class AppLocalizationsYue extends AppLocalizations {
   String get showLibrariesInToolbar => '在工具列中顯示庫';
 
   @override
+  String get showSeerrButton => 'Show Seerr Button';
+
+  @override
   String get navbarOpacity => '導覽列不透明度';
 
   @override
@@ -6659,6 +6662,10 @@ class AppLocalizationsYue extends AppLocalizations {
 
   @override
   String get settingsShowLibrariesButtonInNavigation => '在導覽列中顯示庫按鈕';
+
+  @override
+  String get settingsShowSeerrButtonInNavigation =>
+      'Show the Seerr button in the navigation bar';
 
   @override
   String get settingsLibraryVisibilitySubtitle =>

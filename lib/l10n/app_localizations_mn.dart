@@ -2691,6 +2691,9 @@ class AppLocalizationsMn extends AppLocalizations {
   String get showLibrariesInToolbar => 'Хэрэгслийн самбарт номын санг харуулах';
 
   @override
+  String get showSeerrButton => 'Show Seerr Button';
+
+  @override
   String get navbarOpacity => 'Navbar-ийн тунгалаг байдал';
 
   @override
@@ -6894,6 +6897,10 @@ class AppLocalizationsMn extends AppLocalizations {
   @override
   String get settingsShowLibrariesButtonInNavigation =>
       'Навигацийн талбар дахь номын сангийн товчийг харуул';
+
+  @override
+  String get settingsShowSeerrButtonInNavigation =>
+      'Show the Seerr button in the navigation bar';
 
   @override
   String get settingsLibraryVisibilitySubtitle =>

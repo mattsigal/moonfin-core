@@ -2685,6 +2685,9 @@ class AppLocalizationsSi extends AppLocalizations {
   String get showLibrariesInToolbar => 'මෙවලම් තීරුවේ පුස්තකාල පෙන්වන්න';
 
   @override
+  String get showSeerrButton => 'Show Seerr Button';
+
+  @override
   String get navbarOpacity => 'Navbar පාරාන්ධතාව';
 
   @override
@@ -6862,6 +6865,10 @@ class AppLocalizationsSi extends AppLocalizations {
   @override
   String get settingsShowLibrariesButtonInNavigation =>
       'සංචාලන තීරුවේ පුස්තකාල බොත්තම පෙන්වන්න';
+
+  @override
+  String get settingsShowSeerrButtonInNavigation =>
+      'Show the Seerr button in the navigation bar';
 
   @override
   String get settingsLibraryVisibilitySubtitle =>

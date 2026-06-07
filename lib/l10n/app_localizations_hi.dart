@@ -2680,6 +2680,9 @@ class AppLocalizationsHi extends AppLocalizations {
   String get showLibrariesInToolbar => 'टूलबार में लाइब्रेरी दिखाएं';
 
   @override
+  String get showSeerrButton => 'Show Seerr Button';
+
+  @override
   String get navbarOpacity => 'नेवबार अपारदर्शिता';
 
   @override
@@ -6853,6 +6856,10 @@ class AppLocalizationsHi extends AppLocalizations {
   @override
   String get settingsShowLibrariesButtonInNavigation =>
       'नेविगेशन बार में लाइब्रेरीज़ बटन दिखाएँ';
+
+  @override
+  String get settingsShowSeerrButtonInNavigation =>
+      'Show the Seerr button in the navigation bar';
 
   @override
   String get settingsLibraryVisibilitySubtitle =>

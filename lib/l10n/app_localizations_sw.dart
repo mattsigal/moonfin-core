@@ -2706,6 +2706,9 @@ class AppLocalizationsSw extends AppLocalizations {
   String get showLibrariesInToolbar => 'Onyesha Maktaba kwenye Upauzana';
 
   @override
+  String get showSeerrButton => 'Show Seerr Button';
+
+  @override
   String get navbarOpacity => 'Uwazi wa Upau wa Urambazaji';
 
   @override
@@ -6919,6 +6922,10 @@ class AppLocalizationsSw extends AppLocalizations {
   @override
   String get settingsShowLibrariesButtonInNavigation =>
       'Onyesha kitufe cha maktaba kwenye upau wa kusogeza';
+
+  @override
+  String get settingsShowSeerrButtonInNavigation =>
+      'Show the Seerr button in the navigation bar';
 
   @override
   String get settingsLibraryVisibilitySubtitle =>

@@ -2685,6 +2685,9 @@ class AppLocalizationsEo extends AppLocalizations {
   String get showLibrariesInToolbar => 'Montru Bibliotekojn en Ilobreto';
 
   @override
+  String get showSeerrButton => 'Show Seerr Button';
+
+  @override
   String get navbarOpacity => 'Navbar Opakeco';
 
   @override
@@ -6858,6 +6861,10 @@ class AppLocalizationsEo extends AppLocalizations {
   @override
   String get settingsShowLibrariesButtonInNavigation =>
       'Montru la butonon de bibliotekoj en la navigadbreto';
+
+  @override
+  String get settingsShowSeerrButtonInNavigation =>
+      'Show the Seerr button in the navigation bar';
 
   @override
   String get settingsLibraryVisibilitySubtitle =>

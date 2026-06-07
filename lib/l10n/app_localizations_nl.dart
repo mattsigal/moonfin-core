@@ -2700,6 +2700,9 @@ class AppLocalizationsNl extends AppLocalizations {
   String get showLibrariesInToolbar => 'Bibliotheken weergeven in de werkbalk';
 
   @override
+  String get showSeerrButton => 'Show Seerr Button';
+
+  @override
   String get navbarOpacity => 'Navigatiebalkdekking';
 
   @override
@@ -6901,6 +6904,10 @@ class AppLocalizationsNl extends AppLocalizations {
   @override
   String get settingsShowLibrariesButtonInNavigation =>
       'Toon de bibliothekenknop in de navigatiebalk';
+
+  @override
+  String get settingsShowSeerrButtonInNavigation =>
+      'Show the Seerr button in the navigation bar';
 
   @override
   String get settingsLibraryVisibilitySubtitle =>

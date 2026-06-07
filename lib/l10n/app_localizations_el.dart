@@ -2720,6 +2720,9 @@ class AppLocalizationsEl extends AppLocalizations {
   String get showLibrariesInToolbar => 'Εμφάνιση βιβλιοθηκών στο Toolbar';
 
   @override
+  String get showSeerrButton => 'Show Seerr Button';
+
+  @override
   String get navbarOpacity => 'Αδιαφάνεια γραμμής πλοήγησης';
 
   @override
@@ -6972,6 +6975,10 @@ class AppLocalizationsEl extends AppLocalizations {
   @override
   String get settingsShowLibrariesButtonInNavigation =>
       'Εμφάνιση του κουμπιού βιβλιοθήκες στη γραμμή πλοήγησης';
+
+  @override
+  String get settingsShowSeerrButtonInNavigation =>
+      'Show the Seerr button in the navigation bar';
 
   @override
   String get settingsLibraryVisibilitySubtitle =>

@@ -2707,6 +2707,9 @@ class AppLocalizationsSq extends AppLocalizations {
       'Shfaq bibliotekat në shiritin e veglave';
 
   @override
+  String get showSeerrButton => 'Show Seerr Button';
+
+  @override
   String get navbarOpacity => 'Opaciteti i Navbarit';
 
   @override
@@ -6929,6 +6932,10 @@ class AppLocalizationsSq extends AppLocalizations {
   @override
   String get settingsShowLibrariesButtonInNavigation =>
       'Shfaq butonin e bibliotekave në shiritin e navigimit';
+
+  @override
+  String get settingsShowSeerrButtonInNavigation =>
+      'Show the Seerr button in the navigation bar';
 
   @override
   String get settingsLibraryVisibilitySubtitle =>

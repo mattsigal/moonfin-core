@@ -2702,6 +2702,9 @@ class AppLocalizationsKn extends AppLocalizations {
   String get showLibrariesInToolbar => 'ಟೂಲ್‌ಬಾರ್‌ನಲ್ಲಿ ಲೈಬ್ರರಿಗಳನ್ನು ತೋರಿಸಿ';
 
   @override
+  String get showSeerrButton => 'Show Seerr Button';
+
+  @override
   String get navbarOpacity => 'ನವಬಾರ್ ಅಪಾರದರ್ಶಕತೆ';
 
   @override
@@ -6919,6 +6922,10 @@ class AppLocalizationsKn extends AppLocalizations {
   @override
   String get settingsShowLibrariesButtonInNavigation =>
       'ನ್ಯಾವಿಗೇಶನ್ ಬಾರ್‌ನಲ್ಲಿ ಲೈಬ್ರರೀಸ್ ಬಟನ್ ಅನ್ನು ತೋರಿಸಿ';
+
+  @override
+  String get settingsShowSeerrButtonInNavigation =>
+      'Show the Seerr button in the navigation bar';
 
   @override
   String get settingsLibraryVisibilitySubtitle =>

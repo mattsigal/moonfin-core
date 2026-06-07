@@ -769,6 +769,7 @@ class _NavigationCategoryScreenState extends State<_NavigationCategoryScreen> {
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
+    final seerrEnabledOnAccount = GetIt.instance<SeerrPreferences>().enabled;
     final availableNavbarPositions = NavigationLayout.availableNavbarPositions;
     final prefs = GetIt.instance<UserPreferences>();
     final currentNavbarPosition = prefs.get(UserPreferences.navbarPosition);
@@ -850,6 +851,18 @@ class _NavigationCategoryScreenState extends State<_NavigationCategoryScreen> {
               icon: Icons.video_library,
               onChanged: _pushPersonalizationSync,
             ),
+            if (seerrEnabledOnAccount)
+              SwitchPreferenceTile(
+                preference: UserPreferences.showSeerrButton,
+                title: l10n.showSeerrButton,
+                subtitle: l10n.settingsShowSeerrButtonInNavigation,
+                iconBuilder: (size, color) => Image.asset(
+                  'assets/icons/seerr.png',
+                  width: size,
+                  height: size,
+                ),
+                onChanged: _pushPersonalizationSync,
+              ),
           ],
         ),
       ),
@@ -925,7 +938,8 @@ class _HomeScreenCategoryScreenState extends State<_HomeScreenCategoryScreen> {
 
   void _onSeerrRowsToggleChanged() {
     _pushPersonalizationSync();
-    _prefs.notifyPreferenceChanged();
+    final isDisplayOn = _prefs.get(UserPreferences.displaySeerrRows);
+    _prefs.set(UserPreferences.showSeerrButton, !isDisplayOn);
     if (!mounted) return;
     setState(() {});
   }

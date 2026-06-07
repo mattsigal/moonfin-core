@@ -2705,6 +2705,9 @@ class AppLocalizationsBg extends AppLocalizations {
       'Показване на библиотеки в лентата с инструменти';
 
   @override
+  String get showSeerrButton => 'Show Seerr Button';
+
+  @override
   String get navbarOpacity => 'Непрозрачност на навигационната лента';
 
   @override
@@ -6931,6 +6934,10 @@ class AppLocalizationsBg extends AppLocalizations {
   @override
   String get settingsShowLibrariesButtonInNavigation =>
       'Показване на бутона за библиотеки в лентата за навигация';
+
+  @override
+  String get settingsShowSeerrButtonInNavigation =>
+      'Show the Seerr button in the navigation bar';
 
   @override
   String get settingsLibraryVisibilitySubtitle =>

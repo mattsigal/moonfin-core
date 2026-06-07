@@ -2700,6 +2700,9 @@ class AppLocalizationsPl extends AppLocalizations {
   String get showLibrariesInToolbar => 'Pokaż biblioteki na pasku narzędzi';
 
   @override
+  String get showSeerrButton => 'Show Seerr Button';
+
+  @override
   String get navbarOpacity => 'Nieprzezroczystość paska nawigacyjnego';
 
   @override
@@ -6910,6 +6913,10 @@ class AppLocalizationsPl extends AppLocalizations {
   @override
   String get settingsShowLibrariesButtonInNavigation =>
       'Pokaż przycisk bibliotek na pasku nawigacyjnym';
+
+  @override
+  String get settingsShowSeerrButtonInNavigation =>
+      'Show the Seerr button in the navigation bar';
 
   @override
   String get settingsLibraryVisibilitySubtitle =>

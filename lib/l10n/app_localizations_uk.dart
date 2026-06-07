@@ -2698,6 +2698,9 @@ class AppLocalizationsUk extends AppLocalizations {
       'Показати бібліотеки на панелі інструментів';
 
   @override
+  String get showSeerrButton => 'Show Seerr Button';
+
+  @override
   String get navbarOpacity => 'Непрозорість навігаційної панелі';
 
   @override
@@ -6907,6 +6910,10 @@ class AppLocalizationsUk extends AppLocalizations {
   @override
   String get settingsShowLibrariesButtonInNavigation =>
       'Показати кнопку бібліотек на панелі навігації';
+
+  @override
+  String get settingsShowSeerrButtonInNavigation =>
+      'Show the Seerr button in the navigation bar';
 
   @override
   String get settingsLibraryVisibilitySubtitle =>

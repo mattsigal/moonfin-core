@@ -2663,6 +2663,9 @@ class AppLocalizationsHe extends AppLocalizations {
   String get showLibrariesInToolbar => 'הצג ספריות בסרגל הכלים';
 
   @override
+  String get showSeerrButton => 'Show Seerr Button';
+
+  @override
   String get navbarOpacity => 'אטימות Navbar';
 
   @override
@@ -6779,6 +6782,10 @@ class AppLocalizationsHe extends AppLocalizations {
   @override
   String get settingsShowLibrariesButtonInNavigation =>
       'הצג את לחצן הספריות בסרגל הניווט';
+
+  @override
+  String get settingsShowSeerrButtonInNavigation =>
+      'Show the Seerr button in the navigation bar';
 
   @override
   String get settingsLibraryVisibilitySubtitle =>

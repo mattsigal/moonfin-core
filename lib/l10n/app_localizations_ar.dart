@@ -2679,6 +2679,9 @@ class AppLocalizationsAr extends AppLocalizations {
   String get showLibrariesInToolbar => 'إظهار المكتبات في شريط الأدوات';
 
   @override
+  String get showSeerrButton => 'Show Seerr Button';
+
+  @override
   String get navbarOpacity => 'عتامة نافبار';
 
   @override
@@ -6834,6 +6837,10 @@ class AppLocalizationsAr extends AppLocalizations {
   @override
   String get settingsShowLibrariesButtonInNavigation =>
       'إظهار زر المكتبات في شريط التنقل';
+
+  @override
+  String get settingsShowSeerrButtonInNavigation =>
+      'Show the Seerr button in the navigation bar';
 
   @override
   String get settingsLibraryVisibilitySubtitle =>

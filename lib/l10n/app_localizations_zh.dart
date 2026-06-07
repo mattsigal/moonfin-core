@@ -2618,6 +2618,9 @@ class AppLocalizationsZh extends AppLocalizations {
   String get showLibrariesInToolbar => '在工具栏中显示库';
 
   @override
+  String get showSeerrButton => 'Show Seerr Button';
+
+  @override
   String get navbarOpacity => '导航栏不透明度';
 
   @override
@@ -6654,6 +6657,10 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get settingsShowLibrariesButtonInNavigation => '在导航栏中显示库按钮';
+
+  @override
+  String get settingsShowSeerrButtonInNavigation =>
+      'Show the Seerr button in the navigation bar';
 
   @override
   String get settingsLibraryVisibilitySubtitle =>

@@ -2697,6 +2697,9 @@ class AppLocalizationsEt extends AppLocalizations {
   String get showLibrariesInToolbar => 'Näita teeke tööriistaribal';
 
   @override
+  String get showSeerrButton => 'Show Seerr Button';
+
+  @override
   String get navbarOpacity => 'Navbari läbipaistmatus';
 
   @override
@@ -6880,6 +6883,10 @@ class AppLocalizationsEt extends AppLocalizations {
   @override
   String get settingsShowLibrariesButtonInNavigation =>
       'Kuvage navigeerimisribal teekide nupp';
+
+  @override
+  String get settingsShowSeerrButtonInNavigation =>
+      'Show the Seerr button in the navigation bar';
 
   @override
   String get settingsLibraryVisibilitySubtitle =>

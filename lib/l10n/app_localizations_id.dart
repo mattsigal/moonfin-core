@@ -2693,6 +2693,9 @@ class AppLocalizationsId extends AppLocalizations {
   String get showLibrariesInToolbar => 'Tampilkan Perpustakaan di Toolbar';
 
   @override
+  String get showSeerrButton => 'Show Seerr Button';
+
+  @override
   String get navbarOpacity => 'Opasitas Navbar';
 
   @override
@@ -6887,6 +6890,10 @@ class AppLocalizationsId extends AppLocalizations {
   @override
   String get settingsShowLibrariesButtonInNavigation =>
       'Tampilkan tombol perpustakaan di bilah navigasi';
+
+  @override
+  String get settingsShowSeerrButtonInNavigation =>
+      'Show the Seerr button in the navigation bar';
 
   @override
   String get settingsLibraryVisibilitySubtitle =>

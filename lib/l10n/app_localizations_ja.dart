@@ -2641,6 +2641,9 @@ class AppLocalizationsJa extends AppLocalizations {
   String get showLibrariesInToolbar => 'ツールバーにライブラリを表示';
 
   @override
+  String get showSeerrButton => 'Show Seerr Button';
+
+  @override
   String get navbarOpacity => 'ナビゲーションバーの不透明度';
 
   @override
@@ -6702,6 +6705,10 @@ class AppLocalizationsJa extends AppLocalizations {
   @override
   String get settingsShowLibrariesButtonInNavigation =>
       'ナビゲーション バーにライブラリ ボタンを表示する';
+
+  @override
+  String get settingsShowSeerrButtonInNavigation =>
+      'Show the Seerr button in the navigation bar';
 
   @override
   String get settingsLibraryVisibilitySubtitle =>

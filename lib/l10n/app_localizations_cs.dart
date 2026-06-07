@@ -2690,6 +2690,9 @@ class AppLocalizationsCs extends AppLocalizations {
   String get showLibrariesInToolbar => 'Zobrazit knihovny na liště Toolbar';
 
   @override
+  String get showSeerrButton => 'Show Seerr Button';
+
+  @override
   String get navbarOpacity => 'Neprůhlednost navigační lišty';
 
   @override
@@ -6879,6 +6882,10 @@ class AppLocalizationsCs extends AppLocalizations {
   @override
   String get settingsShowLibrariesButtonInNavigation =>
       'Zobrazit tlačítko knihoven v navigační liště';
+
+  @override
+  String get settingsShowSeerrButtonInNavigation =>
+      'Show the Seerr button in the navigation bar';
 
   @override
   String get settingsLibraryVisibilitySubtitle =>

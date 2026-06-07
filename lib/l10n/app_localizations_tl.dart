@@ -2714,6 +2714,9 @@ class AppLocalizationsTl extends AppLocalizations {
   String get showLibrariesInToolbar => 'Ipakita ang Mga Aklatan sa Toolbar';
 
   @override
+  String get showSeerrButton => 'Show Seerr Button';
+
+  @override
   String get navbarOpacity => 'Navbar Opacity';
 
   @override
@@ -6948,6 +6951,10 @@ class AppLocalizationsTl extends AppLocalizations {
   @override
   String get settingsShowLibrariesButtonInNavigation =>
       'Ipakita ang pindutan ng mga aklatan sa navigation bar';
+
+  @override
+  String get settingsShowSeerrButtonInNavigation =>
+      'Show the Seerr button in the navigation bar';
 
   @override
   String get settingsLibraryVisibilitySubtitle =>

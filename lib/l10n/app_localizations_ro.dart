@@ -2703,6 +2703,9 @@ class AppLocalizationsRo extends AppLocalizations {
       'Afișați bibliotecile în bara de instrumente';
 
   @override
+  String get showSeerrButton => 'Show Seerr Button';
+
+  @override
   String get navbarOpacity => 'Opacitatea barei de navigare';
 
   @override
@@ -6914,6 +6917,10 @@ class AppLocalizationsRo extends AppLocalizations {
   @override
   String get settingsShowLibrariesButtonInNavigation =>
       'Afișați butonul biblioteci în bara de navigare';
+
+  @override
+  String get settingsShowSeerrButtonInNavigation =>
+      'Show the Seerr button in the navigation bar';
 
   @override
   String get settingsLibraryVisibilitySubtitle =>

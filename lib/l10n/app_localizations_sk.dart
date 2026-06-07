@@ -2697,6 +2697,9 @@ class AppLocalizationsSk extends AppLocalizations {
       'Zobraziť knižnice na paneli s nástrojmi';
 
   @override
+  String get showSeerrButton => 'Show Seerr Button';
+
+  @override
   String get navbarOpacity => 'Nepriehľadnosť navigačnej lišty';
 
   @override
@@ -6902,6 +6905,10 @@ class AppLocalizationsSk extends AppLocalizations {
   @override
   String get settingsShowLibrariesButtonInNavigation =>
       'Zobraziť tlačidlo knižnice na navigačnom paneli';
+
+  @override
+  String get settingsShowSeerrButtonInNavigation =>
+      'Show the Seerr button in the navigation bar';
 
   @override
   String get settingsLibraryVisibilitySubtitle =>

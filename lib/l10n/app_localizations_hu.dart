@@ -2703,6 +2703,9 @@ class AppLocalizationsHu extends AppLocalizations {
       'Könyvtárak megjelenítése az Eszköztárban';
 
   @override
+  String get showSeerrButton => 'Show Seerr Button';
+
+  @override
   String get navbarOpacity => 'Navbar Opacitás';
 
   @override
@@ -6934,6 +6937,10 @@ class AppLocalizationsHu extends AppLocalizations {
   @override
   String get settingsShowLibrariesButtonInNavigation =>
       'Jelenítse meg a könyvtárak gombot a navigációs sávban';
+
+  @override
+  String get settingsShowSeerrButtonInNavigation =>
+      'Show the Seerr button in the navigation bar';
 
   @override
   String get settingsLibraryVisibilitySubtitle =>

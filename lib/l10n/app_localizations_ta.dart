@@ -2707,6 +2707,9 @@ class AppLocalizationsTa extends AppLocalizations {
   String get showLibrariesInToolbar => 'கருவிப்பட்டியில் நூலகங்களைக் காட்டு';
 
   @override
+  String get showSeerrButton => 'Show Seerr Button';
+
+  @override
   String get navbarOpacity => 'நவ்பார் ஒளிபுகா';
 
   @override
@@ -6925,6 +6928,10 @@ class AppLocalizationsTa extends AppLocalizations {
   @override
   String get settingsShowLibrariesButtonInNavigation =>
       'வழிசெலுத்தல் பட்டியில் நூலகங்கள் பொத்தானைக் காட்டு';
+
+  @override
+  String get settingsShowSeerrButtonInNavigation =>
+      'Show the Seerr button in the navigation bar';
 
   @override
   String get settingsLibraryVisibilitySubtitle =>

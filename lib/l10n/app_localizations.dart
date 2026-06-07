@@ -4907,6 +4907,12 @@ abstract class AppLocalizations {
   /// **'Show Libraries in Toolbar'**
   String get showLibrariesInToolbar;
 
+  /// Setting for showing Seerr button
+  ///
+  /// In en, this message translates to:
+  /// **'Show Seerr Button'**
+  String get showSeerrButton;
+
   /// Setting for navbar opacity
   ///
   /// In en, this message translates to:
@@ -12256,6 +12262,12 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Show the libraries button in the navigation bar'**
   String get settingsShowLibrariesButtonInNavigation;
+
+  /// No description provided for @settingsShowSeerrButtonInNavigation.
+  ///
+  /// In en, this message translates to:
+  /// **'Show the Seerr button in the navigation bar'**
+  String get settingsShowSeerrButtonInNavigation;
 
   /// No description provided for @settingsLibraryVisibilitySubtitle.
   ///

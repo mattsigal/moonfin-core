@@ -2693,6 +2693,9 @@ class AppLocalizationsVi extends AppLocalizations {
   String get showLibrariesInToolbar => 'Hiển thị Thư viện trong Thanh công cụ';
 
   @override
+  String get showSeerrButton => 'Show Seerr Button';
+
+  @override
   String get navbarOpacity => 'Độ mờ của thanh điều hướng';
 
   @override
@@ -6879,6 +6882,10 @@ class AppLocalizationsVi extends AppLocalizations {
   @override
   String get settingsShowLibrariesButtonInNavigation =>
       'Hiển thị nút thư viện trong thanh điều hướng';
+
+  @override
+  String get settingsShowSeerrButtonInNavigation =>
+      'Show the Seerr button in the navigation bar';
 
   @override
   String get settingsLibraryVisibilitySubtitle =>

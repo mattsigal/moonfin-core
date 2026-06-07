@@ -3736,6 +3736,10 @@
   "@showLibrariesInToolbar": {
     "description": "Setting for showing libraries in toolbar"
   },
+  "showSeerrButton": "Show Seerr Button",
+  "@showSeerrButton": {
+    "description": "Setting for showing Seerr button"
+  },
   "navbarOpacity": "Navbar Opacity",
   "@navbarOpacity": {
     "description": "Setting for navbar opacity"
@@ -6751,6 +6755,7 @@
   "settingsShowGenresButtonInNavigation": "Show the genres button in the navigation bar",
   "settingsShowFavoritesButtonInNavigation": "Show the favorites button in the navigation bar",
   "settingsShowLibrariesButtonInNavigation": "Show the libraries button in the navigation bar",
+  "settingsShowSeerrButtonInNavigation": "Show the Seerr button in the navigation bar",
   "settingsLibraryVisibilitySubtitle": "Toggle home page visibility per library. Restart Moonfin for changes to take effect.",
   "settingsMediaBarAndLocalPreviews": "Media Bar & Local Previews",
   "settingsVisualOverlays": "Visual Overlays",

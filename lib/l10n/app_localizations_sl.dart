@@ -2699,6 +2699,9 @@ class AppLocalizationsSl extends AppLocalizations {
   String get showLibrariesInToolbar => 'Prikaži knjižnice v orodni vrstici';
 
   @override
+  String get showSeerrButton => 'Show Seerr Button';
+
+  @override
   String get navbarOpacity => 'Neprosojnost krmarne vrstice';
 
   @override
@@ -6898,6 +6901,10 @@ class AppLocalizationsSl extends AppLocalizations {
   @override
   String get settingsShowLibrariesButtonInNavigation =>
       'Prikažite gumb za knjižnice v navigacijski vrstici';
+
+  @override
+  String get settingsShowSeerrButtonInNavigation =>
+      'Show the Seerr button in the navigation bar';
 
   @override
   String get settingsLibraryVisibilitySubtitle =>

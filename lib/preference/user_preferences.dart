@@ -394,6 +394,11 @@ class UserPreferences extends ChangeNotifier {
     defaultValue: true,
   );
 
+  static final showSeerrButton = Preference(
+    key: 'pref_show_seerr_button',
+    defaultValue: true,
+  );
+
   static final adminDrawerOrder = Preference(
     key: 'pref_admin_drawer_order',
     defaultValue: '',

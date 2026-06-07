@@ -2694,6 +2694,9 @@ class AppLocalizationsHr extends AppLocalizations {
   String get showLibrariesInToolbar => 'Prikaži biblioteke na alatnoj traci';
 
   @override
+  String get showSeerrButton => 'Show Seerr Button';
+
+  @override
   String get navbarOpacity => 'Neprozirnost navigacijske trake';
 
   @override
@@ -6891,6 +6894,10 @@ class AppLocalizationsHr extends AppLocalizations {
   @override
   String get settingsShowLibrariesButtonInNavigation =>
       'Prikaži gumb knjižnica na navigacijskoj traci';
+
+  @override
+  String get settingsShowSeerrButtonInNavigation =>
+      'Show the Seerr button in the navigation bar';
 
   @override
   String get settingsLibraryVisibilitySubtitle =>

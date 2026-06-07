@@ -690,10 +690,7 @@ class _LeftSidebarState extends State<LeftSidebar> {
     final showSyncPlay =
         _prefs.get(UserPreferences.syncPlayEnabled) &&
         _prefs.get(UserPreferences.showSyncPlayButton);
-    final pluginSync = GetIt.instance<PluginSyncService>();
     final seerrPrefs = GetIt.instance<SeerrPreferences>();
-    final seerrEnabledLocally =
-        seerrPrefs.enabled && _prefs.get(UserPreferences.seerrEnabled);
     final seerrDisplayName = seerrPrefs.moonfinDisplayName.trim();
     final seerrNavLabel = seerrDisplayName.isNotEmpty
       ? seerrDisplayName
@@ -832,10 +829,7 @@ class _LeftSidebarState extends State<LeftSidebar> {
                       );
                     },
                   ),
-                if (pluginSync.pluginAvailable &&
-                    pluginSync.seerrInfoAvailable &&
-                    seerrEnabledLocally &&
-                    !_prefs.get(UserPreferences.displaySeerrRows))
+                if (_prefs.get(UserPreferences.showSeerrButton))
                   _SidebarItem(
                     baseColor: nextSidebarColor(),
                     iconBuilder: (size, color) => seerrPrefs.isSeerrVariant

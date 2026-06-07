@@ -2700,6 +2700,9 @@ class AppLocalizationsKk extends AppLocalizations {
       'Құралдар тақтасында кітапханаларды көрсету';
 
   @override
+  String get showSeerrButton => 'Show Seerr Button';
+
+  @override
   String get navbarOpacity => 'Шарлау тақтасының мөлдірлігі';
 
   @override
@@ -6902,6 +6905,10 @@ class AppLocalizationsKk extends AppLocalizations {
   @override
   String get settingsShowLibrariesButtonInNavigation =>
       'Шарлау жолағында кітапханалар түймесін көрсетіңіз';
+
+  @override
+  String get settingsShowSeerrButtonInNavigation =>
+      'Show the Seerr button in the navigation bar';
 
   @override
   String get settingsLibraryVisibilitySubtitle =>
