@@ -270,7 +270,9 @@ class SessionRepository {
 
     await _authPrefs.setLastServerId('');
     await _authPrefs.setLastUserId('');
-    await _authPrefs.clearAutoLogin();
+    if (_authPrefs.loginBehavior != UserSelectBehavior.currentUser) {
+      await _authPrefs.clearAutoLogin();
+    }
 
     _activeServerId = null;
     _activeUserId = null;

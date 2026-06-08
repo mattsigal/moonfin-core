@@ -310,6 +310,7 @@ class EnumPreferenceTile<T extends Enum> extends StatefulWidget {
   final String? description;
   final IconData? icon;
   final String Function(T value) labelOf;
+  final String Function(T value)? dialogLabelOf;
   final VoidCallback? onChanged;
   final List<T>? values;
 
@@ -318,6 +319,7 @@ class EnumPreferenceTile<T extends Enum> extends StatefulWidget {
     required this.preference,
     required this.title,
     required this.labelOf,
+    this.dialogLabelOf,
     this.description,
     this.icon,
     this.onChanged,
@@ -402,7 +404,10 @@ class _EnumPreferenceTileState<T extends Enum>
             return TvFocusHighlight(
               builder: (_, _) => ListTile(
                 autofocus: i == autofocusIndex,
-                title: Text(widget.labelOf(v), style: _kSettingsTitleTextStyle),
+                title: Text(
+                  (widget.dialogLabelOf ?? widget.labelOf)(v),
+                  style: _kSettingsTitleTextStyle,
+                ),
                 trailing: selected ? const Icon(Icons.check) : null,
                 onTap: () {
                   if (picked) return;

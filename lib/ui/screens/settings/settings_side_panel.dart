@@ -24,6 +24,8 @@ import '../../../util/app_distribution.dart';
 import '../../widgets/app_update_dialog.dart';
 
 import '../../../auth/store/authentication_preferences.dart';
+import '../../../auth/store/authentication_store.dart';
+import '../../../auth/repositories/session_repository.dart';
 import '../../../l10n/app_localizations.dart';
 import '../../../playback/audio_capability_profile.dart';
 import '../../../playback/external_player_service.dart';
@@ -468,10 +470,51 @@ class _AuthenticationCategoryScreen extends StatelessWidget {
             preference: UserPreferences.autoLoginUserBehavior,
             title: l10n.autoLogin,
             icon: Icons.person,
-            labelOf: (v) => switch (v) {
+            labelOf: (v) {
+              if (v == UserSelectBehavior.currentUser) {
+                final authPrefs = GetIt.instance<AuthenticationPreferences>();
+                final autoUserId = authPrefs.savedAutoLoginUserId;
+                final autoServerId = authPrefs.savedAutoLoginServerId;
+                if (autoUserId.isNotEmpty && autoServerId.isNotEmpty) {
+                  final authStore = GetIt.instance<AuthenticationStore>();
+                  final autoUser = authStore.getUser(autoServerId, autoUserId);
+                  if (autoUser != null) {
+                    final session = GetIt.instance<SessionRepository>();
+                    if (session.activeUserId == autoUserId &&
+                        session.activeServerId == autoServerId) {
+                      return l10n.currentUser;
+                    } else {
+                      return autoUser.name;
+                    }
+                  }
+                }
+                return l10n.currentUser;
+              }
+              return switch (v) {
+                UserSelectBehavior.disabled => l10n.disabled,
+                UserSelectBehavior.lastUser => l10n.lastUser,
+                _ => l10n.currentUser,
+              };
+            },
+            dialogLabelOf: (v) => switch (v) {
               UserSelectBehavior.disabled => l10n.disabled,
               UserSelectBehavior.lastUser => l10n.lastUser,
               UserSelectBehavior.currentUser => l10n.currentUser,
+            },
+            onChanged: () {
+              final store = GetIt.instance<PreferenceStore>();
+              final behavior = store.get(UserPreferences.autoLoginUserBehavior);
+              final authPrefs = GetIt.instance<AuthenticationPreferences>();
+              if (behavior == UserSelectBehavior.currentUser) {
+                final session = GetIt.instance<SessionRepository>();
+                final serverId = session.activeServerId;
+                final userId = session.activeUserId;
+                if (serverId != null && userId != null) {
+                  authPrefs.setAutoLogin(serverId, userId);
+                }
+              } else {
+                authPrefs.clearAutoLogin();
+              }
             },
           ),
           SwitchPreferenceTile(
