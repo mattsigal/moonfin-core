@@ -451,10 +451,10 @@ class _GlobalShortcutScopeState extends State<_GlobalShortcutScope>
         return false;
       }
       if (appRouter.canPop()) {
-        // On Android the system also delivers popRoute via MethodChannel,
-        // which would cause a double pop if we also popped here. Let the
-        // platform handle the pop; just consume the KeyEvent.
-        if (PlatformDetection.isAndroid) {
+        // On Android the system also delivers popRoute via MethodChannel for the
+        // system back button (goBack). For other back-like keys (escape, browserBack),
+        // we must manually pop in Flutter even on Android.
+        if (PlatformDetection.isAndroid && key == LogicalKeyboardKey.goBack) {
           return true;
         }
         WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -462,7 +462,7 @@ class _GlobalShortcutScopeState extends State<_GlobalShortcutScope>
           appRouter.pop();
         });
       } else if (!_exitDialogShowing) {
-        if (PlatformDetection.isAndroid) {
+        if (PlatformDetection.isAndroid && key == LogicalKeyboardKey.goBack) {
           return true;
         }
         _exitDialogShowing = true;
