@@ -243,7 +243,7 @@ class _VideoPlayerScreenState extends State<VideoPlayerScreen>
   double _verticalDragStartValue = 0.0;
   bool _verticalDragIsVolume = false;
   Offset? _doubleTapDownPosition;
-  DateTime? _lastControlButtonPressAt;
+
   bool _showSkipForward = false;
   bool _showSkipBackward = false;
   Timer? _skipForwardTimer;
@@ -3293,7 +3293,9 @@ class _VideoPlayerScreenState extends State<VideoPlayerScreen>
                 : PlatformDetection.useMobileUi && !_isOsdLocked
                 ? _onDoubleTapDown
                 : null,
-            onDoubleTap: _handleDoubleTapGesture,
+            onDoubleTap: PlatformDetection.useDesktopUi
+                ? null
+                : _handleDoubleTapGesture,
             onVerticalDragStart: PlatformDetection.isTV
                 ? null
                 : PlatformDetection.useMobileUi && !_isOsdLocked
@@ -5177,25 +5179,13 @@ class _VideoPlayerScreenState extends State<VideoPlayerScreen>
   }
 
   void _handleControlButtonPress(VoidCallback onPressed) {
-    _lastControlButtonPressAt = DateTime.now();
     onPressed();
     _showControls();
   }
 
-  bool _recentlyPressedControlButton() {
-    final lastPress = _lastControlButtonPressAt;
-    return lastPress != null &&
-        DateTime.now().difference(lastPress) <
-            const Duration(milliseconds: 350);
-  }
 
   void _handleDoubleTapGesture() {
     if (PlatformDetection.useDesktopUi) {
-      if (_recentlyPressedControlButton()) {
-        return;
-      }
-      unawaited(_toggleDesktopFullscreen());
-      _showControls();
       return;
     }
     if (PlatformDetection.useMobileUi && !_isOsdLocked) {
