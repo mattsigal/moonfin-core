@@ -1801,13 +1801,16 @@ class PlaybackManager implements AudioOwnable {
         (_offlineMetadataByUrl[url]?['MediaStreams'] as List?)
             ?.cast<Map<String, dynamic>>() ??
         const <Map<String, dynamic>>[];
-    await _backend!.play(
-      _buildBackendMediaPayload(url: url, mediaStreams: offlineStreams),
-      startPosition: startPosition,
-    );
-    await _syncBackendRepeatModeIfSupported();
-    await _waitForMediaReady();
-    _waitingForMedia = false;
+    try {
+      await _backend!.play(
+        _buildBackendMediaPayload(url: url, mediaStreams: offlineStreams),
+        startPosition: startPosition,
+      );
+      await _syncBackendRepeatModeIfSupported();
+      await _waitForMediaReady(timeout: const Duration(seconds: 5));
+    } finally {
+      _waitingForMedia = false;
+    }
 
     if (startPosition > Duration.zero) {
       await _seekWhilePausedAndResume(startPosition);
