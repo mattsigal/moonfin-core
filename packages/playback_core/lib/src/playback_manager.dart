@@ -892,14 +892,19 @@ class PlaybackManager implements AudioOwnable {
     _itemKnownDuration = _resolvedItemDuration(item, resolution.mediaSourceId);
 
     if (_audioStreamIndex == null) {
-      final audioStreams =
-          resolution.mediaStreams.where((s) => s['Type'] == 'Audio').toList();
-      if (audioStreams.isNotEmpty) {
-        final defaultAudio = audioStreams.firstWhere(
-          (s) => s['IsDefault'] == true,
-          orElse: () => audioStreams.first,
-        );
-        _audioStreamIndex = defaultAudio['Index'] as int?;
+      // Keep the server-selected audio index for later re-resolves.
+      // If it is missing, fall back to the file's default audio track.
+      _audioStreamIndex = resolution.selectedAudioStreamIndex;
+      if (_audioStreamIndex == null) {
+        final audioStreams =
+            resolution.mediaStreams.where((s) => s['Type'] == 'Audio').toList();
+        if (audioStreams.isNotEmpty) {
+          final defaultAudio = audioStreams.firstWhere(
+            (s) => s['IsDefault'] == true,
+            orElse: () => audioStreams.first,
+          );
+          _audioStreamIndex = defaultAudio['Index'] as int?;
+        }
       }
     }
 

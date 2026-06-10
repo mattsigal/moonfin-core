@@ -100,6 +100,7 @@ class EmbyMediaStreamResolver implements MediaStreamResolver {
       normalizationGainDb: normalizationGainDb,
       externalSubtitles: authedSubs,
       mediaStreams: source.mediaStreams,
+      selectedAudioStreamIndex: source.defaultAudioStreamIndex,
       transcodingReasons: source.transcodingReasons,
     );
   }

@@ -108,6 +108,7 @@ class PlaybackMediaSource {
   final String? liveStreamId;
   final PlayMethod? defaultPlayMethod;
   final List<Map<String, dynamic>> mediaStreams;
+  final int? defaultAudioStreamIndex;
   final List<String> transcodingReasons;
 
   const PlaybackMediaSource({
@@ -127,6 +128,7 @@ class PlaybackMediaSource {
     this.liveStreamId,
     this.defaultPlayMethod,
     this.mediaStreams = const [],
+    this.defaultAudioStreamIndex,
     this.transcodingReasons = const [],
   });
 
@@ -149,6 +151,7 @@ class PlaybackMediaSource {
         mediaStreams: (json['MediaStreams'] as List?)
                 ?.cast<Map<String, dynamic>>() ??
             const [],
+        defaultAudioStreamIndex: json['DefaultAudioStreamIndex'] as int?,
         transcodingReasons: _parseTranscodingReasons(json),
       );
 

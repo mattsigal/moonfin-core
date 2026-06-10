@@ -33,6 +33,7 @@ class StreamResolutionResult {
   final double? normalizationGainDb;
   final List<ExternalSubtitle> externalSubtitles;
   final List<Map<String, dynamic>> mediaStreams;
+  final int? selectedAudioStreamIndex;
   final List<String> transcodingReasons;
 
   const StreamResolutionResult({
@@ -48,6 +49,7 @@ class StreamResolutionResult {
     this.normalizationGainDb,
     this.externalSubtitles = const [],
     this.mediaStreams = const [],
+    this.selectedAudioStreamIndex,
     this.transcodingReasons = const [],
   });
 }
