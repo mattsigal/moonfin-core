@@ -187,8 +187,7 @@ void main() {
   group('DeviceProfileBuilder stereo AAC fallback', () {
     test('adds stereo AAC fallback profile when enabled', () {
       final profile = DeviceProfileBuilder.build(
-        downMixAudio: false,
-        audioFallbackToStereoAac: true,
+        maxAudioChannels: 2,
       );
 
       expect(_stereoAacFallbackProfile(profile), isNotNull);
@@ -196,8 +195,7 @@ void main() {
 
     test('does not add stereo AAC fallback profile when disabled', () {
       final profile = DeviceProfileBuilder.build(
-        downMixAudio: false,
-        audioFallbackToStereoAac: false,
+        maxAudioChannels: 6,
       );
 
       expect(_stereoAacFallbackProfile(profile), isNull);
@@ -206,9 +204,7 @@ void main() {
 
   group('DeviceProfileBuilder audio codec advertisement', () {
     test('keeps surround codecs in direct-play profile by default', () {
-      final profile = DeviceProfileBuilder.build(
-        downMixAudio: false,
-      );
+      final profile = DeviceProfileBuilder.build();
 
       final codecs = _videoDirectPlayAudioCodecs(profile);
       expect(codecs, contains('ac3'));
@@ -221,7 +217,6 @@ void main() {
 
     test('keeps codec when local decode is available even without passthrough', () {
       final profile = DeviceProfileBuilder.build(
-        downMixAudio: false,
         audioCapabilityProfile: _capabilityProfile(
           canDecodeDts: true,
           canPassthroughDts: false,
@@ -241,7 +236,6 @@ void main() {
       'even when its passthrough toggle is off (libmpv decodes to PCM)',
       () {
         final profile = DeviceProfileBuilder.build(
-          downMixAudio: false,
           audioOutputMode: AudioOutputMode.avrPassthrough,
           audioCapabilityProfile: _capabilityProfile(
             canDecodeDts: true,
@@ -263,7 +257,6 @@ void main() {
       'through is removed (hardware-only backends stay gated)',
       () {
         final profile = DeviceProfileBuilder.build(
-          downMixAudio: false,
           audioOutputMode: AudioOutputMode.avrPassthrough,
           audioCapabilityProfile: _capabilityProfile(
             canDecodeDts: false,
@@ -284,7 +277,6 @@ void main() {
 
     test('keeps codec when decode is unavailable but passthrough is enabled and supported', () {
       final profile = DeviceProfileBuilder.build(
-        downMixAudio: false,
         audioCapabilityProfile: _capabilityProfile(
           canDecodeTrueHd: false,
           canPassthroughTrueHd: true,
@@ -300,7 +292,6 @@ void main() {
 
     test('keeps DTS codec when DTS:X passthrough is enabled and supported', () {
       final profile = DeviceProfileBuilder.build(
-        downMixAudio: false,
         audioCapabilityProfile: _capabilityProfile(
           canDecodeDts: false,
           canDecodeDtsHd: false,
@@ -322,7 +313,6 @@ void main() {
       'removes DTS codec when DTS core is disabled even if DTS-HD and DTS:X toggles are enabled',
       () {
         final profile = DeviceProfileBuilder.build(
-          downMixAudio: false,
           audioOutputMode: AudioOutputMode.avrPassthrough,
           audioCapabilityProfile: _capabilityProfile(
             canDecodeDts: false,
@@ -344,7 +334,6 @@ void main() {
 
     test('keeps TrueHD codec when TrueHD JOC passthrough is enabled and supported', () {
       final profile = DeviceProfileBuilder.build(
-        downMixAudio: false,
         audioCapabilityProfile: _capabilityProfile(
           canDecodeTrueHd: false,
           canPassthroughTrueHd: false,
@@ -363,7 +352,6 @@ void main() {
       'removes TrueHD codec when base TrueHD toggle is disabled even if Atmos toggle is enabled',
       () {
         final profile = DeviceProfileBuilder.build(
-          downMixAudio: false,
           audioOutputMode: AudioOutputMode.avrPassthrough,
           audioCapabilityProfile: _capabilityProfile(
             canDecodeTrueHd: false,
@@ -384,7 +372,6 @@ void main() {
       'includes codec when user passthrough toggle is on, even if probe did not detect support',
       () {
         final profile = DeviceProfileBuilder.build(
-          downMixAudio: false,
           audioCapabilityProfile: _capabilityProfile(
             canDecodeAc3: false,
             canDecodeEac3: false,
@@ -405,7 +392,6 @@ void main() {
       'removes codec when decode unsupported and passthrough toggle is off',
       () {
         final profile = DeviceProfileBuilder.build(
-          downMixAudio: false,
           audioCapabilityProfile: _capabilityProfile(
             canDecodeAc3: false,
             canDecodeEac3: false,
@@ -422,10 +408,9 @@ void main() {
       },
     );
 
-    test('eac3_5_1 fallback sets HLS MPEG-TS targets in preferred order', () {
+    test('eac3 fallback sets HLS MPEG-TS targets in preferred order', () {
       final profile = DeviceProfileBuilder.build(
-        downMixAudio: false,
-        audioFallbackCodec: AudioFallbackCodec.eac3_5_1,
+        audioFallbackCodec: AudioFallbackCodec.eac3,
         audioCapabilityProfile: _capabilityProfile(
           canDecodeAc3: true,
           canDecodeEac3: true,

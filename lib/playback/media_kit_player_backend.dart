@@ -188,6 +188,20 @@ class MediaKitPlayerBackend implements PlayerBackend {
   static final Map<String, _ParsedMpvConfCacheEntry> _parsedMpvConfCache =
       <String, _ParsedMpvConfCacheEntry>{};
 
+  static String _mpvAudioChannelsLayout(int channels) {
+    return switch (channels) {
+      1 => 'mono',
+      2 => 'stereo',
+      3 => '2.1',
+      4 => '3.1',
+      5 => '4.1',
+      6 => '5.1',
+      7 => '6.1',
+      8 => '7.1',
+      _ => 'auto',
+    };
+  }
+
   bool _isStale = false;
   String? _currentUrl;
 
@@ -337,16 +351,19 @@ class MediaKitPlayerBackend implements PlayerBackend {
     final platform = player.platform;
     if (platform is NativePlayer) {
       _nativeSetProperty(platform, 'network-timeout', '120');
+
+      final maxChannels = prefs.get(UserPreferences.maxAudioChannels);
+      final audioChannelsLayout = maxChannels == 0
+          ? (PlatformDetection.isIOS ? 'stereo' : 'auto')
+          : _mpvAudioChannelsLayout(maxChannels);
+      _nativeSetProperty(platform, 'audio-channels', audioChannelsLayout);
+
       if (PlatformDetection.isAndroid && PlatformDetection.isTV) {
         // Prefer AudioTrack + preloaded scaletempo2 for stable TV speed changes.
         _nativeSetProperty(platform, 'ao', 'audiotrack');
         _nativeSetProperty(platform, 'af', 'scaletempo2');
-        _nativeSetProperty(platform, 'audio-channels', 'auto');
         _nativeSetProperty(platform, 'audio-normalize-downmix', 'no');
         _nativeSetProperty(platform, 'audio-fallback-to-null', 'no');
-      }
-      if (PlatformDetection.isIOS) {
-        _nativeSetProperty(platform, 'audio-channels', 'stereo');
       }
       if (PlatformDetection.isIOS || PlatformDetection.isAndroid) {
         _nativeSetProperty(platform, 'tone-mapping', 'auto');
@@ -455,10 +472,7 @@ class MediaKitPlayerBackend implements PlayerBackend {
       trueHdPassthroughEnabled: _prefs.resolveTrueHdPassthroughEnabled(),
       trueHdAtmosPassthroughEnabled: _prefs
           .resolveTrueHdAtmosPassthroughEnabled(),
-      downMixAudio:
-          _prefs.resolveAudioOutputMode() == AudioOutputMode.forceStereo,
-      audioFallbackToStereoAac:
-          _prefs.resolveAudioFallbackCodec() == AudioFallbackCodec.aacStereo,
+      maxAudioChannels: _prefs.resolveMaxAudioChannels(),
       maxResolution: maxResolution,
       pgsDirectPlay: _prefs.get(UserPreferences.pgsDirectPlay) && canRenderBitmapSubtitles,
       assDirectPlay: _prefs.get(UserPreferences.assDirectPlay),

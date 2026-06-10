@@ -173,6 +173,8 @@ class UserPreferences extends ChangeNotifier {
 
   AudioFallbackCodec resolveAudioFallbackCodec() => get(audioFallbackCodec);
 
+  int resolveMaxAudioChannels() => get(maxAudioChannels);
+
   PosterSize resolveLibraryPosterSize() {
     if (containsPreference(libraryPosterSize)) {
       return get(libraryPosterSize);
@@ -593,6 +595,11 @@ class UserPreferences extends ChangeNotifier {
     key: 'audio_fallback_codec',
     defaultValue: AudioFallbackCodec.auto,
     values: AudioFallbackCodec.values,
+  );
+
+  static final maxAudioChannels = Preference<int>(
+    key: 'pref_max_audio_channels',
+    defaultValue: 0,
   );
 
   static final ac3PassthroughEnabled = Preference(

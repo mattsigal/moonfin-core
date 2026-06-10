@@ -236,10 +236,7 @@ class TizenPlayerBackend implements PlayerBackend {
       trueHdPassthroughEnabled: _prefs.resolveTrueHdPassthroughEnabled(),
       trueHdAtmosPassthroughEnabled:
           _prefs.resolveTrueHdAtmosPassthroughEnabled(),
-      downMixAudio:
-          _prefs.resolveAudioOutputMode() == AudioOutputMode.forceStereo,
-      audioFallbackToStereoAac:
-          _prefs.resolveAudioFallbackCodec() == AudioFallbackCodec.aacStereo,
+      maxAudioChannels: _prefs.resolveMaxAudioChannels(),
       maxResolution: maxResolution,
       pgsDirectPlay: false,
       assDirectPlay: false,

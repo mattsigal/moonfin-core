@@ -325,7 +325,7 @@ Future<void> migrateAudioPreferenceSplit(PreferenceStore store) async {
     await setEnumIfMissing(
       UserPreferences.audioFallbackCodec,
       legacyStereoAacFallback
-          ? AudioFallbackCodec.aacStereo
+          ? AudioFallbackCodec.aac
           : AudioFallbackCodec.auto,
     );
   }

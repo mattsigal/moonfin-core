@@ -45,9 +45,9 @@ void main() {
       );
       expect(
         store.getString(UserPreferences.audioFallbackCodec.key),
-        AudioFallbackCodec.aacStereo.name,
+        AudioFallbackCodec.aac.name,
       );
-      expect(store.getBool('pref_audio_preference_split_v1'), isTrue);
+      expect(store.getBool('pref_audio_preference_split_v2'), isTrue);
     });
 
     test('does not overwrite split values when already present', () async {
@@ -77,7 +77,7 @@ void main() {
       expect(store.containsKey(UserPreferences.eac3PassthroughEnabled.key), isFalse);
       expect(store.containsKey(UserPreferences.dtsCorePassthroughEnabled.key), isFalse);
       expect(store.containsKey(UserPreferences.trueHdPassthroughEnabled.key), isFalse);
-      expect(store.getBool('pref_audio_preference_split_v1'), isTrue);
+      expect(store.getBool('pref_audio_preference_split_v2'), isTrue);
     });
   });
 }
