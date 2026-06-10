@@ -108,6 +108,7 @@ class _HomeShellState extends State<_HomeShell>
   @override
   void initState() {
     super.initState();
+    _viewModel = GetIt.instance<HomeViewModel>();
     WidgetsBinding.instance.addObserver(this);
     appRouter.routerDelegate.addListener(_onRouteChanged);
     _lastObservedPath = appRouter.routerDelegate.currentConfiguration.uri.path;
@@ -120,7 +121,6 @@ class _HomeShellState extends State<_HomeShell>
     });
     _backdropUrl = _backgroundService.currentUrl;
 
-    _viewModel = GetIt.instance<HomeViewModel>();
     _viewModel.addListener(_onViewModelChanged);
     _viewModel.mediaBarViewModel.addListener(_onMediaBarStateChanged);
     _lastMediaBarStateRuntime = _viewModel.mediaBarViewModel.state.runtimeType;
