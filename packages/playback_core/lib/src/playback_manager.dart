@@ -1077,8 +1077,9 @@ class PlaybackManager implements AudioOwnable {
     } else if (resolution.playMethod == StreamPlayMethod.transcode) {
       if (_subtitleStreamIndex != null && _subtitleStreamIndex != -1) {
         final isBurnedIn =
-            _isSubtitleBitmap(_subtitleStreamIndex!) &&
-            !(_backend?.canRenderBitmapSubtitles ?? false);
+            (_isSubtitleBitmap(_subtitleStreamIndex!) &&
+             !(_backend?.canRenderBitmapSubtitles ?? false)) ||
+            resolution.streamUrl.toLowerCase().contains('subtitlemethod=encode');
         if (isBurnedIn) {
           _waitAndDisableSubtitles(sessionToken, force: true);
         } else if (_subtitleRendererModeForStream(_subtitleStreamIndex!) ==
@@ -1472,12 +1473,13 @@ class PlaybackManager implements AudioOwnable {
         _waitAndApplyTrackSelections(_playbackSessionToken);
       }
     } else if (_currentResolution?.playMethod == StreamPlayMethod.transcode) {
-      final previousWasBurnedBitmap =
-          previousSubtitleStreamIndex != null &&
-          previousSubtitleStreamIndex >= 0 &&
-          _isSubtitleBitmap(previousSubtitleStreamIndex) &&
-          !(_backend?.canRenderBitmapSubtitles ?? false);
-      if (previousWasBurnedBitmap && !isBitmap) {
+      final previousWasBurned =
+          (previousSubtitleStreamIndex != null &&
+           previousSubtitleStreamIndex >= 0 &&
+           _isSubtitleBitmap(previousSubtitleStreamIndex) &&
+           !(_backend?.canRenderBitmapSubtitles ?? false)) ||
+          (_currentResolution?.streamUrl.toLowerCase().contains('subtitlemethod=encode') ?? false);
+      if (previousWasBurned && !isBitmap) {
         await _backend?.disableSubtitleTrack();
         await _reResolveAtCurrentPosition();
         return;
@@ -1522,10 +1524,12 @@ class PlaybackManager implements AudioOwnable {
   }
 
   Future<void> disableSubtitles() async {
+    final previousWasBurned =
+        _currentResolution?.streamUrl.toLowerCase().contains('subtitlemethod=encode') ?? false;
     _subtitleStreamIndex = -1;
     await _resetSubtitleRendererMode();
-    if (!_isOfflinePlayback &&
-        !(_backend?.supportsRuntimeTrackSelection ?? true)) {
+    if (previousWasBurned || (!_isOfflinePlayback &&
+        !(_backend?.supportsRuntimeTrackSelection ?? true))) {
       await _reResolveAtCurrentPosition();
       return;
     }
@@ -1578,7 +1582,11 @@ class PlaybackManager implements AudioOwnable {
         if (sessionToken != _playbackSessionToken) return;
       }
     }
-    if (_subtitleStreamIndex != null && _subtitleStreamIndex! >= 0) {
+    final isBurnedIn = _currentResolution?.streamUrl.toLowerCase().contains('subtitlemethod=encode') ?? false;
+    if (isBurnedIn) {
+      await _resetSubtitleRendererMode();
+      await _backend?.disableSubtitleTrack();
+    } else if (_subtitleStreamIndex != null && _subtitleStreamIndex! >= 0) {
       final isBitmap = _isSubtitleBitmap(_subtitleStreamIndex!);
       final canRenderBitmap = _backend?.canRenderBitmapSubtitles ?? false;
       if (isBitmap && !canRenderBitmap) {
