@@ -4055,6 +4055,12 @@ abstract class AppLocalizations {
   /// **'Audio Output Mode'**
   String get settingsAudioOutputMode;
 
+  /// Description for audio output mode setting
+  ///
+  /// In en, this message translates to:
+  /// **'Choose how audio is decoded. AVR Passthrough sends raw Dolby/DTS streams to your receiver; Auto or Downmix decodes locally.'**
+  String get settingsAudioOutputModeDescription;
+
   /// Audio output mode option for AVR passthrough
   ///
   /// In en, this message translates to:
@@ -4067,23 +4073,125 @@ abstract class AppLocalizations {
   /// **'Audio Fallback Codec'**
   String get settingsAudioFallbackCodec;
 
-  /// Fallback codec option for AAC stereo
+  /// Description for audio fallback codec setting
   ///
   /// In en, this message translates to:
-  /// **'AAC Stereo'**
-  String get settingsAudioFallbackAacStereo;
+  /// **'Select the target format to transcode multi-channel audio when the source stream cannot be direct-played or passed through.'**
+  String get settingsAudioFallbackCodecDescription;
 
-  /// Fallback codec option for AC3 5.1
+  /// Fallback codec option: Auto
   ///
   /// In en, this message translates to:
-  /// **'AC3 5.1'**
-  String get settingsAudioFallbackAc35_1;
+  /// **'Auto Detect\n(Recommended)'**
+  String get settingsAudioFallbackCodecAuto;
 
-  /// Fallback codec option for EAC3 5.1
+  /// Fallback codec option: AAC
   ///
   /// In en, this message translates to:
-  /// **'EAC3 5.1'**
-  String get settingsAudioFallbackEac35_1;
+  /// **'AAC\n(Default)'**
+  String get settingsAudioFallbackCodecAac;
+
+  /// Fallback codec option: AC3
+  ///
+  /// In en, this message translates to:
+  /// **'AC3\n(Dolby Digital)'**
+  String get settingsAudioFallbackCodecAc3;
+
+  /// Fallback codec option: EAC3
+  ///
+  /// In en, this message translates to:
+  /// **'EAC3\n(Dolby Digital Plus)'**
+  String get settingsAudioFallbackCodecEac3;
+
+  /// Fallback codec option: TrueHD
+  ///
+  /// In en, this message translates to:
+  /// **'TrueHD\n(Lossless)'**
+  String get settingsAudioFallbackCodecTrueHd;
+
+  /// Fallback codec option: MP3
+  ///
+  /// In en, this message translates to:
+  /// **'MP3\n(Stereo Only)'**
+  String get settingsAudioFallbackCodecMp3;
+
+  /// Fallback codec option: Opus
+  ///
+  /// In en, this message translates to:
+  /// **'Opus\n(Efficient)'**
+  String get settingsAudioFallbackCodecOpus;
+
+  /// Fallback codec option: FLAC
+  ///
+  /// In en, this message translates to:
+  /// **'FLAC\n(Lossless)'**
+  String get settingsAudioFallbackCodecFlac;
+
+  /// Setting for maximum audio channels capability
+  ///
+  /// In en, this message translates to:
+  /// **'Max Audio Channels'**
+  String get settingsMaxAudioChannels;
+
+  /// Description for maximum audio channels setting
+  ///
+  /// In en, this message translates to:
+  /// **'Configure the maximum channels of your audio setup. Multichannel streams exceeding this limit will downmix or transcode.'**
+  String get settingsMaxAudioChannelsDescription;
+
+  /// Option: Auto detect channels
+  ///
+  /// In en, this message translates to:
+  /// **'Auto Detect\n(Hardware Default)'**
+  String get settingsMaxAudioChannelsAuto;
+
+  /// Option: Mono (1 channel)
+  ///
+  /// In en, this message translates to:
+  /// **'1.0 Mono'**
+  String get settingsMaxAudioChannelsMono;
+
+  /// Option: Stereo (2 channels)
+  ///
+  /// In en, this message translates to:
+  /// **'2.0 Stereo'**
+  String get settingsMaxAudioChannelsStereo;
+
+  /// Option: 3 channels
+  ///
+  /// In en, this message translates to:
+  /// **'3.0 / 2.1 Surround'**
+  String get settingsMaxAudioChannels3_0;
+
+  /// Option: 4 channels
+  ///
+  /// In en, this message translates to:
+  /// **'4.0 / 3.1 Quadraphonic'**
+  String get settingsMaxAudioChannels4_0;
+
+  /// Option: 5 channels
+  ///
+  /// In en, this message translates to:
+  /// **'5.0 / 4.1 Surround'**
+  String get settingsMaxAudioChannels5_0;
+
+  /// Option: 5.1 Surround channels
+  ///
+  /// In en, this message translates to:
+  /// **'5.1 Surround'**
+  String get settingsMaxAudioChannels5_1;
+
+  /// Option: 6.1 Surround channels
+  ///
+  /// In en, this message translates to:
+  /// **'6.1 Surround'**
+  String get settingsMaxAudioChannels6_1;
+
+  /// Option: 7.1 Surround channels
+  ///
+  /// In en, this message translates to:
+  /// **'7.1 Surround'**
+  String get settingsMaxAudioChannels7_1;
 
   /// Section title for advanced passthrough controls
   ///

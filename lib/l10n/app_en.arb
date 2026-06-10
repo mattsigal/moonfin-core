@@ -3171,7 +3171,7 @@
   "@settingsAudioFallbackCodecTrueHd": {
     "description": "Fallback codec option: TrueHD"
   },
-  "settingsAudioFallbackCodecMp3": "MP3",
+  "settingsAudioFallbackCodecMp3": "MP3\n(Stereo Only)",
   "@settingsAudioFallbackCodecMp3": {
     "description": "Fallback codec option: MP3"
   },
@@ -3179,7 +3179,7 @@
   "@settingsAudioFallbackCodecOpus": {
     "description": "Fallback codec option: Opus"
   },
-  "settingsAudioFallbackCodecFlac": "FLAC\n(Lossless PCM)",
+  "settingsAudioFallbackCodecFlac": "FLAC\n(Lossless)",
   "@settingsAudioFallbackCodecFlac": {
     "description": "Fallback codec option: FLAC"
   },
@@ -3195,11 +3195,11 @@
   "@settingsMaxAudioChannelsAuto": {
     "description": "Option: Auto detect channels"
   },
-  "settingsMaxAudioChannelsMono": "Mono\n(1.0)",
+  "settingsMaxAudioChannelsMono": "1.0 Mono",
   "@settingsMaxAudioChannelsMono": {
     "description": "Option: Mono (1 channel)"
   },
-  "settingsMaxAudioChannelsStereo": "Stereo\n(2.0)",
+  "settingsMaxAudioChannelsStereo": "2.0 Stereo",
   "@settingsMaxAudioChannelsStereo": {
     "description": "Option: Stereo (2 channels)"
   },

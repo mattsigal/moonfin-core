@@ -798,13 +798,13 @@ class DeviceProfileBuilder {
   }) {
     final preferredTargets = switch (effectiveAudioFallbackCodec) {
       AudioFallbackCodec.auto => _hlsMpegTsAudioCodecs,
-      AudioFallbackCodec.aac => const <String>['aac', 'mp3'],
-      AudioFallbackCodec.ac3 => const <String>['ac3', 'aac', 'mp3'],
-      AudioFallbackCodec.eac3 => const <String>['eac3', 'ac3', 'aac', 'mp3'],
-      AudioFallbackCodec.truehd => const <String>['ac3', 'aac', 'mp3'],
-      AudioFallbackCodec.mp3 => const <String>['mp3', 'aac'],
-      AudioFallbackCodec.opus => const <String>['aac', 'mp3'],
-      AudioFallbackCodec.flac => const <String>['aac', 'mp3'],
+      AudioFallbackCodec.aac => const <String>['aac', 'opus', 'mp3'],
+      AudioFallbackCodec.ac3 => const <String>['ac3', 'opus', 'aac', 'mp3'],
+      AudioFallbackCodec.eac3 => const <String>['eac3', 'ac3', 'opus', 'aac', 'mp3'],
+      AudioFallbackCodec.truehd => const <String>['truehd', 'flac', 'eac3', 'ac3', 'opus', 'aac', 'mp3'],
+      AudioFallbackCodec.mp3 => const <String>['mp3', 'opus', 'aac'],
+      AudioFallbackCodec.opus => const <String>['opus', 'aac', 'mp3'],
+      AudioFallbackCodec.flac => const <String>['flac', 'opus', 'aac', 'mp3'],
     };
 
     return preferredTargets
