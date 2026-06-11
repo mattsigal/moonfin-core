@@ -3194,7 +3194,9 @@ class _ContentRowsState extends State<_ContentRows>
             itemType: item.type,
             seerrMediaType: item.seerrMediaType,
             seerrStatus: item.seerrStatus,
-            focusColor: focusColor,
+            focusColor: (row.rowType == HomeRowType.genres && row.id == 'genres')
+                ? ThemeRegistry.active.borders.focusBorder.color
+                : focusColor,
             cardFocusExpansion: isRowsV2 ? false : cardExpansion && !showPreviewVideo,
             externalIsFocused: effectiveV2Focused,
             suppressImageFocusBorder: showPreviewVideo,

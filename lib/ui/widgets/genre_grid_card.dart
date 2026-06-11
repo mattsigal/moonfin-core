@@ -95,101 +95,127 @@ class _GenreGridCardState extends State<GenreGridCard> with FocusStateMixin {
           child: AnimatedScale(
             scale: widget.cardFocusExpansion && showFocusBorder ? 1.05 : 1.0,
             duration: const Duration(milliseconds: 150),
-            child: DecoratedBox(
-              position: DecorationPosition.foreground,
-              decoration: BoxDecoration(
-                borderRadius: BorderRadius.circular(10),
-                border: showFocusBorder
-                    ? Border.fromBorderSide(
-                        ThemeRegistry.active.borders.focusBorder.copyWith(
-                          color: borderColor,
-                          width: 2.4,
+            child: Stack(
+              clipBehavior: Clip.none,
+              children: [
+                if (showFocusBorder && ThemeRegistry.active.borders.focusGlow.isNotEmpty)
+                  Positioned.fill(
+                    child: IgnorePointer(
+                      child: Container(
+                        decoration: BoxDecoration(
+                          borderRadius: BorderRadius.circular(10),
+                          boxShadow: ThemeRegistry.active.borders.focusGlow,
                         ),
-                      )
-                    : null,
-                boxShadow: showFocusBorder
-                    ? [
-                        BoxShadow(
-                          color: AppColorScheme.accent.withAlpha(145),
-                          blurRadius: 14,
-                          spreadRadius: 1.2,
+                      ),
+                    ),
+                  )
+                else if (showFocusBorder)
+                  Positioned.fill(
+                    child: IgnorePointer(
+                      child: Container(
+                        decoration: BoxDecoration(
+                          borderRadius: BorderRadius.circular(10),
+                          boxShadow: [
+                            BoxShadow(
+                              color: AppColorScheme.accent.withAlpha(145),
+                              blurRadius: 14,
+                              spreadRadius: 1.2,
+                            ),
+                          ],
                         ),
-                      ]
-                    : null,
-              ),
-              child: ClipRRect(
-                borderRadius: BorderRadius.circular(8),
-                child: Stack(
-                  fit: StackFit.expand,
-                  children: [
-                    if (imageUrl != null)
-                      BoundedNetworkImage(
-                        imageUrl: imageUrl,
-                        fadeInDuration: const Duration(milliseconds: 200),
-                        errorBuilder: (_, _, _) => Container(
+                      ),
+                    ),
+                  ),
+                ClipRRect(
+                  borderRadius: BorderRadius.circular(8),
+                  child: Stack(
+                    fit: StackFit.expand,
+                    children: [
+                      if (imageUrl != null)
+                        BoundedNetworkImage(
+                          imageUrl: imageUrl,
+                          fadeInDuration: const Duration(milliseconds: 200),
+                          errorBuilder: (_, _, _) => Container(
+                            color: AppColorScheme.surface.withValues(alpha: 0.35),
+                          ),
+                        )
+                      else
+                        Container(
                           color: AppColorScheme.surface.withValues(alpha: 0.35),
                         ),
-                      )
-                    else
                       Container(
-                        color: AppColorScheme.surface.withValues(alpha: 0.35),
+                        decoration: BoxDecoration(
+                          gradient: LinearGradient(
+                            begin: Alignment.topCenter,
+                            end: Alignment.bottomCenter,
+                            colors: [
+                              Colors.transparent,
+                              AppColorScheme.scrim.withAlpha(165),
+                            ],
+                          ),
+                        ),
                       ),
-                    Container(
-                      decoration: BoxDecoration(
-                        gradient: LinearGradient(
-                          begin: Alignment.topCenter,
-                          end: Alignment.bottomCenter,
-                          colors: [
-                            Colors.transparent,
-                            AppColorScheme.scrim.withAlpha(165),
+                      Positioned(
+                        left: 12 * desktopScale,
+                        right: 12 * desktopScale,
+                        bottom: 8 * desktopScale,
+                        child: Column(
+                          crossAxisAlignment: widget.centerTitle
+                              ? CrossAxisAlignment.center
+                              : CrossAxisAlignment.start,
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            showMarquee
+                                ? MarqueeText(
+                                    text: widget.genre.name,
+                                    style: titleStyle,
+                                  )
+                                : Text(
+                                    widget.genre.name,
+                                    maxLines: titleMaxLines,
+                                    overflow: TextOverflow.ellipsis,
+                                    textAlign: widget.centerTitle
+                                        ? TextAlign.center
+                                        : TextAlign.start,
+                                    style: titleStyle,
+                                  ),
+                            if (widget.genre.itemCount > 0) ...[
+                              const SizedBox(height: 2),
+                              showMarquee
+                                  ? MarqueeText(
+                                      text: '${widget.genre.itemCount} items',
+                                      style: subtitleStyle,
+                                    )
+                                  : Text(
+                                      '${widget.genre.itemCount} items',
+                                      maxLines: 1,
+                                      overflow: TextOverflow.ellipsis,
+                                      style: subtitleStyle,
+                                    ),
+                            ],
                           ],
                         ),
                       ),
-                    ),
-                    Positioned(
-                      left: 12 * desktopScale,
-                      right: 12 * desktopScale,
-                      bottom: 8 * desktopScale,
-                      child: Column(
-                        crossAxisAlignment: widget.centerTitle
-                            ? CrossAxisAlignment.center
-                            : CrossAxisAlignment.start,
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          showMarquee
-                              ? MarqueeText(
-                                  text: widget.genre.name,
-                                  style: titleStyle,
-                                )
-                              : Text(
-                                  widget.genre.name,
-                                  maxLines: titleMaxLines,
-                                  overflow: TextOverflow.ellipsis,
-                                  textAlign: widget.centerTitle
-                                      ? TextAlign.center
-                                      : TextAlign.start,
-                                  style: titleStyle,
-                                ),
-                          if (widget.genre.itemCount > 0) ...[
-                            const SizedBox(height: 2),
-                            showMarquee
-                                ? MarqueeText(
-                                    text: '${widget.genre.itemCount} items',
-                                    style: subtitleStyle,
-                                  )
-                                : Text(
-                                    '${widget.genre.itemCount} items',
-                                    maxLines: 1,
-                                    overflow: TextOverflow.ellipsis,
-                                    style: subtitleStyle,
-                                  ),
-                          ],
-                        ],
+                    ],
+                  ),
+                ),
+                if (showFocusBorder)
+                  Positioned.fill(
+                    child: IgnorePointer(
+                      child: Container(
+                        decoration: BoxDecoration(
+                          borderRadius: BorderRadius.circular(10),
+                          border: Border.fromBorderSide(
+                            ThemeRegistry.active.borders.focusBorder.copyWith(
+                              color: borderColor,
+                              width: 2.4,
+                            ),
+                          ),
+                        ),
                       ),
                     ),
-                  ],
-                ),
-              ),
+                  ),
+              ],
             ),
           ),
         ),

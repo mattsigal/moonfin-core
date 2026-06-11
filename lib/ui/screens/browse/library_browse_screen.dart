@@ -4002,9 +4002,11 @@ class _LibraryBrowseScreenState extends State<LibraryBrowseScreen>
                 delegate: SliverChildBuilderDelegate((context, index) {
                   final item = _vm.items[index];
                   final itemAspectRatio = _itemAspectRatio(item);
-                  final focusColor = Color(
-                    _prefs.get(UserPreferences.focusColor).colorValue,
-                  );
+                  final focusColor = _vm.isGenreBrowse
+                      ? ThemeRegistry.active.borders.focusBorder.color
+                      : Color(
+                          _prefs.get(UserPreferences.focusColor).colorValue,
+                        );
                   final isNeon = ThemeRegistry.active.id == ThemeRegistry.neonPulseId;
                   Widget card = MediaCard(
                     title: item.name,
