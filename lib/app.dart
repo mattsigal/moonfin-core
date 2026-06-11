@@ -546,7 +546,7 @@ class _GlobalShortcutScopeState extends State<_GlobalShortcutScope>
 
   Future<void> _saveWindowGeometry() async {
     try {
-      final isFullScreen = await windowManager.isFullScreen();
+      final isFullScreen = await FullscreenHelper.isFullscreen();
       if (isFullScreen) return;
       final size = await windowManager.getSize();
       final pos = await windowManager.getPosition();
