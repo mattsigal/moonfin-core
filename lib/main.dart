@@ -309,7 +309,7 @@ void main() async {
     await notificationService.initialize();
   } catch (_) {}
 
-  if (PlatformDetection.isMobile || PlatformDetection.isIOS) {
+  if (PlatformDetection.isMobile) {
     try {
       await initAudioService(
         manager: GetIt.instance<PlaybackManager>(),
