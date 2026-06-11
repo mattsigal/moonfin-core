@@ -198,6 +198,7 @@ class DownloadService extends ChangeNotifier {
 
   Future<bool> _checkWifiPolicy() async {
     if (!_prefs.get(UserPreferences.downloadWifiOnly)) return true;
+    if (PlatformDetection.isAppleTV) return true;
     final results = await Connectivity().checkConnectivity();
     return results.any((r) => r == ConnectivityResult.wifi);
   }

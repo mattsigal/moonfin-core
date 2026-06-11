@@ -175,6 +175,9 @@ class _MoonfinAppState extends State<MoonfinApp> {
                 );
 
                 if (!PlatformDetection.useDesktopUi) {
+                  if (PlatformDetection.isAppleTV) {
+                    return _TvUiScale(child: overlay);
+                  }
                   return overlay;
                 }
 
@@ -935,6 +938,75 @@ class _AdminMessageDialogState extends State<_AdminMessageDialog> {
           ),
         ),
       ),
+    );
+  }
+}
+
+class _TvUiScale extends StatelessWidget {
+  const _TvUiScale({required this.child});
+
+  final Widget child;
+
+  static const double _designWidth = 1440;
+
+  @override
+  Widget build(BuildContext context) {
+    final mq = MediaQuery.of(context);
+    final realSize = mq.size;
+    if (realSize.width <= 0) {
+      return _TvMetricsOverlay(child: child);
+    }
+    final scale = realSize.width / _designWidth;
+    final logicalSize = Size(realSize.width / scale, realSize.height / scale);
+    return FittedBox(
+      fit: BoxFit.fill,
+      child: SizedBox(
+        width: logicalSize.width,
+        height: logicalSize.height,
+        child: MediaQuery(
+          data: mq.copyWith(
+            size: logicalSize,
+            devicePixelRatio: mq.devicePixelRatio * scale,
+          ),
+          child: _TvMetricsOverlay(child: child),
+        ),
+      ),
+    );
+  }
+}
+
+class _TvMetricsOverlay extends StatelessWidget {
+  const _TvMetricsOverlay({required this.child});
+
+  final Widget child;
+
+  @override
+  Widget build(BuildContext context) {
+    final mq = MediaQuery.of(context);
+    final size = mq.size;
+    final dpr = mq.devicePixelRatio;
+    final ts = mq.textScaler.scale(100) / 100;
+    return Stack(
+      textDirection: TextDirection.ltr,
+      children: [
+        child,
+        Positioned(
+          top: 8,
+          right: 8,
+          child: IgnorePointer(
+            child: Container(
+              color: const Color(0xCC000000),
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 7),
+              child: Text(
+                'size ${size.width.toStringAsFixed(0)}x${size.height.toStringAsFixed(0)}   '
+                'dpr ${dpr.toStringAsFixed(2)}   ts ${ts.toStringAsFixed(2)}',
+                textDirection: TextDirection.ltr,
+                style: const TextStyle(color: Color(0xFF00E676), fontSize: 18),
+              ),
+            ),
+          ),
+        ),
+      ],
     );
   }
 }

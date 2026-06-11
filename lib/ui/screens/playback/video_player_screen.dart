@@ -82,9 +82,8 @@ class _VideoPlayerScreenState extends State<VideoPlayerScreen>
   static const _scrubSeekDebounceDuration = Duration(milliseconds: 250);
 
   final _manager = GetIt.instance<PlaybackManager>();
-  // No MediaKit backend exists on Tizen; the active backend (TizenPlayerBackend)
-  // is resolved via _activeBackend instead.
-  final MediaKitPlayerBackend? _backend = PlatformDetection.isTizen
+  final MediaKitPlayerBackend? _backend =
+      (PlatformDetection.isTizen || PlatformDetection.isAppleTV)
       ? null
       : GetIt.instance<MediaKitPlayerBackend>();
   final _prefs = GetIt.instance<UserPreferences>();

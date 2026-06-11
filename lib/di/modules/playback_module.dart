@@ -13,6 +13,7 @@ import '../../playback/hdr_stream_capability.dart';
 import '../../playback/html_video_backend.dart';
 import '../../playback/known_defects.dart';
 import '../../playback/external_player_policy.dart';
+import '../../playback/appletv_mpv_backend.dart';
 import '../../playback/media_kit_player_backend.dart';
 import '../../playback/media3_player_backend.dart';
 import '../../playback/tizen_player_backend.dart';
@@ -332,17 +333,17 @@ void registerPlaybackModule() {
 
   final prefs = _getIt<UserPreferences>();
 
-  // media_kit (libmpv) and Media3 (ExoPlayer) are unavailable on Tizen, so the
-  // app plays through TizenPlayerBackend (native AVPlay via video_player) there
-  // and never constructs the other backends (their constructors load native
-  // libraries that don't exist on Tizen).
   MediaKitPlayerBackend? backend;
   Media3PlayerBackend? media3Backend;
   TizenPlayerBackend? tizenBackend;
+  AppleTvMpvBackend? appleTvBackend;
 
   if (PlatformDetection.isTizen) {
     tizenBackend = TizenPlayerBackend(prefs);
     _getIt.registerSingleton<TizenPlayerBackend>(tizenBackend);
+  } else if (PlatformDetection.isAppleTV) {
+    appleTvBackend = AppleTvMpvBackend(prefs);
+    _getIt.registerSingleton<AppleTvMpvBackend>(appleTvBackend);
   } else {
     backend = MediaKitPlayerBackend(
       prefs,
@@ -366,9 +367,11 @@ void registerPlaybackModule() {
           PlaybackEnginePreference.media3;
   final PlayerBackend initialBackend = PlatformDetection.isTizen
       ? tizenBackend!
-      : PlatformDetection.isWeb
-          ? (htmlBackend ?? backend!)
-          : (useMedia3ByDefault ? media3Backend! : backend!);
+      : PlatformDetection.isAppleTV
+          ? appleTvBackend!
+          : PlatformDetection.isWeb
+              ? (htmlBackend ?? backend!)
+              : (useMedia3ByDefault ? media3Backend! : backend!);
   _getIt.registerSingleton<PlayerBackend>(initialBackend);
 
   final manager = PlaybackManager();
@@ -377,6 +380,11 @@ void registerPlaybackModule() {
     if (PlatformDetection.isTizen) {
       if (currentBackend is TizenPlayerBackend) return currentBackend;
       return _getIt<TizenPlayerBackend>();
+    }
+
+    if (PlatformDetection.isAppleTV) {
+      if (currentBackend is AppleTvMpvBackend) return currentBackend;
+      return _getIt<AppleTvMpvBackend>();
     }
 
     if (PlatformDetection.isWeb) {

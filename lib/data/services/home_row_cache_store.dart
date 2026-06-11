@@ -3,6 +3,7 @@ import 'dart:io';
 
 import 'package:path_provider/path_provider.dart';
 
+import '../../util/platform_detection.dart';
 import '../models/aggregated_item.dart';
 import '../models/home_row.dart';
 
@@ -18,7 +19,9 @@ class HomeRowCacheStore {
   static const _maxAge = Duration(days: 3);
 
   Future<File> _file() async {
-    final dir = await getApplicationSupportDirectory();
+    final dir = PlatformDetection.isAppleTV
+        ? await getApplicationCacheDirectory()
+        : await getApplicationSupportDirectory();
     return File('${dir.path}/$_fileName');
   }
 

@@ -6,6 +6,7 @@ import 'package:flutter/foundation.dart';
 import 'package:get_it/get_it.dart';
 import 'package:server_core/server_core.dart';
 
+import '../../util/platform_detection.dart';
 import 'sync_service.dart';
 
 class ConnectivityService extends ChangeNotifier {
@@ -37,12 +38,21 @@ class ConnectivityService extends ChangeNotifier {
   }
 
   void initialize() {
-    _subscription =
-        _connectivity.onConnectivityChanged.listen(_onConnectivityChanged);
+    if (!PlatformDetection.isAppleTV) {
+      _subscription =
+          _connectivity.onConnectivityChanged.listen(_onConnectivityChanged);
+    }
     _checkInitialState();
   }
 
   Future<void> _checkInitialState() async {
+    if (PlatformDetection.isAppleTV) {
+      _isOnline = true;
+      await _checkServerReachability();
+      _initialCheckDone = true;
+      notifyListeners();
+      return;
+    }
     final results = await _connectivity.checkConnectivity();
     _isOnline = results.any((r) => r != ConnectivityResult.none);
     if (_isOnline) {

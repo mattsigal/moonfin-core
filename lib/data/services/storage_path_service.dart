@@ -50,7 +50,9 @@ class StoragePathService {
       final docs = await getApplicationDocumentsDirectory();
       dir = Directory('${docs.path}/Moonfin');
     } else {
-      final support = await getApplicationSupportDirectory();
+      final support = PlatformDetection.isAppleTV
+          ? await getApplicationCacheDirectory()
+          : await getApplicationSupportDirectory();
       dir = Directory('${support.path}/Downloads');
     }
 

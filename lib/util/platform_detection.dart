@@ -17,10 +17,15 @@ class PlatformDetection {
   /// guards below add no runtime cost elsewhere.
   static const bool isTizen = bool.fromEnvironment('MOONFIN_TIZEN');
 
+  static const bool isAppleTV = bool.fromEnvironment('MOONFIN_TVOS');
+
   static bool get isAndroid =>
       !kIsWeb && !isTizen && defaultTargetPlatform == TargetPlatform.android;
   static bool get isIOS =>
-      !kIsWeb && !isTizen && defaultTargetPlatform == TargetPlatform.iOS;
+      !kIsWeb &&
+      !isTizen &&
+      !isAppleTV &&
+      defaultTargetPlatform == TargetPlatform.iOS;
   static int get iosMajorVersion => isIOS ? osMajorVersion() : 0;
   static bool get isMacOS =>
       !kIsWeb && !isTizen && defaultTargetPlatform == TargetPlatform.macOS;
@@ -40,8 +45,7 @@ class PlatformDetection {
   static bool get isMobile => (isAndroid || isIOS) && !_isTv;
   static bool get isDesktop => isMacOS || isWindows || isLinux;
 
-  // Tizen runs only on Samsung TVs, so it is always a 10-foot/leanback device.
-  static bool get isTV => _isTv || isTizen;
+  static bool get isTV => _isTv || isTizen || isAppleTV;
   static bool _isTv = false;
   static void setTvMode(bool value) => _isTv = value;
 

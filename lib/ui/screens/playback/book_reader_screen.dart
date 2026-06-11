@@ -1790,6 +1790,19 @@ class _BookReaderScreenState extends State<BookReaderScreen>
 
   @override
   Widget build(BuildContext context) {
+    if (PlatformDetection.isAppleTV) {
+      return const Scaffold(
+        body: Center(
+          child: Padding(
+            padding: EdgeInsets.all(48),
+            child: Text(
+              'Reading books is not supported on Apple TV.',
+              textAlign: TextAlign.center,
+            ),
+          ),
+        ),
+      );
+    }
     final fullscreenReader =
         _mode == _ReaderMode.comic ||
         _mode == _ReaderMode.pdf ||

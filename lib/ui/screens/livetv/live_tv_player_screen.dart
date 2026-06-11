@@ -43,9 +43,8 @@ class LiveTvPlayerScreen extends StatefulWidget {
 
 class _LiveTvPlayerScreenState extends State<LiveTvPlayerScreen> {
   final _manager = GetIt.instance<PlaybackManager>();
-  // No MediaKit backend exists on Tizen; the active backend (TizenPlayerBackend)
-  // is resolved via _manager.backend instead.
-  final MediaKitPlayerBackend? _backend = PlatformDetection.isTizen
+  final MediaKitPlayerBackend? _backend =
+      (PlatformDetection.isTizen || PlatformDetection.isAppleTV)
       ? null
       : GetIt.instance<MediaKitPlayerBackend>();
   final _client = GetIt.instance<MediaServerClient>();

@@ -43,7 +43,10 @@ class LiveTvMiniPlayer extends StatefulWidget {
 
 class _LiveTvMiniPlayerState extends State<LiveTvMiniPlayer> {
   final _manager = GetIt.instance<PlaybackManager>();
-  final _fallbackMediaKitBackend = GetIt.instance<MediaKitPlayerBackend>();
+  final MediaKitPlayerBackend? _fallbackMediaKitBackend =
+      (PlatformDetection.isTizen || PlatformDetection.isAppleTV)
+      ? null
+      : GetIt.instance<MediaKitPlayerBackend>();
   final _prefs = GetIt.instance<UserPreferences>();
 
   late FocusNode _effectiveFocusNode;
@@ -241,6 +244,9 @@ class _LiveTvMiniPlayerState extends State<LiveTvMiniPlayer> {
     }
 
     final mediaKitBackend = _activeMediaKitBackend ?? _fallbackMediaKitBackend;
+    if (mediaKitBackend == null) {
+      return null;
+    }
     if (PlatformDetection.useNativeVideoSurface) {
       return NativeVideoView(
         player: mediaKitBackend.player,

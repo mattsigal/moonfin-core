@@ -55,6 +55,7 @@ dependencies:
 
   # Image Loading
   cached_network_image: ^3.4.1
+  flutter_cache_manager: ^3.4.1
   flutter_svg: ^2.2.1
 
   # Crypto
@@ -139,6 +140,12 @@ dependencies:
   flutter_secure_storage_tizen: any
   wakelock_plus_tizen: any
   sqflite_tizen: any
+
+  flutter_tvos: ^1.0.4
+  path_provider_tvos: any
+  shared_preferences_tvos: any
+  flutter_secure_storage_tvos: any
+  sqflite_tvos: any
 
 dev_dependencies:
   flutter_test:

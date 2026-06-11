@@ -20,6 +20,8 @@ import 'platform/web_runtime_config.dart';
 import 'preference/preference_constants.dart';
 import 'preference/user_preferences.dart';
 import 'util/platform_detection.dart';
+import 'util/tv_image_cache_stub.dart'
+    if (dart.library.io) 'util/tv_image_cache_io.dart';
 
 void _configureImageCache() {
   final imageCache = PaintingBinding.instance.imageCache;
@@ -254,6 +256,25 @@ class _PreferenceWriteFlushObserver with WidgetsBindingObserver {
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
+  if (PlatformDetection.isAppleTV) {
+    ErrorWidget.builder = (FlutterErrorDetails details) {
+      return Directionality(
+        textDirection: TextDirection.ltr,
+        child: Container(
+          color: const Color(0xF2000000),
+          padding: const EdgeInsets.all(28),
+          alignment: Alignment.topLeft,
+          child: SingleChildScrollView(
+            child: Text(
+              '${details.exceptionAsString()}\n\n${details.stack ?? ''}',
+              style: const TextStyle(color: Color(0xFFFF6E6E), fontSize: 15),
+            ),
+          ),
+        ),
+      );
+    };
+  }
+
   if (PlatformDetection.isWeb) {
     await loadWebRuntimeConfig();
   }
@@ -262,10 +283,7 @@ void main() async {
     await windowManager.ensureInitialized();
   }
 
-  // media_kit (libmpv) has no Tizen implementation; Tizen plays via
-  // TizenPlayerBackend (the native AVPlay-backed video_player). Initializing it
-  // there would fail to load libmpv.
-  if (!PlatformDetection.isTizen) {
+  if (!PlatformDetection.isTizen && !PlatformDetection.isAppleTV) {
     MediaKit.ensureInitialized();
   }
 
@@ -276,13 +294,16 @@ void main() async {
   ]);
 
   _configureImageCache();
+  await configureAppleTvImageCache();
 
   // On Linux the GTK font pipeline loads fonts asynchronously. The first frame
   // can render before MaterialIcons and other fonts are ready, causing icons to
   // appear blank. Pumping a warm-up frame gives the font loader time to finish.
   // The issue is intermittent and goes away on re-run once the OS font cache
   // is warm, which confirms the timing root cause.
-  if (PlatformDetection.isLinux || PlatformDetection.isTizen) {
+  if (PlatformDetection.isLinux ||
+      PlatformDetection.isTizen ||
+      PlatformDetection.isAppleTV) {
     WidgetsBinding.instance.scheduleWarmUpFrame();
   }
 

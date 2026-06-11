@@ -10,18 +10,19 @@ import '../../util/platform_detection.dart';
 
 QueryExecutor openConnection() {
   return LazyDatabase(() async {
-    final docs = await getApplicationDocumentsDirectory();
+    final docs = PlatformDetection.isAppleTV
+        ? await getApplicationCacheDirectory()
+        : await getApplicationDocumentsDirectory();
     final dbDir = Directory('${docs.path}/Moonfin/DB');
     if (!dbDir.existsSync()) {
       await dbDir.create(recursive: true);
     }
     final file = File('${dbDir.path}/offline.db');
 
-    if (PlatformDetection.isTizen) {
-      // Tizen does not ship sqlite3_flutter_libs, but the OS provides a system
-      // libsqlite3. Point the sqlite3 package at it and open on the current
-      // isolate (the `open` override does not propagate to background isolates).
-      open.overrideForAll(_openTizenSqlite);
+    if (PlatformDetection.isTizen || PlatformDetection.isAppleTV) {
+      open.overrideForAll(
+        PlatformDetection.isAppleTV ? _openAppleSqlite : _openTizenSqlite,
+      );
       return NativeDatabase(file);
     }
 
@@ -38,5 +39,14 @@ DynamicLibrary _openTizenSqlite() {
     }
   }
   // Last resort: symbols may be statically available in the process.
+  return DynamicLibrary.process();
+}
+
+DynamicLibrary _openAppleSqlite() {
+  for (final name in const ['libsqlite3.dylib', 'libsqlite3.0.dylib']) {
+    try {
+      return DynamicLibrary.open(name);
+    } catch (_) {}
+  }
   return DynamicLibrary.process();
 }

@@ -540,7 +540,8 @@ class _ContentRowsState extends State<_ContentRows>
   final _mediaBarFocusNode = FocusNode(debugLabel: 'home_media_bar_focus');
   final _playbackManager = GetIt.instance<PlaybackManager>();
   final _audioArbiter = GetIt.instance<PlaybackArbiter>();
-  final Media3PlayerBackend? _media3PreviewBackend = PlatformDetection.isTizen
+  final Media3PlayerBackend? _media3PreviewBackend =
+      (PlatformDetection.isTizen || PlatformDetection.isAppleTV)
       ? null
       : GetIt.instance<Media3PlayerBackend>();
   final _themeMusicService = GetIt.instance<ThemeMusicService>();
@@ -967,6 +968,7 @@ class _ContentRowsState extends State<_ContentRows>
   }
 
   void _schedulePreview(AggregatedItem item, {required Duration delay}) {
+    if (PlatformDetection.isAppleTV) return;
     final previewKey = _previewKeyFor(item);
     if (_activePreviewKey == previewKey) {
       return;
@@ -1829,10 +1831,9 @@ class _ContentRowsState extends State<_ContentRows>
       return;
     }
 
-    final stackTopGlobal = stackRender.localToGlobal(Offset.zero).dy;
-    final containerTopGlobal = containerRender.localToGlobal(Offset.zero).dy;
-    final desiredContainerTopGlobal = stackTopGlobal + _overlayBottom + 8;
-    final scrollDelta = containerTopGlobal - desiredContainerTopGlobal;
+    final containerTopInStack =
+        containerRender.localToGlobal(Offset.zero, ancestor: stackRender).dy;
+    final scrollDelta = containerTopInStack - (_overlayBottom + 8);
     final currentOffset = _scrollController.offset;
     final targetOffset = (currentOffset + scrollDelta).clamp(
       0.0,

@@ -2,18 +2,9 @@ name: Build tvOS (Apple TV)
 
 on:
   workflow_dispatch:
-    inputs:
-      export_method:
-        description: 'Signing/export method (development = sideload, app-store-connect = TestFlight)'
-        default: 'development'
-        type: choice
-        options:
-          - development
-          - app-store-connect
 
 env:
-  FLUTTER_TVOS_REF: '3.44.1-tvos.1.2.0'
-  TEAM_ID: 'CCBYLPUSVH'
+  FLUTTER_TVOS_REF: 'v3.44.1-tvos.1.2.0'
 
 jobs:
   build-tvos:
@@ -24,6 +15,20 @@ jobs:
 
       - name: Select latest Xcode
         run: sudo xcode-select -s /Applications/Xcode_16.app || true
+
+      - name: Install tvOS platform
+        run: |
+          sudo xcodebuild -runFirstLaunch || true
+          for i in 1 2 3 4 5 6; do
+            if xcodebuild -downloadPlatform tvOS; then
+              echo "tvOS platform installed on attempt $i"
+              exit 0
+            fi
+            echo "downloadPlatform attempt $i failed (known flaky runner bug); retrying in 25s"
+            sleep 25
+          done
+          echo "::error::tvOS platform install failed after 6 attempts"
+          exit 1
 
       - name: Cache flutter-tvos toolchain
         id: cache-fluttertvos
@@ -57,53 +62,69 @@ jobs:
           echo "$ASC_KEY_BASE64" | base64 -d > "$RUNNER_TEMP/asc/AuthKey.p8"
           echo "ASC_KEY_PATH=$RUNNER_TEMP/asc/AuthKey.p8" >> "$GITHUB_ENV"
 
-      - name: Build release and write dart-defines
+      - name: Prepare Flutter build settings and pods
         run: |
-          flutter-tvos build tvos --release \
-            --dart-define=MOONFIN_TVOS=true \
-            --no-codesign
+          flutter-tvos build tvos --release --no-tree-shake-icons --dart-define=MOONFIN_TVOS=true || true
+          test -f tvos/Flutter/Generated.xcconfig
+          grep -q '^FLUTTER_ROOT=' tvos/Flutter/Generated.xcconfig \
+            || echo "FLUTTER_ROOT=$HOME/flutter-tvos" >> tvos/Flutter/Generated.xcconfig
 
-      - name: Archive
+      - name: Stage flutter_assets for the Xcode copy phase
+        run: |
+          DEST="tvos/Flutter/flutter_assets"
+          rm -rf "$DEST"
+          mkdir -p "$DEST"
+          SRC_APP=$(find build/tvos -maxdepth 3 -type d -path "*Release-appletvos/Runner.app/flutter_assets" | head -1)
+          if [ -n "$SRC_APP" ]; then
+            echo "Staging from assembled app bundle: $SRC_APP"
+            rsync -a "$SRC_APP/" "$DEST/"
+          else
+            echo "Staging from build/tvos bundle root"
+            rsync -a \
+              --exclude='*-appletvos' --exclude='*-appletvsimulator' \
+              --exclude='aot' --exclude='.last_build_id' \
+              --exclude='kernel_blob.bin' --exclude='vm_snapshot_data' \
+              --exclude='isolate_snapshot_data' \
+              build/tvos/ "$DEST/"
+          fi
+          test -f "$DEST/fonts/MaterialIcons-Regular.otf" \
+            || { echo "::error::MaterialIcons font missing from staged flutter_assets"; exit 1; }
+          test -f "$DEST/AssetManifest.bin" \
+            || { echo "::error::AssetManifest.bin missing from staged flutter_assets"; exit 1; }
+          echo "Staged flutter_assets:" && ls "$DEST"
+
+      - name: Build signed app for device
         run: |
           xcodebuild \
             -workspace tvos/Runner.xcworkspace \
             -scheme Runner \
             -configuration Release \
-            -destination 'generic/platform=tvOS' \
-            -archivePath "$RUNNER_TEMP/Runner.xcarchive" \
+            -sdk appletvos \
+            -derivedDataPath "$RUNNER_TEMP/dd" \
             -allowProvisioningUpdates \
             -authenticationKeyPath "$ASC_KEY_PATH" \
             -authenticationKeyID "${{ secrets.APPLE_ASC_API_KEY_ID }}" \
             -authenticationKeyIssuerID "${{ secrets.APPLE_ASC_API_ISSUER_ID }}" \
+            CODE_SIGNING_ALLOWED=YES \
             CODE_SIGN_STYLE=Automatic \
-            DEVELOPMENT_TEAM="$TEAM_ID" \
-            archive
+            DEVELOPMENT_TEAM="${{ secrets.APPLE_TEAM_ID }}" \
+            build
 
-      - name: Export IPA
+      - name: Package IPA
         run: |
-          cat > "$RUNNER_TEMP/ExportOptions.plist" <<EOF
-          <?xml version="1.0" encoding="UTF-8"?>
-          <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
-          <plist version="1.0"><dict>
-            <key>method</key><string>${{ github.event.inputs.export_method }}</string>
-            <key>signingStyle</key><string>automatic</string>
-            <key>teamID</key><string>${TEAM_ID}</string>
-            <key>stripSwiftSymbols</key><true/>
-            <key>compileBitcode</key><false/>
-          </dict></plist>
-          EOF
-          xcodebuild -exportArchive \
-            -archivePath "$RUNNER_TEMP/Runner.xcarchive" \
-            -exportPath "$RUNNER_TEMP/ipa" \
-            -exportOptionsPlist "$RUNNER_TEMP/ExportOptions.plist" \
-            -allowProvisioningUpdates \
-            -authenticationKeyPath "$ASC_KEY_PATH" \
-            -authenticationKeyID "${{ secrets.APPLE_ASC_API_KEY_ID }}" \
-            -authenticationKeyIssuerID "${{ secrets.APPLE_ASC_API_ISSUER_ID }}"
+          APP="$RUNNER_TEMP/dd/Build/Products/Release-appletvos/Runner.app"
+          test -d "$APP"
+          test -f "$APP/flutter_assets/fonts/MaterialIcons-Regular.otf" \
+            || { echo "::error::Built app is missing flutter_assets fonts"; exit 1; }
+          rm -rf "$RUNNER_TEMP/Payload" "$RUNNER_TEMP/moonfin.ipa"
+          mkdir -p "$RUNNER_TEMP/Payload"
+          cp -R "$APP" "$RUNNER_TEMP/Payload/"
+          ( cd "$RUNNER_TEMP" && zip -qry moonfin.ipa Payload )
+          unzip -l "$RUNNER_TEMP/moonfin.ipa" | grep -q "Payload/Runner.app/Runner"
 
       - name: Upload IPA artifact
         uses: actions/upload-artifact@v4
         with:
           name: moonfin-tvos-ipa
-          path: ${{ runner.temp }}/ipa/*.ipa
+          path: ${{ runner.temp }}/moonfin.ipa
           if-no-files-found: error
