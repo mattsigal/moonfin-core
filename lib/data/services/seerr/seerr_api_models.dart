@@ -404,7 +404,6 @@ class SeerrTvDetails {
     this.mediaInfo,
     this.keywords = const [],
     this.relatedVideos = const [],
-    this.seriesType,
   });
 
   String get displayTitle => name ?? title ?? '';

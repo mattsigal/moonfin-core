@@ -33,7 +33,7 @@ class SeerrMediaDetailState {
   bool get isTv => tv != null;
   bool get isAnime {
     if (tv != null) {
-      return tv!.seriesType?.toLowerCase() == 'anime';
+      return tv!.keywords.any((keyword) => keyword.id == 210024);
     }
     return false;
   }
