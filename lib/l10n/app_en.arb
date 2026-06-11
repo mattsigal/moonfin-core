@@ -3135,6 +3135,10 @@
   "@settingsAudioOutputMode": {
     "description": "Setting for audio output mode"
   },
+  "settingsAudioOutputModeDescription": "Choose how audio is decoded. AVR Passthrough sends raw Dolby/DTS streams to your receiver; Auto or Downmix decodes locally.",
+  "@settingsAudioOutputModeDescription": {
+    "description": "Description for audio output mode setting"
+  },
   "settingsAudioOutputModeAvrPassthrough": "AVR Passthrough",
   "@settingsAudioOutputModeAvrPassthrough": {
     "description": "Audio output mode option for AVR passthrough"
@@ -3143,17 +3147,85 @@
   "@settingsAudioFallbackCodec": {
     "description": "Setting for fallback audio codec"
   },
-  "settingsAudioFallbackAacStereo": "AAC Stereo",
-  "@settingsAudioFallbackAacStereo": {
-    "description": "Fallback codec option for AAC stereo"
+  "settingsAudioFallbackCodecDescription": "Select the target format to transcode multi-channel audio when the source stream cannot be direct-played or passed through.",
+  "@settingsAudioFallbackCodecDescription": {
+    "description": "Description for audio fallback codec setting"
   },
-  "settingsAudioFallbackAc35_1": "AC3 5.1",
-  "@settingsAudioFallbackAc35_1": {
-    "description": "Fallback codec option for AC3 5.1"
+  "settingsAudioFallbackCodecAuto": "Auto Detect\n(Recommended)",
+  "@settingsAudioFallbackCodecAuto": {
+    "description": "Fallback codec option: Auto"
   },
-  "settingsAudioFallbackEac35_1": "EAC3 5.1",
-  "@settingsAudioFallbackEac35_1": {
-    "description": "Fallback codec option for EAC3 5.1"
+  "settingsAudioFallbackCodecAac": "AAC\n(Default)",
+  "@settingsAudioFallbackCodecAac": {
+    "description": "Fallback codec option: AAC"
+  },
+  "settingsAudioFallbackCodecAc3": "AC3\n(Dolby Digital)",
+  "@settingsAudioFallbackCodecAc3": {
+    "description": "Fallback codec option: AC3"
+  },
+  "settingsAudioFallbackCodecEac3": "EAC3\n(Dolby Digital Plus)",
+  "@settingsAudioFallbackCodecEac3": {
+    "description": "Fallback codec option: EAC3"
+  },
+  "settingsAudioFallbackCodecTrueHd": "TrueHD\n(Lossless)",
+  "@settingsAudioFallbackCodecTrueHd": {
+    "description": "Fallback codec option: TrueHD"
+  },
+  "settingsAudioFallbackCodecMp3": "MP3\n(Stereo Only)",
+  "@settingsAudioFallbackCodecMp3": {
+    "description": "Fallback codec option: MP3"
+  },
+  "settingsAudioFallbackCodecOpus": "Opus\n(Efficient)",
+  "@settingsAudioFallbackCodecOpus": {
+    "description": "Fallback codec option: Opus"
+  },
+  "settingsAudioFallbackCodecFlac": "FLAC\n(Lossless)",
+  "@settingsAudioFallbackCodecFlac": {
+    "description": "Fallback codec option: FLAC"
+  },
+  "settingsMaxAudioChannels": "Max Audio Channels",
+  "@settingsMaxAudioChannels": {
+    "description": "Setting for maximum audio channels capability"
+  },
+  "settingsMaxAudioChannelsDescription": "Configure the maximum channels of your audio setup. Multichannel streams exceeding this limit will downmix or transcode.",
+  "@settingsMaxAudioChannelsDescription": {
+    "description": "Description for maximum audio channels setting"
+  },
+  "settingsMaxAudioChannelsAuto": "Auto Detect\n(Hardware Default)",
+  "@settingsMaxAudioChannelsAuto": {
+    "description": "Option: Auto detect channels"
+  },
+  "settingsMaxAudioChannelsMono": "1.0 Mono",
+  "@settingsMaxAudioChannelsMono": {
+    "description": "Option: Mono (1 channel)"
+  },
+  "settingsMaxAudioChannelsStereo": "2.0 Stereo",
+  "@settingsMaxAudioChannelsStereo": {
+    "description": "Option: Stereo (2 channels)"
+  },
+  "settingsMaxAudioChannels3_0": "3.0 / 2.1 Surround",
+  "@settingsMaxAudioChannels3_0": {
+    "description": "Option: 3 channels"
+  },
+  "settingsMaxAudioChannels4_0": "4.0 / 3.1 Quadraphonic",
+  "@settingsMaxAudioChannels4_0": {
+    "description": "Option: 4 channels"
+  },
+  "settingsMaxAudioChannels5_0": "5.0 / 4.1 Surround",
+  "@settingsMaxAudioChannels5_0": {
+    "description": "Option: 5 channels"
+  },
+  "settingsMaxAudioChannels5_1": "5.1 Surround",
+  "@settingsMaxAudioChannels5_1": {
+    "description": "Option: 5.1 Surround channels"
+  },
+  "settingsMaxAudioChannels6_1": "6.1 Surround",
+  "@settingsMaxAudioChannels6_1": {
+    "description": "Option: 6.1 Surround channels"
+  },
+  "settingsMaxAudioChannels7_1": "7.1 Surround",
+  "@settingsMaxAudioChannels7_1": {
+    "description": "Option: 7.1 Surround channels"
   },
   "settingsAudioPassthroughAdvanced": "Passthrough (Advanced)",
   "@settingsAudioPassthroughAdvanced": {

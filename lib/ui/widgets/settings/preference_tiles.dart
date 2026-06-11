@@ -153,6 +153,7 @@ Widget _buildSelectionBubble(BuildContext context, String label, bool focused) {
     ),
     child: Text(
       label,
+      textAlign: TextAlign.center,
       style: theme.textTheme.labelMedium?.copyWith(
         color: focused
             ? AppColors.black.withValues(alpha: 0.87)

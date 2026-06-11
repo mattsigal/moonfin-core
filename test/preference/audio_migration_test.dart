@@ -45,9 +45,9 @@ void main() {
       );
       expect(
         store.getString(UserPreferences.audioFallbackCodec.key),
-        AudioFallbackCodec.aacStereo.name,
+        AudioFallbackCodec.aac.name,
       );
-      expect(store.getBool('pref_audio_preference_split_v1'), isTrue);
+      expect(store.getBool('pref_audio_preference_split_v3'), isTrue);
     });
 
     test('does not overwrite split values when already present', () async {
@@ -64,6 +64,30 @@ void main() {
       expect(store.getBool(UserPreferences.ac3PassthroughEnabled.key), isTrue);
     });
 
+    test('remaps legacy fallback codecs to their renamed versions', () async {
+      final codecsToTest = {
+        'aacStereo': 'aac',
+        'ac3_5_1': 'ac3',
+        'eac3_5_1': 'eac3',
+      };
+
+      for (final entry in codecsToTest.entries) {
+        SharedPreferences.setMockInitialValues(<String, Object>{
+          UserPreferences.audioFallbackCodec.key: entry.key,
+        });
+
+        final store = PreferenceStore();
+        await store.init();
+
+        await migrateAudioPreferenceSplit(store);
+
+        expect(
+          store.getString(UserPreferences.audioFallbackCodec.key),
+          entry.value,
+        );
+      }
+    });
+
     test('keeps fresh installs on default split values', () async {
       SharedPreferences.setMockInitialValues(<String, Object>{});
 
@@ -77,7 +101,7 @@ void main() {
       expect(store.containsKey(UserPreferences.eac3PassthroughEnabled.key), isFalse);
       expect(store.containsKey(UserPreferences.dtsCorePassthroughEnabled.key), isFalse);
       expect(store.containsKey(UserPreferences.trueHdPassthroughEnabled.key), isFalse);
-      expect(store.getBool('pref_audio_preference_split_v1'), isTrue);
+      expect(store.getBool('pref_audio_preference_split_v3'), isTrue);
     });
   });
 }

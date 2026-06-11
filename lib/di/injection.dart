@@ -259,7 +259,7 @@ Future<void> _migrateAndroidMobileAudioDefaults(
 }
 
 Future<void> migrateAudioPreferenceSplit(PreferenceStore store) async {
-  const migrationKey = 'pref_audio_preference_split_v2';
+  const migrationKey = 'pref_audio_preference_split_v3';
 
   if (store.getBool(migrationKey) == true) {
     return;
@@ -325,13 +325,26 @@ Future<void> migrateAudioPreferenceSplit(PreferenceStore store) async {
     await setEnumIfMissing(
       UserPreferences.audioFallbackCodec,
       legacyStereoAacFallback
-          ? AudioFallbackCodec.aacStereo
+          ? AudioFallbackCodec.aac
           : AudioFallbackCodec.auto,
     );
   }
 
   if (store.containsKey(_legacyAc3EnabledKey)) {
     await setBoolIfMissing(UserPreferences.eac3JocPassthroughEnabled, false);
+  }
+
+  final savedFallbackCodec = store.getString(UserPreferences.audioFallbackCodec.key);
+  if (savedFallbackCodec != null) {
+    final remappedName = switch (savedFallbackCodec) {
+      'aacStereo' => 'aac',
+      'ac3_5_1' => 'ac3',
+      'eac3_5_1' => 'eac3',
+      _ => null,
+    };
+    if (remappedName != null) {
+      await store.setString(UserPreferences.audioFallbackCodec.key, remappedName);
+    }
   }
 
   await store.setBool(migrationKey, true);

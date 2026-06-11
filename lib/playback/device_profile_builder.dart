@@ -111,8 +111,7 @@ class DeviceProfileBuilder {
     bool dtsXPassthroughEnabled = false,
     bool trueHdPassthroughEnabled = false,
     bool trueHdAtmosPassthroughEnabled = false,
-    bool downMixAudio = false,
-    bool audioFallbackToStereoAac = true,
+    int maxAudioChannels = 0,
     MaxVideoResolution maxResolution = MaxVideoResolution.auto,
     bool pgsDirectPlay = true,
     bool assDirectPlay = true,
@@ -208,13 +207,15 @@ class DeviceProfileBuilder {
       requestedProfile: audioCapabilityProfile,
       webCapabilities: webCapabilities,
     );
-    final forceStereo = _isForceStereo(
-      audioOutputMode: audioOutputMode,
-      legacyDownMixAudio: downMixAudio,
-    );
+    final effectiveMaxChannels = maxAudioChannels <= 0
+        ? (capabilityProfile.maxPcmChannels > 0
+            ? capabilityProfile.maxPcmChannels
+            : 8)
+        : maxAudioChannels;
+    final forceStereo = effectiveMaxChannels <= 2 ||
+        audioOutputMode == AudioOutputMode.forceStereo;
     final effectiveAudioFallbackCodec = _resolveAudioFallbackCodec(
       requested: audioFallbackCodec,
-      legacyStereoAacFallback: audioFallbackToStereoAac,
       capabilityProfile: capabilityProfile,
       forceStereo: forceStereo,
     );
@@ -309,9 +310,10 @@ class DeviceProfileBuilder {
               'Container': 'mp4',
               'Protocol': 'hls',
               'VideoCodec': hlsVideoCodecs,
-              'AudioCodec': _hlsFmp4AudioCodecs
-                  .where(effectiveAllowedAudioCodecs.contains)
-                  .join(','),
+              'AudioCodec': _fmp4AudioCodecsForFallback(
+                effectiveAudioFallbackCodec: effectiveAudioFallbackCodec,
+                allowedAudioCodecs: effectiveAllowedAudioCodecs,
+              ).join(','),
               'CopyTimestamps': false,
               'EnableSubtitlesInManifest': true,
             },
@@ -330,9 +332,8 @@ class DeviceProfileBuilder {
           );
 
     final codecProfiles = _codecProfiles(
-      downMixAudio: forceStereo,
-      audioFallbackToStereoAac:
-          effectiveAudioFallbackCodec == AudioFallbackCodec.aacStereo,
+      maxAudioChannels: effectiveMaxChannels,
+      forceStereo: forceStereo,
       maxResolution: maxResolution,
       supportsAvc: effectiveSupportsAvc,
       supportsAvcHigh10: effectiveSupportsAvcHigh10,
@@ -733,20 +734,6 @@ class DeviceProfileBuilder {
     return profiles;
   }
 
-  static bool _isForceStereo({
-    required AudioOutputMode audioOutputMode,
-    required bool legacyDownMixAudio,
-  }) {
-    switch (audioOutputMode) {
-      case AudioOutputMode.forceStereo:
-        return true;
-      case AudioOutputMode.avrPassthrough:
-        return false;
-      case AudioOutputMode.auto:
-        return legacyDownMixAudio;
-    }
-  }
-
   static AudioCapabilityProfile _resolveEffectiveAudioCapabilityProfile({
     required AudioCapabilityProfile? requestedProfile,
     required WebPlaybackCapabilities? webCapabilities,
@@ -778,19 +765,17 @@ class DeviceProfileBuilder {
 
   static AudioFallbackCodec _resolveAudioFallbackCodec({
     required AudioFallbackCodec requested,
-    required bool legacyStereoAacFallback,
     required AudioCapabilityProfile capabilityProfile,
     required bool forceStereo,
   }) {
     if (forceStereo) {
-      return AudioFallbackCodec.aacStereo;
+      return AudioFallbackCodec.aac;
     }
     if (requested != AudioFallbackCodec.auto) {
       return requested;
     }
-    if (legacyStereoAacFallback ||
-        !capabilityProfile.hasMultichannelCapability) {
-      return AudioFallbackCodec.aacStereo;
+    if (!capabilityProfile.hasMultichannelCapability) {
+      return AudioFallbackCodec.aac;
     }
     return AudioFallbackCodec.auto;
   }
@@ -801,19 +786,47 @@ class DeviceProfileBuilder {
   }) {
     final preferredTargets = switch (effectiveAudioFallbackCodec) {
       AudioFallbackCodec.auto => _hlsMpegTsAudioCodecs,
-      AudioFallbackCodec.aacStereo => const <String>['aac', 'mp3'],
-      AudioFallbackCodec.ac3_5_1 => const <String>['ac3', 'aac', 'mp3'],
-      AudioFallbackCodec.eac3_5_1 => const <String>[
-        'eac3',
-        'ac3',
-        'aac',
-        'mp3',
-      ],
+      AudioFallbackCodec.aac => const <String>['aac', 'opus', 'mp3'],
+      AudioFallbackCodec.ac3 => const <String>['ac3', 'opus', 'aac', 'mp3'],
+      AudioFallbackCodec.eac3 => const <String>['eac3', 'ac3', 'opus', 'aac', 'mp3'],
+      AudioFallbackCodec.truehd => const <String>['truehd', 'flac', 'eac3', 'ac3', 'opus', 'aac', 'mp3'],
+      AudioFallbackCodec.mp3 => const <String>['mp3', 'opus', 'aac'],
+      AudioFallbackCodec.opus => const <String>['opus', 'aac', 'mp3'],
+      AudioFallbackCodec.flac => const <String>['flac', 'opus', 'aac', 'mp3'],
     };
 
     return preferredTargets
         .where(allowedAudioCodecs.contains)
+        .where(_hlsMpegTsAudioCodecs.contains)
         .toList(growable: false);
+  }
+
+  static List<String> _fmp4AudioCodecsForFallback({
+    required AudioFallbackCodec effectiveAudioFallbackCodec,
+    required List<String> allowedAudioCodecs,
+  }) {
+    final primaryTarget = switch (effectiveAudioFallbackCodec) {
+      AudioFallbackCodec.auto => null,
+      AudioFallbackCodec.aac => 'aac',
+      AudioFallbackCodec.ac3 => 'ac3',
+      AudioFallbackCodec.eac3 => 'eac3',
+      AudioFallbackCodec.truehd => 'truehd',
+      AudioFallbackCodec.mp3 => 'mp3',
+      AudioFallbackCodec.opus => 'opus',
+      AudioFallbackCodec.flac => 'flac',
+    };
+
+    final order = <String>[];
+    if (primaryTarget != null && _hlsFmp4AudioCodecs.contains(primaryTarget)) {
+      order.add(primaryTarget);
+    }
+    for (final c in _hlsFmp4AudioCodecs) {
+      if (!order.contains(c)) {
+        order.add(c);
+      }
+    }
+
+    return order.where(allowedAudioCodecs.contains).toList(growable: false);
   }
 
   static bool _isAudioCodecAllowed({
@@ -922,8 +935,8 @@ class DeviceProfileBuilder {
   }
 
   static List<Map<String, dynamic>> _codecProfiles({
-    required bool downMixAudio,
-    required bool audioFallbackToStereoAac,
+    required int maxAudioChannels,
+    required bool forceStereo,
     required MaxVideoResolution maxResolution,
     required bool supportsAvc,
     required bool supportsAvcHigh10,
@@ -1329,13 +1342,13 @@ class DeviceProfileBuilder {
           _condition(
             condition: 'LessThanEqual',
             property: 'AudioChannels',
-            value: downMixAudio ? '2' : '8',
+            value: '$maxAudioChannels',
           ),
         ],
       ),
     );
 
-    if (audioFallbackToStereoAac && !downMixAudio) {
+    if (forceStereo) {
       profiles.add(
         _codecProfile(
           type: 'VideoAudio',

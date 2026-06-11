@@ -2234,19 +2234,76 @@ class AppLocalizationsPt extends AppLocalizations {
   String get settingsAudioOutputMode => 'Modo de saída de áudio';
 
   @override
+  String get settingsAudioOutputModeDescription =>
+      'Choose how audio is decoded. AVR Passthrough sends raw Dolby/DTS streams to your receiver; Auto or Downmix decodes locally.';
+
+  @override
   String get settingsAudioOutputModeAvrPassthrough => 'Passagem AVR';
 
   @override
   String get settingsAudioFallbackCodec => 'Codec substituto de áudio';
 
   @override
-  String get settingsAudioFallbackAacStereo => 'Estéreo AAC';
+  String get settingsAudioFallbackCodecDescription =>
+      'Select the target format to transcode multi-channel audio when the source stream cannot be direct-played or passed through.';
 
   @override
-  String get settingsAudioFallbackAc35_1 => 'AC3 5.1';
+  String get settingsAudioFallbackCodecAuto => 'Auto Detect\n(Recommended)';
 
   @override
-  String get settingsAudioFallbackEac35_1 => 'EAC3 5.1';
+  String get settingsAudioFallbackCodecAac => 'AAC\n(Default)';
+
+  @override
+  String get settingsAudioFallbackCodecAc3 => 'AC3\n(Dolby Digital)';
+
+  @override
+  String get settingsAudioFallbackCodecEac3 => 'EAC3\n(Dolby Digital Plus)';
+
+  @override
+  String get settingsAudioFallbackCodecTrueHd => 'TrueHD\n(Lossless)';
+
+  @override
+  String get settingsAudioFallbackCodecMp3 => 'MP3\n(Stereo Only)';
+
+  @override
+  String get settingsAudioFallbackCodecOpus => 'Opus\n(Efficient)';
+
+  @override
+  String get settingsAudioFallbackCodecFlac => 'FLAC\n(Lossless)';
+
+  @override
+  String get settingsMaxAudioChannels => 'Max Audio Channels';
+
+  @override
+  String get settingsMaxAudioChannelsDescription =>
+      'Configure the maximum channels of your audio setup. Multichannel streams exceeding this limit will downmix or transcode.';
+
+  @override
+  String get settingsMaxAudioChannelsAuto => 'Auto Detect\n(Hardware Default)';
+
+  @override
+  String get settingsMaxAudioChannelsMono => '1.0 Mono';
+
+  @override
+  String get settingsMaxAudioChannelsStereo => '2.0 Stereo';
+
+  @override
+  String get settingsMaxAudioChannels3_0 => '3.0 / 2.1 Surround';
+
+  @override
+  String get settingsMaxAudioChannels4_0 => '4.0 / 3.1 Quadraphonic';
+
+  @override
+  String get settingsMaxAudioChannels5_0 => '5.0 / 4.1 Surround';
+
+  @override
+  String get settingsMaxAudioChannels5_1 => '5.1 Surround';
+
+  @override
+  String get settingsMaxAudioChannels6_1 => '6.1 Surround';
+
+  @override
+  String get settingsMaxAudioChannels7_1 => '7.1 Surround';
 
   @override
   String get settingsAudioPassthroughAdvanced => 'Passagem (avançado)';
@@ -10301,15 +10358,6 @@ class AppLocalizationsPtBr extends AppLocalizationsPt {
   String get settingsAudioFallbackCodec => 'Audio Fallback Codec';
 
   @override
-  String get settingsAudioFallbackAacStereo => 'AAC Stereo';
-
-  @override
-  String get settingsAudioFallbackAc35_1 => 'AC3 5.1';
-
-  @override
-  String get settingsAudioFallbackEac35_1 => 'EAC3 5.1';
-
-  @override
   String get settingsAudioPassthroughAdvanced => 'Passthrough (Advanced)';
 
   @override
@@ -18314,15 +18362,6 @@ class AppLocalizationsPtPt extends AppLocalizationsPt {
 
   @override
   String get settingsAudioFallbackCodec => 'Codec substituto de áudio';
-
-  @override
-  String get settingsAudioFallbackAacStereo => 'Estéreo AAC';
-
-  @override
-  String get settingsAudioFallbackAc35_1 => 'AC3 5.1';
-
-  @override
-  String get settingsAudioFallbackEac35_1 => 'EAC3 5.1';
 
   @override
   String get settingsAudioPassthroughAdvanced => 'Passagem (avançado)';

@@ -6,9 +6,13 @@ enum AudioOutputMode {
 
 enum AudioFallbackCodec {
   auto,
-  aacStereo,
-  ac3_5_1,
-  eac3_5_1,
+  aac,
+  ac3,
+  eac3,
+  truehd,
+  mp3,
+  opus,
+  flac,
 }
 
 enum PlaybackEnginePreference {
