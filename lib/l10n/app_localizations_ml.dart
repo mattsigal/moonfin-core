@@ -7662,6 +7662,10 @@ class AppLocalizationsMl extends AppLocalizations {
   String get externalPlayerApp => 'ബാഹ്യ പ്ലെയർ ആപ്പ്';
 
   @override
+  String get externalPlayerAppDescription =>
+      'Set external player to enable long-press play option';
+
+  @override
   String get externalPlayerAskEachTimeSubtitle =>
       'പ്ലേബാക്ക് ആരംഭിക്കുമ്പോൾ ആപ്പ് ചൂസർ കാണിക്കുക.';
 

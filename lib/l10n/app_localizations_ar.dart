@@ -7523,6 +7523,10 @@ class AppLocalizationsAr extends AppLocalizations {
   String get externalPlayerApp => 'تطبيق مشغل خارجي';
 
   @override
+  String get externalPlayerAppDescription =>
+      'Set external player to enable long-press play option';
+
+  @override
   String get externalPlayerAskEachTimeSubtitle =>
       'إظهار منتقي التطبيقات عند بدء التشغيل.';
 

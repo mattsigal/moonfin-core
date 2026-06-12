@@ -7580,6 +7580,10 @@ class AppLocalizationsEt extends AppLocalizations {
   String get externalPlayerApp => 'Väline mängija rakendus';
 
   @override
+  String get externalPlayerAppDescription =>
+      'Set external player to enable long-press play option';
+
+  @override
   String get externalPlayerAskEachTimeSubtitle =>
       'Kuva rakenduse valija, kui taasesitus algab.';
 

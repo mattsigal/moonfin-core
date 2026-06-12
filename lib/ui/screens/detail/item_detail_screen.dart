@@ -5371,7 +5371,11 @@ class _ActionButtonsState extends State<_ActionButtons> {
   }) async {
     final resume = !forceStartOver && (item.playbackPosition?.inMilliseconds ?? 0) > 0;
     final options = [
-      if (PlatformDetection.isAndroid)
+      if (PlatformDetection.isAndroid &&
+          GetIt.instance<UserPreferences>()
+              .get(UserPreferences.externalPlayerComponentName)
+              .trim()
+              .isNotEmpty)
         _AdvancedPlaybackOption(
           label: 'Open in External Player',
           icon: Icons.open_in_new,
@@ -5477,13 +5481,15 @@ class _ActionButtonsState extends State<_ActionButtons> {
       manager.setBitrateOverride(forceMaxBitrateMbps);
       if (openInExternalPlayer) {
         manager.forceExternalPlayerOnce();
-        manager.forceExternalChooserOnce();
       }
       await _playInternal(
         context,
         item,
         resume: resume,
         forceTranscode: forceTranscode,
+        useExternalPlayer: openInExternalPlayer ||
+            GetIt.instance<UserPreferences>()
+                .get(UserPreferences.useExternalPlayer),
       );
     } finally {
       _playLaunchInFlight = false;
@@ -5747,6 +5753,7 @@ class _ActionButtonsState extends State<_ActionButtons> {
     AggregatedItem item, {
     bool resume = false,
     bool forceTranscode = false,
+    bool useExternalPlayer = false,
   }) async {
     final manager = GetIt.instance<PlaybackManager>();
     final mediaStreams = _mediaStreamsForCurrentSelection(item);
@@ -6054,7 +6061,9 @@ class _ActionButtonsState extends State<_ActionButtons> {
             final startPosition = resume
                 ? (item.playbackPosition ?? Duration.zero)
                 : Duration.zero;
-            final prerolls = await _moviePrerollsForStart(item, startPosition);
+            final prerolls = useExternalPlayer
+                ? const <AggregatedItem>[]
+                : await _moviePrerollsForStart(item, startPosition);
             if (!context.mounted) return;
             final applyMainItemStreamOverrides = prerolls.isEmpty;
             final selectedMediaSourceId = widget.selectedMediaSourceId;

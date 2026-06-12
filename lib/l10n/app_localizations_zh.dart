@@ -7305,6 +7305,10 @@ class AppLocalizationsZh extends AppLocalizations {
   String get externalPlayerApp => '外部播放器应用程序';
 
   @override
+  String get externalPlayerAppDescription =>
+      'Set external player to enable long-press play option';
+
+  @override
   String get externalPlayerAskEachTimeSubtitle => '播放开始时显示应用程序选择器。';
 
   @override

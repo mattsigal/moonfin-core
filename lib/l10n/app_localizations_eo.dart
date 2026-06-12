@@ -7556,6 +7556,10 @@ class AppLocalizationsEo extends AppLocalizations {
   String get externalPlayerApp => 'Ekstera ludanta aplikaĵo';
 
   @override
+  String get externalPlayerAppDescription =>
+      'Set external player to enable long-press play option';
+
+  @override
   String get externalPlayerAskEachTimeSubtitle =>
       'Montru aplikan elektilon kiam reproduktado komenciĝas.';
 

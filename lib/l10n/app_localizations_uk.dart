@@ -7614,6 +7614,10 @@ class AppLocalizationsUk extends AppLocalizations {
   String get externalPlayerApp => 'Додаток зовнішнього плеєра';
 
   @override
+  String get externalPlayerAppDescription =>
+      'Set external player to enable long-press play option';
+
+  @override
   String get externalPlayerAskEachTimeSubtitle =>
       'Показувати засіб вибору програм, коли починається відтворення.';
 

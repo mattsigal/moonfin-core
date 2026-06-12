@@ -2169,20 +2169,17 @@ class _ExternalPlayerAppPickerTile extends StatefulWidget {
 class _ExternalPlayerAppPickerTileState
     extends State<_ExternalPlayerAppPickerTile> {
   final _service = GetIt.instance<ExternalPlayerService>();
-  late final PreferenceBinding<bool> _enabledBinding;
   late final PreferenceBinding<String> _componentBinding;
   List<ExternalPlayerApp> _players = const [];
   bool _loading = false;
   bool _pickerOpen = false;
+  late final FocusNode _focusNode;
 
   @override
   void initState() {
     super.initState();
+    _focusNode = FocusNode();
     final store = GetIt.instance<PreferenceStore>();
-    _enabledBinding = PreferenceBinding(
-      store,
-      UserPreferences.useExternalPlayer,
-    );
     _componentBinding = PreferenceBinding(
       store,
       UserPreferences.externalPlayerComponentName,
@@ -2192,7 +2189,7 @@ class _ExternalPlayerAppPickerTileState
 
   @override
   void dispose() {
-    _enabledBinding.dispose();
+    _focusNode.dispose();
     _componentBinding.dispose();
     super.dispose();
   }
@@ -2269,7 +2266,6 @@ class _ExternalPlayerAppPickerTileState
                 },
               ),
             ),
-            if (_players.isNotEmpty) const Divider(height: 1),
             ..._players.asMap().entries.map((entry) {
               final index = entry.key;
               final player = entry.value;
@@ -2305,22 +2301,59 @@ class _ExternalPlayerAppPickerTileState
 
   @override
   Widget build(BuildContext context) {
-    return ValueListenableBuilder<bool>(
-      valueListenable: _enabledBinding,
-      builder: (context, enabled, _) {
-        return ValueListenableBuilder<String>(
-          valueListenable: _componentBinding,
-          builder: (context, component, _) {
-            final subtitle = _loading
-                ? AppLocalizations.of(context).loadingInstalledPlayers
-                : _selectedLabel(component);
-            return _TvSettingsListTile(
-              leading: const Icon(Icons.apps),
-              title: Text(AppLocalizations.of(context).externalPlayerApp),
-              subtitle: Text(subtitle),
-              onTap: enabled ? () => _showPicker(component) : null,
-            );
+    return ValueListenableBuilder<String>(
+      valueListenable: _componentBinding,
+      builder: (context, component, _) {
+        final label = _loading
+            ? AppLocalizations.of(context).loadingInstalledPlayers
+            : _selectedLabel(component);
+        return Focus(
+          canRequestFocus: false,
+          skipTraversal: true,
+          onKeyEvent: (_, event) {
+            if (!event.logicalKey.isSelectKey) return KeyEventResult.ignored;
+            if (event is KeyDownEvent) {
+              _showPicker(component);
+            }
+            return KeyEventResult.handled;
           },
+          child: TvFocusHighlight(
+            builder: (context, focused) => ListTile(
+              focusNode: _focusNode,
+              focusColor: Colors.transparent,
+              hoverColor: Colors.transparent,
+              leading: buildSettingsLeadingIconShell(
+                context,
+                icon: const Icon(Icons.apps),
+                focused: focused,
+                iconColor: focused
+                    ? AppColors.black.withValues(alpha: 0.54)
+                    : AppColorScheme.onSurface.withValues(alpha: 0.78),
+              ),
+              title: DefaultTextStyle.merge(
+                style: TextStyle(
+                  fontSize: 14,
+                  fontWeight: FontWeight.w600,
+                  color: focused
+                      ? AppColors.black.withValues(alpha: 0.87)
+                      : AppColorScheme.onSurface,
+                ),
+                child: Text(AppLocalizations.of(context).externalPlayerApp),
+              ),
+              subtitle: DefaultTextStyle.merge(
+                style: TextStyle(
+                  fontSize: 12,
+                  color: focused
+                      ? AppColors.black.withValues(alpha: 0.54)
+                      : AppColorScheme.onSurface.withValues(alpha: 0.7),
+                ),
+                child: Text(AppLocalizations.of(context).externalPlayerAppDescription),
+              ),
+              isThreeLine: true,
+              trailing: buildSettingsSelectionBubble(context, label, focused),
+              onTap: () => _showPicker(component),
+            ),
+          ),
         );
       },
     );

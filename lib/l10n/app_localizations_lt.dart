@@ -7596,6 +7596,10 @@ class AppLocalizationsLt extends AppLocalizations {
   String get externalPlayerApp => 'Išorinio grotuvo programa';
 
   @override
+  String get externalPlayerAppDescription =>
+      'Set external player to enable long-press play option';
+
+  @override
   String get externalPlayerAskEachTimeSubtitle =>
       'Rodyti programos parinkiklį, kai prasideda atkūrimas.';
 

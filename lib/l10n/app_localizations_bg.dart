@@ -7639,6 +7639,10 @@ class AppLocalizationsBg extends AppLocalizations {
   String get externalPlayerApp => 'Приложение за външен плейър';
 
   @override
+  String get externalPlayerAppDescription =>
+      'Set external player to enable long-press play option';
+
+  @override
   String get externalPlayerAskEachTimeSubtitle =>
       'Показване на инструмента за избор на приложение, когато възпроизвеждането започне.';
 

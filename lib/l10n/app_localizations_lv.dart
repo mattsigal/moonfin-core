@@ -7604,6 +7604,10 @@ class AppLocalizationsLv extends AppLocalizations {
   String get externalPlayerApp => 'Ārējā atskaņotāja lietotne';
 
   @override
+  String get externalPlayerAppDescription =>
+      'Set external player to enable long-press play option';
+
+  @override
   String get externalPlayerAskEachTimeSubtitle =>
       'Rādīt lietotņu atlasītāju, kad sākas atskaņošana.';
 

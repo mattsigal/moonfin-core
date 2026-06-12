@@ -7515,6 +7515,10 @@ class AppLocalizationsTh extends AppLocalizations {
   String get externalPlayerApp => 'แอพเครื่องเล่นภายนอก';
 
   @override
+  String get externalPlayerAppDescription =>
+      'Set external player to enable long-press play option';
+
+  @override
   String get externalPlayerAskEachTimeSubtitle =>
       'แสดงตัวเลือกแอปเมื่อเริ่มเล่น';
 

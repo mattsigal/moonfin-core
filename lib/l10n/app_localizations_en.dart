@@ -7510,6 +7510,10 @@ class AppLocalizationsEn extends AppLocalizations {
   String get externalPlayerApp => 'External player app';
 
   @override
+  String get externalPlayerAppDescription =>
+      'Set external player to enable long-press play option';
+
+  @override
   String get externalPlayerAskEachTimeSubtitle =>
       'Show app chooser when playback starts.';
 
@@ -7570,7 +7574,7 @@ class AppLocalizationsEn extends AppLocalizations {
       'Use FFmpeg (audio) and libgav1 (AV1) before hardware decoders. Disable if HDMI audio passthrough breaks.';
 
   @override
-  String get useExternalPlayer => 'Use external player';
+  String get useExternalPlayer => 'Always use external player';
 
   @override
   String get useExternalPlayerSubtitle =>
