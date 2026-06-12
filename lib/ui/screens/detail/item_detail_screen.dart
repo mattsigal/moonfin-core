@@ -5488,8 +5488,10 @@ class _ActionButtonsState extends State<_ActionButtons> {
         resume: resume,
         forceTranscode: forceTranscode,
         useExternalPlayer: openInExternalPlayer ||
-            GetIt.instance<UserPreferences>()
-                .get(UserPreferences.useExternalPlayer),
+            (PlatformDetection.isAndroid &&
+                PlatformDetection.isTV &&
+                GetIt.instance<UserPreferences>()
+                    .get(UserPreferences.useExternalPlayer)),
       );
     } finally {
       _playLaunchInFlight = false;
