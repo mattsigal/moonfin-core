@@ -186,6 +186,7 @@ final class AppleTvVideoChannel: NSObject, FlutterStreamHandler {
     private func dismiss() {
         stopStateTimer()
         player?.stop()
+        DisplayCriteriaManager.shared.reset()
         let vc = playerVC
         playerVC = nil
         player = nil
@@ -222,6 +223,15 @@ final class AppleTvVideoChannel: NSObject, FlutterStreamHandler {
                 || (atmosPassthrough && isAtmosFamily && audioChannels != 2))
         player.configurePreferredBackendForNextPlayback(
             preferNative ? .native : .mpv, fallbackReason: nil)
+
+        if !preferNative && !audioOnly {
+            DisplayCriteriaManager.shared.applyForStream(
+                codec: args["videoCodec"] as? String,
+                width: (args["videoWidth"] as? NSNumber)?.intValue ?? 0,
+                height: (args["videoHeight"] as? NSNumber)?.intValue ?? 0,
+                frameRate: (args["videoFrameRate"] as? NSNumber)?.doubleValue ?? 0,
+                rangeType: args["videoRangeType"] as? String)
+        }
 
         Task {
             await player.play(

@@ -244,6 +244,12 @@ class PlaybackManager implements AudioOwnable {
       },
       if (videoStream != null && videoStream['DvProfile'] is int)
         'videoDvProfile': videoStream['DvProfile'],
+      if (videoStream != null && videoStream['RealFrameRate'] is num)
+        'videoFrameRate': (videoStream['RealFrameRate'] as num).toDouble(),
+      if (videoStream != null && videoStream['Width'] is int)
+        'videoWidth': videoStream['Width'],
+      if (videoStream != null && videoStream['Height'] is int)
+        'videoHeight': videoStream['Height'],
       if (headers.isNotEmpty) 'headers': headers,
       'mediaType':
           (resolvedMediaType == 'audio' || resolvedMediaType == 'video')
