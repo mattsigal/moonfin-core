@@ -97,6 +97,11 @@ class AudioCapabilityProfile {
         activeRouteType == AudioRouteType.earc;
   }
 
+  bool get isAvReceiverRoute =>
+      activeRouteType == AudioRouteType.hdmi ||
+      activeRouteType == AudioRouteType.arc ||
+      activeRouteType == AudioRouteType.earc;
+
   factory AudioCapabilityProfile.fromMap(Map<String, dynamic>? values) {
     if (values == null || values.isEmpty) {
       return const AudioCapabilityProfile.optimistic();

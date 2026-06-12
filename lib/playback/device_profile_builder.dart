@@ -226,6 +226,7 @@ class DeviceProfileBuilder {
               .where(
                 (codec) => _isAudioCodecAllowed(
                   codec: codec,
+                  audioOutputMode: audioOutputMode,
                   capabilityProfile: capabilityProfile,
                   ac3PassthroughEnabled: ac3PassthroughEnabled,
                   eac3PassthroughEnabled: eac3PassthroughEnabled,
@@ -831,6 +832,7 @@ class DeviceProfileBuilder {
 
   static bool _isAudioCodecAllowed({
     required String codec,
+    required AudioOutputMode audioOutputMode,
     required AudioCapabilityProfile capabilityProfile,
     required bool ac3PassthroughEnabled,
     required bool eac3PassthroughEnabled,
@@ -841,6 +843,22 @@ class DeviceProfileBuilder {
     required bool trueHdPassthroughEnabled,
     required bool trueHdAtmosPassthroughEnabled,
   }) {
+    if (audioOutputMode == AudioOutputMode.avrPassthrough &&
+        capabilityProfile.isAvReceiverRoute &&
+        _isPassthroughControlledAudioCodec(codec)) {
+      return _isAudioCodecPassthroughEnabled(
+        codec: codec,
+        ac3PassthroughEnabled: ac3PassthroughEnabled,
+        eac3PassthroughEnabled: eac3PassthroughEnabled,
+        eac3JocPassthroughEnabled: eac3JocPassthroughEnabled,
+        dtsCorePassthroughEnabled: dtsCorePassthroughEnabled,
+        dtsHdPassthroughEnabled: dtsHdPassthroughEnabled,
+        dtsXPassthroughEnabled: dtsXPassthroughEnabled,
+        trueHdPassthroughEnabled: trueHdPassthroughEnabled,
+        trueHdAtmosPassthroughEnabled: trueHdAtmosPassthroughEnabled,
+      );
+    }
+
     return _isAudioCodecDecodeSupported(codec, capabilityProfile) ||
         _isAudioCodecPassthroughEnabled(
           codec: codec,
@@ -853,6 +871,22 @@ class DeviceProfileBuilder {
           trueHdPassthroughEnabled: trueHdPassthroughEnabled,
           trueHdAtmosPassthroughEnabled: trueHdAtmosPassthroughEnabled,
         );
+  }
+
+  static bool _isPassthroughControlledAudioCodec(String codec) {
+    switch (codec) {
+      case 'ac3':
+      case 'eac3':
+      case 'dts':
+      case 'dca':
+      case 'dtsx':
+      case 'dtsuhd':
+      case 'truehd':
+      case 'mlp':
+        return true;
+      default:
+        return false;
+    }
   }
 
   static bool _isAudioCodecDecodeSupported(

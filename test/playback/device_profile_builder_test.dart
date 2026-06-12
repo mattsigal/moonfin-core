@@ -275,6 +275,61 @@ void main() {
       },
     );
 
+    test(
+      'in AVR passthrough mode on an AV receiver route, a disabled passthrough '
+      'toggle removes the codec even when local decode is available (the '
+      'receiver, not a local PCM downmix, should handle it)',
+      () {
+        for (final route in const <AudioRouteType>[
+          AudioRouteType.hdmi,
+          AudioRouteType.arc,
+          AudioRouteType.earc,
+        ]) {
+          final profile = DeviceProfileBuilder.build(
+            audioOutputMode: AudioOutputMode.avrPassthrough,
+            audioCapabilityProfile: _capabilityProfile(
+              canDecodeDts: true,
+              canDecodeDtsHd: true,
+              canPassthroughDts: false,
+              canPassthroughDtsHd: false,
+              activeRouteType: route,
+            ),
+            dtsCorePassthroughEnabled: false,
+            dtsHdPassthroughEnabled: false,
+            dtsXPassthroughEnabled: false,
+          );
+
+          final codecs = _videoDirectPlayAudioCodecs(profile);
+          expect(codecs, isNot(contains('dts')), reason: 'route: ${route.name}');
+          expect(codecs, isNot(contains('dca')), reason: 'route: ${route.name}');
+        }
+      },
+    );
+
+    test(
+      'in AVR passthrough mode on an AV receiver route, an enabled-and-supported '
+      'passthrough toggle keeps the codec direct-playable',
+      () {
+        final profile = DeviceProfileBuilder.build(
+          audioOutputMode: AudioOutputMode.avrPassthrough,
+          audioCapabilityProfile: _capabilityProfile(
+            canDecodeDts: true,
+            canDecodeDtsHd: true,
+            canPassthroughDts: true,
+            canPassthroughDtsHd: true,
+            activeRouteType: AudioRouteType.earc,
+          ),
+          dtsCorePassthroughEnabled: true,
+          dtsHdPassthroughEnabled: true,
+          dtsXPassthroughEnabled: false,
+        );
+
+        final codecs = _videoDirectPlayAudioCodecs(profile);
+        expect(codecs, contains('dts'));
+        expect(codecs, contains('dca'));
+      },
+    );
+
     test('keeps codec when decode is unavailable but passthrough is enabled and supported', () {
       final profile = DeviceProfileBuilder.build(
         audioCapabilityProfile: _capabilityProfile(
