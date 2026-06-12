@@ -182,19 +182,19 @@ class _HomeRowTogglesScreenState extends State<HomeRowTogglesScreen> {
                       child: Container(
                         decoration: BoxDecoration(
                           color: _buttonFocused
-                              ? AppColorScheme.accent.withValues(alpha: 0.18)
+                              ? AppColorScheme.onSurface.withValues(alpha: 0.18)
                               : theme.colorScheme.primary.withValues(alpha: 0.15),
                           shape: BoxShape.circle,
                           border: Border.all(
                             color: _buttonFocused
-                                ? AppColorScheme.accent
+                                ? AppColorScheme.onSurface
                                 : theme.colorScheme.primary.withValues(alpha: 0.35),
                             width: 1.5,
                           ),
                           boxShadow: _buttonFocused
                               ? [
                                   BoxShadow(
-                                    color: AppColorScheme.accent.withValues(alpha: 0.22),
+                                    color: AppColorScheme.onSurface.withValues(alpha: 0.22),
                                     blurRadius: 14,
                                     spreadRadius: 0.5,
                                   ),
