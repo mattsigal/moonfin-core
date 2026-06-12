@@ -1311,10 +1311,12 @@ class _MetadataRatingsScreenState extends State<_MetadataRatingsScreen> {
     debugLabel: 'MetadataRatingsSettingsScope',
     traversalEdgeBehavior: TraversalEdgeBehavior.closedLoop,
   );
+  final _additionalRatingsFocusNode = FocusNode(debugLabel: 'additional_ratings');
 
   @override
   void dispose() {
     _metadataScope.dispose();
+    _additionalRatingsFocusNode.dispose();
     super.dispose();
   }
 
@@ -1325,18 +1327,21 @@ class _MetadataRatingsScreenState extends State<_MetadataRatingsScreen> {
       Builder(
         builder: (context) {
           final l10n = AppLocalizations.of(context);
-          return Scaffold(
-            appBar: buildSettingsAppBar(
-              context,
-              Text(l10n.settingsMetadataAndRatings),
-            ),
-            body: FocusScope(
-              node: _metadataScope,
-              autofocus: true,
-              child: ListView(
-                children: [
-                  SwitchPreferenceTile(
-                    preference: UserPreferences.enableAdditionalRatings,
+          return RequestInitialFocus(
+            targetNode: PlatformDetection.isTV ? _additionalRatingsFocusNode : null,
+            child: Scaffold(
+              appBar: buildSettingsAppBar(
+                context,
+                Text(l10n.settingsMetadataAndRatings),
+              ),
+              body: FocusScope(
+                node: _metadataScope,
+                autofocus: true,
+                child: ListView(
+                  children: [
+                    SwitchPreferenceTile(
+                      focusNode: _additionalRatingsFocusNode,
+                      preference: UserPreferences.enableAdditionalRatings,
                     title: l10n.additionalRatings,
                     subtitle: l10n.showMdbListAndTmdbRatings,
                     icon: Icons.star,
@@ -1373,11 +1378,12 @@ class _MetadataRatingsScreenState extends State<_MetadataRatingsScreen> {
                 ],
               ),
             ),
-          );
-        },
-      ),
-    );
-  }
+          ),
+        );
+      },
+    ),
+  );
+}
 }
 
 class _OfflineDownloadsScreen extends StatefulWidget {
