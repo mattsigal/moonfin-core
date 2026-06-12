@@ -53,11 +53,11 @@ class EmbyMediaStreamResolver implements MediaStreamResolver {
     final source = _selectBestSource(info.mediaSources, preferredId: mediaSourceId);
     var (url, playMethod) = _resolveStreamUrl(itemId, source);
 
-    if (playMethod == StreamPlayMethod.transcode) {
+    if (playMethod == StreamPlayMethod.transcode || playMethod == StreamPlayMethod.directStream) {
       url = MediaStreamResolver.applyStreamIndices(url, audioStreamIndex, subtitleStreamIndex);
       url = url
-          .replaceFirst(RegExp(r'\?StartTimeTicks=\d+&'), '?')
-          .replaceFirst(RegExp(r'[&?]StartTimeTicks=\d+'), '');
+          .replaceFirst(RegExp(r'\?StartTimeTicks=\d+&', caseSensitive: false), '?')
+          .replaceFirst(RegExp(r'[&?]StartTimeTicks=\d+', caseSensitive: false), '');
     }
 
     url = _appendAuth(url);

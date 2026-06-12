@@ -41,12 +41,22 @@ class JellyfinPlaybackApi implements PlaybackApi {
       'UserId': ?userId,
       ...?requestBody,
     };
+
+    final audioStreamIndex = requestBody?['AudioStreamIndex'] ?? requestBody?['audioStreamIndex'];
+    final subtitleStreamIndex = requestBody?['SubtitleStreamIndex'] ?? requestBody?['subtitleStreamIndex'];
+    final mediaSourceId = requestBody?['MediaSourceId'] ?? requestBody?['mediaSourceId'];
+    final maxStreamingBitrate = requestBody?['MaxStreamingBitrate'] ?? requestBody?['maxStreamingBitrate'];
+
     final response = await _dio.post(
       '/Items/$itemId/PlaybackInfo',
       data: body,
       queryParameters: {
         'userId': ?userId,
         'startTimeTicks': ?startTimeTicks,
+        'audioStreamIndex': ?audioStreamIndex?.toString(),
+        'subtitleStreamIndex': ?subtitleStreamIndex?.toString(),
+        'mediaSourceId': ?mediaSourceId,
+        'maxStreamingBitrate': ?maxStreamingBitrate?.toString(),
       },
     );
     return response.data as Map<String, dynamic>;

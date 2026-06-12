@@ -479,6 +479,13 @@ class Media3VideoView(
     private var selectedSubtitleIsBitmap = false
     private var selectedExternalSubtitleUrl: String? = null
     private var subtitleTrackEnabled = false
+
+    private var pendingSubtitleIndex: Int? = null
+    private var pendingSubtitleCodec: String? = null
+    private var pendingSubtitleIsExternal: Boolean? = null
+    private var pendingSubtitleIsBitmap: Boolean? = null
+    private var pendingExternalSubtitleUrl: String? = null
+    private var pendingAudioIndex: Int? = null
     private var zoomMode = ZoomMode.FIT
     private var videoWidthPx = 0
     private var videoHeightPx = 0
@@ -665,6 +672,28 @@ class Media3VideoView(
         }
 
         override fun onTracksChanged(tracks: androidx.media3.common.Tracks) {
+            pendingSubtitleIndex?.let { index ->
+                if (selectTrack(C.TRACK_TYPE_TEXT, index)) {
+                    selectedSubtitleCodec = pendingSubtitleCodec?.trim()?.lowercase()
+                    selectedSubtitleIsExternal = pendingSubtitleIsExternal ?: false
+                    selectedSubtitleIsBitmap = pendingSubtitleIsBitmap ?: false
+                    selectedExternalSubtitleUrl = pendingExternalSubtitleUrl?.takeIf { it.isNotBlank() }
+                    subtitleTrackEnabled = true
+                    applyTrackSelectorForCurrentSource()
+                    refreshSubtitleRendererMode()
+
+                    pendingSubtitleIndex = null
+                    pendingSubtitleCodec = null
+                    pendingSubtitleIsExternal = null
+                    pendingSubtitleIsBitmap = null
+                    pendingExternalSubtitleUrl = null
+                }
+            }
+            pendingAudioIndex?.let { index ->
+                if (selectTrack(C.TRACK_TYPE_AUDIO, index)) {
+                    pendingAudioIndex = null
+                }
+            }
             emitTracksChanged()
             emitState()
         }
@@ -1028,7 +1057,11 @@ class Media3VideoView(
 
                 "setAudioTrack" -> {
                     val index = ((call.arguments as? Map<*, *>)?.get("index") as? Number)?.toInt() ?: 0
-                    selectTrack(C.TRACK_TYPE_AUDIO, index)
+                    pendingAudioIndex = index
+                    val selected = selectTrack(C.TRACK_TYPE_AUDIO, index)
+                    if (selected) {
+                        pendingAudioIndex = null
+                    }
                     result.success(null)
                 }
 
@@ -1039,6 +1072,13 @@ class Media3VideoView(
                     val isExternal = args?.get("isExternalSubtitle") as? Boolean ?: false
                     val isBitmap = args?.get("isBitmapSubtitle") as? Boolean ?: false
                     val externalUrl = args?.get("externalSubtitleUrl")?.toString()
+
+                    pendingSubtitleIndex = index
+                    pendingSubtitleCodec = codec
+                    pendingSubtitleIsExternal = isExternal
+                    pendingSubtitleIsBitmap = isBitmap
+                    pendingExternalSubtitleUrl = externalUrl
+
                     val selected = selectTrack(C.TRACK_TYPE_TEXT, index)
                     if (selected) {
                         selectedSubtitleCodec = codec?.trim()?.lowercase()
@@ -1048,6 +1088,12 @@ class Media3VideoView(
                         subtitleTrackEnabled = true
                         applyTrackSelectorForCurrentSource()
                         refreshSubtitleRendererMode()
+
+                        pendingSubtitleIndex = null
+                        pendingSubtitleCodec = null
+                        pendingSubtitleIsExternal = null
+                        pendingSubtitleIsBitmap = null
+                        pendingExternalSubtitleUrl = null
                     }
                     result.success(null)
                 }
@@ -1063,6 +1109,13 @@ class Media3VideoView(
                     selectedSubtitleIsBitmap = false
                     selectedExternalSubtitleUrl = null
                     subtitleTrackEnabled = false
+
+                    pendingSubtitleIndex = null
+                    pendingSubtitleCodec = null
+                    pendingSubtitleIsExternal = null
+                    pendingSubtitleIsBitmap = null
+                    pendingExternalSubtitleUrl = null
+
                     applyTrackSelectorForCurrentSource()
                     clearAssSubtitleScript()
                     refreshSubtitleRendererMode()
@@ -1303,6 +1356,12 @@ class Media3VideoView(
         selectedSubtitleIsBitmap = false
         selectedExternalSubtitleUrl = null
         subtitleTrackEnabled = false
+        pendingSubtitleIndex = null
+        pendingSubtitleCodec = null
+        pendingSubtitleIsExternal = null
+        pendingSubtitleIsBitmap = null
+        pendingExternalSubtitleUrl = null
+        pendingAudioIndex = null
         firstFrameRendered = false
         firstFrameCover.visibility = View.VISIBLE
         cancelPendingSubtitleCue(clearView = true)

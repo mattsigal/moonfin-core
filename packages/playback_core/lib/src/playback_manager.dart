@@ -539,10 +539,10 @@ class PlaybackManager implements AudioOwnable {
     _sessionEndedController.add(null);
   }
 
-  void _applyPendingItemOverridesIfNeeded(String itemId) {
+  bool _applyPendingItemOverridesIfNeeded(String itemId) {
     final pendingItemId = _pendingItemOverrideId;
     if (pendingItemId == null || pendingItemId != itemId) {
-      return;
+      return false;
     }
 
     _audioStreamIndex = _pendingItemAudioStreamIndex;
@@ -550,6 +550,7 @@ class PlaybackManager implements AudioOwnable {
     _subtitleSelectionExplicit = false;
     _mediaSourceId = _pendingItemMediaSourceId;
     _clearPendingItemOverrides();
+    return true;
   }
 
   void _onBackendErrorEvent(Map<String, dynamic> event) {
@@ -845,8 +846,8 @@ class PlaybackManager implements AudioOwnable {
     _lastKnownPosition = Duration.zero;
     final sessionToken = ++_playbackSessionToken;
     final itemId = _traceItemId(item);
-    _applyPendingItemOverridesIfNeeded(itemId);
-    if (_lastItemId != null && _lastItemId != itemId) {
+    final appliedOverrides = _applyPendingItemOverridesIfNeeded(itemId);
+    if (!appliedOverrides && _lastItemId != null && _lastItemId != itemId) {
       _translateTrackSelectionsForNewItem(item);
     }
     _lastItemId = itemId;
@@ -895,6 +896,7 @@ class PlaybackManager implements AudioOwnable {
       enableDirectStream: enableDirectStream,
       enableTranscoding: enableTranscoding,
     );
+
     _setBringupState(
       PlaybackBringupState(
         phase: PlaybackBringupPhase.opening,
@@ -1153,7 +1155,8 @@ class PlaybackManager implements AudioOwnable {
       if (_subtitleStreamIndex == -1) {
         _waitAndDisableSubtitles(sessionToken);
       }
-    } else if (resolution.playMethod == StreamPlayMethod.transcode) {
+    } else if (resolution.playMethod == StreamPlayMethod.transcode ||
+        resolution.playMethod == StreamPlayMethod.directStream) {
       if (_subtitleStreamIndex != null && _subtitleStreamIndex != -1) {
         final isBurnedIn =
             (_isSubtitleBitmap(_subtitleStreamIndex!) &&
@@ -1576,7 +1579,8 @@ class PlaybackManager implements AudioOwnable {
       } else {
         _waitAndApplyTrackSelections(_playbackSessionToken);
       }
-    } else if (_currentResolution?.playMethod == StreamPlayMethod.transcode) {
+    } else if (_currentResolution?.playMethod == StreamPlayMethod.transcode ||
+        _currentResolution?.playMethod == StreamPlayMethod.directStream) {
       final previousWasBurned =
           (previousSubtitleStreamIndex != null &&
            previousSubtitleStreamIndex >= 0 &&

@@ -4348,8 +4348,12 @@ class _DolbyVisionPlayDecision {
 }
 
 class _ActionButtonsState extends State<_ActionButtons> {
-  int? _selectedAudioIndex;
-  int? _selectedSubtitleIndex;
+  int? get _selectedAudioIndex => viewModel.selectedAudioIndex;
+  set _selectedAudioIndex(int? value) => viewModel.selectedAudioIndex = value;
+
+  int? get _selectedSubtitleIndex => viewModel.selectedSubtitleIndex;
+  set _selectedSubtitleIndex(int? value) => viewModel.selectedSubtitleIndex = value;
+
   bool _expanded = false;
   bool _playLaunchInFlight = false;
   bool _autoPlayTriggered = false;
@@ -5199,7 +5203,11 @@ class _ActionButtonsState extends State<_ActionButtons> {
     final prefs = GetIt.instance<UserPreferences>();
     final preferred = prefs.get(UserPreferences.defaultAudioLanguage).trim();
     if (preferred.isEmpty) {
-      return null;
+      final defaultStream = audioStreams.firstWhere(
+        (s) => s['IsDefault'] == true,
+        orElse: () => <String, dynamic>{},
+      );
+      return defaultStream['Index'] as int?;
     }
 
     final preferredNormalized = normalizeLanguage(preferred);
@@ -5236,7 +5244,11 @@ class _ActionButtonsState extends State<_ActionButtons> {
 
     final preferred = prefs.get(UserPreferences.defaultSubtitleLanguage).trim();
     if (preferred.isEmpty) {
-      return null;
+      final defaultStream = subtitleStreams.firstWhere(
+        (s) => s['IsDefault'] == true,
+        orElse: () => <String, dynamic>{},
+      );
+      return defaultStream['Index'] as int?;
     }
 
     final preferredNormalized = normalizeLanguage(preferred);

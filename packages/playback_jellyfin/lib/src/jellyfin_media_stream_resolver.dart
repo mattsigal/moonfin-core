@@ -92,11 +92,11 @@ class JellyfinMediaStreamResolver implements MediaStreamResolver {
     final isAudio = isAudioByStreams || _isAudioMediaItem(mediaItem);
     var (url, playMethod) = _resolveStreamUrl(itemId, source, isAudio: isAudio);
 
-    if (playMethod == StreamPlayMethod.transcode) {
+    if (playMethod == StreamPlayMethod.transcode || playMethod == StreamPlayMethod.directStream) {
       url = MediaStreamResolver.applyStreamIndices(url, audioStreamIndex, subtitleStreamIndex);
       url = url
-          .replaceFirst(RegExp(r'\?StartTimeTicks=\d+&'), '?')
-          .replaceFirst(RegExp(r'[&?]StartTimeTicks=\d+'), '');
+          .replaceFirst(RegExp(r'\?StartTimeTicks=\d+&', caseSensitive: false), '?')
+          .replaceFirst(RegExp(r'[&?]StartTimeTicks=\d+', caseSensitive: false), '');
     }
 
     // Append auth token for mpv (which doesn't use our Dio interceptors).

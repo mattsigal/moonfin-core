@@ -7,29 +7,29 @@ abstract class MediaStreamResolver {
   }
 
   static String applyStreamIndices(String url, int? audioStreamIndex, int? subtitleStreamIndex) {
-    var result = url;
+    try {
+      final uri = Uri.parse(url);
+      final params = Map<String, String>.from(uri.queryParameters);
 
-    if (audioStreamIndex != null) {
-      final audioRegex = RegExp(r'AudioStreamIndex=\d+');
-      if (audioRegex.hasMatch(result)) {
-        result = result.replaceFirst(audioRegex, 'AudioStreamIndex=$audioStreamIndex');
-      } else {
-        result = '$result&AudioStreamIndex=$audioStreamIndex';
+      if (audioStreamIndex != null) {
+        params['AudioStreamIndex'] = '$audioStreamIndex';
+        params['audioStreamIndex'] = '$audioStreamIndex';
       }
-    }
 
-    if (subtitleStreamIndex != null && subtitleStreamIndex >= 0) {
-      final subRegex = RegExp(r'SubtitleStreamIndex=\d+');
-      if (subRegex.hasMatch(result)) {
-        result = result.replaceFirst(subRegex, 'SubtitleStreamIndex=$subtitleStreamIndex');
-      } else {
-        result = '$result&SubtitleStreamIndex=$subtitleStreamIndex';
+      if (subtitleStreamIndex != null) {
+        if (subtitleStreamIndex >= 0) {
+          params['SubtitleStreamIndex'] = '$subtitleStreamIndex';
+          params['subtitleStreamIndex'] = '$subtitleStreamIndex';
+        } else if (subtitleStreamIndex == -1) {
+          params.remove('SubtitleStreamIndex');
+          params.remove('subtitleStreamIndex');
+        }
       }
-    } else if (subtitleStreamIndex == -1) {
-      result = result.replaceAll(RegExp(r'[&?]SubtitleStreamIndex=\d+'), '');
-    }
 
-    return result;
+      return uri.replace(queryParameters: params).toString();
+    } catch (_) {
+      return url;
+    }
   }
 
   static List<ExternalSubtitle> extractExternalSubtitles(

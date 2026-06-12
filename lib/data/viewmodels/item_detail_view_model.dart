@@ -26,6 +26,25 @@ class ItemDetailViewModel extends ChangeNotifier {
   AggregatedItem? _item;
   AggregatedItem? get item => _item;
 
+  int? _selectedAudioIndex;
+  int? get selectedAudioIndex => _selectedAudioIndex;
+  set selectedAudioIndex(int? value) {
+    if (_selectedAudioIndex != value) {
+      _selectedAudioIndex = value;
+      notifyListeners();
+    }
+  }
+
+  int? _selectedSubtitleIndex;
+  int? get selectedSubtitleIndex => _selectedSubtitleIndex;
+  set selectedSubtitleIndex(int? value) {
+    if (_selectedSubtitleIndex != value) {
+      _selectedSubtitleIndex = value;
+      notifyListeners();
+    }
+  }
+
+
   List<AggregatedItem> _similar = const [];
   List<AggregatedItem> get similar => _similar;
 
