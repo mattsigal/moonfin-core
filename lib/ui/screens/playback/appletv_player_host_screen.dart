@@ -37,6 +37,9 @@ class _AppleTvPlayerHostScreenState extends State<AppleTvPlayerHostScreen> {
   String? _castResolving;
   final Map<String, List<Map<String, dynamic>>> _segmentCache = {};
   String? _segmentResolving;
+  int _consecutiveEpisodes = 0;
+  String? _stillWatchingLastItemId;
+  bool _pendingStillWatching = false;
 
   AppleTvMpvBackend? get _backend {
     try {
@@ -62,7 +65,7 @@ class _AppleTvPlayerHostScreenState extends State<AppleTvPlayerHostScreen> {
     final manager = _manager;
     if (manager != null) {
       _queueSub = manager.queueService.queueChangedStream.listen(
-        (_) => _pushMetadata(),
+        (_) => _onQueueChanged(),
       );
       _sessionEndedSub = manager.sessionEndedStream.listen(
         (_) => _handleExit(),
@@ -916,7 +919,9 @@ class _AppleTvPlayerHostScreenState extends State<AppleTvPlayerHostScreen> {
       mediaSegments: _mediaSegments(item),
       canFavorite: _canFavorite(item),
       isFavorite: _queueItemIsFavorite(item),
+      showStillWatching: _pendingStillWatching,
     );
+    _pendingStillWatching = false;
 
     _resolveCastAsync(item);
     _resolveSegmentsAsync(item);
@@ -953,6 +958,29 @@ class _AppleTvPlayerHostScreenState extends State<AppleTvPlayerHostScreen> {
     }
   }
 
+  void _onQueueChanged() {
+    final manager = _manager;
+    if (manager == null) return;
+    final id = _itemIdForQueueItem(manager.queueService.currentItem);
+    if (id != null &&
+        id.isNotEmpty &&
+        _stillWatchingLastItemId != null &&
+        id != _stillWatchingLastItemId) {
+      _consecutiveEpisodes++;
+      final behavior = GetIt.instance<UserPreferences>().get(
+        UserPreferences.stillWatchingBehavior,
+      );
+      if (behavior != StillWatchingBehavior.disabled &&
+          _consecutiveEpisodes >= behavior.episodes) {
+        _pendingStillWatching = true;
+      }
+    }
+    if (id != null && id.isNotEmpty) {
+      _stillWatchingLastItemId = id;
+    }
+    _pushMetadata();
+  }
+
   void _handleUiAction(Map<String, dynamic> action) {
     final manager = _manager;
     if (manager == null) return;
@@ -984,6 +1012,10 @@ class _AppleTvPlayerHostScreenState extends State<AppleTvPlayerHostScreen> {
         unawaited(manager.changeBitrate(mbps == null || mbps < 0 ? null : mbps));
       case 'toggleFavorite':
         _toggleFavorite(manager.queueService.currentItem);
+      case 'stillWatchingContinue':
+        _consecutiveEpisodes = 0;
+      case 'stillWatchingStop':
+        _handleExit();
     }
     Future<void>.delayed(const Duration(milliseconds: 300), _pushMetadata);
   }

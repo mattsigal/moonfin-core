@@ -12,6 +12,8 @@ final class AppleTvPlayerViewController: UIViewController {
     var onSetBitrate: ((Int) -> Void)?
     var onSelectChannel: ((String) -> Void)?
     var onToggleFavorite: (() -> Void)?
+    var onStillWatchingContinue: (() -> Void)?
+    var onStillWatchingStop: (() -> Void)?
     var baseSubtitlePos = 92
     private var didAttachSurface = false
     private var updateTimer: Timer?
@@ -29,6 +31,7 @@ final class AppleTvPlayerViewController: UIViewController {
     private var castPeople: [(name: String, subtitle: String, imageUrl: String)] = []
     private var canFavorite = false
     private var isFavorite = false
+    private var stillWatchingShown = false
     private var selectedBitrateMbps = -1
     private var logoUrlString = ""
     private var headerPrimary = ""
@@ -770,6 +773,9 @@ final class AppleTvPlayerViewController: UIViewController {
         hasCast = (args["hasCast"] as? Bool) ?? false
         canFavorite = (args["canFavorite"] as? Bool) ?? false
         isFavorite = (args["isFavorite"] as? Bool) ?? false
+        if (args["showStillWatching"] as? Bool) == true {
+            presentStillWatching()
+        }
 
         castPeople = ((args["castPeople"] as? [[String: Any]]) ?? []).compactMap { e in
             guard let name = e["name"] as? String, !name.isEmpty else { return nil }
@@ -1191,6 +1197,26 @@ final class AppleTvPlayerViewController: UIViewController {
         case .favorite:
             onToggleFavorite?()
         }
+    }
+
+    private func presentStillWatching() {
+        guard !stillWatchingShown, presentedViewController == nil else { return }
+        stillWatchingShown = true
+        player.pause()
+        let panel = StillWatchingViewController(
+            onContinue: { [weak self] in
+                guard let self else { return }
+                self.stillWatchingShown = false
+                self.player.resume()
+                self.onStillWatchingContinue?()
+            },
+            onExit: { [weak self] in
+                guard let self else { return }
+                self.stillWatchingShown = false
+                self.onStillWatchingStop?()
+            })
+        panel.modalPresentationStyle = .overFullScreen
+        present(panel, animated: true)
     }
 
     private func presentChannelList() {
@@ -2323,5 +2349,87 @@ private final class ChannelRowCell: UITableViewCell {
                 self.programLabel.textColor = UIColor(white: 1, alpha: 0.55)
             }
         }
+    }
+}
+
+private final class StillWatchingViewController: UIViewController {
+    private let onContinue: () -> Void
+    private let onExit: () -> Void
+
+    init(onContinue: @escaping () -> Void, onExit: @escaping () -> Void) {
+        self.onContinue = onContinue
+        self.onExit = onExit
+        super.init(nibName: nil, bundle: nil)
+    }
+
+    required init?(coder: NSCoder) {
+        fatalError("init(coder:) has not been implemented")
+    }
+
+    override func viewDidLoad() {
+        super.viewDidLoad()
+        view.backgroundColor = UIColor(white: 0, alpha: 0.7)
+
+        let panel = UIView()
+        panel.translatesAutoresizingMaskIntoConstraints = false
+        panel.backgroundColor = UIColor(white: 0.1, alpha: 0.97)
+        panel.layer.cornerRadius = 22
+        view.addSubview(panel)
+
+        let title = UILabel()
+        title.translatesAutoresizingMaskIntoConstraints = false
+        title.text = "Are you still watching?"
+        title.font = .systemFont(ofSize: 40, weight: .bold)
+        title.textColor = .white
+        title.textAlignment = .center
+        panel.addSubview(title)
+
+        let continueButton = UIButton(type: .system)
+        continueButton.translatesAutoresizingMaskIntoConstraints = false
+        continueButton.setTitle("Continue Watching", for: .normal)
+        continueButton.titleLabel?.font = .systemFont(ofSize: 30, weight: .semibold)
+        continueButton.addAction(
+            UIAction { [weak self] _ in
+                self?.dismiss(animated: true) { self?.onContinue() }
+            }, for: .primaryActionTriggered)
+
+        let exitButton = UIButton(type: .system)
+        exitButton.translatesAutoresizingMaskIntoConstraints = false
+        exitButton.setTitle("Exit", for: .normal)
+        exitButton.titleLabel?.font = .systemFont(ofSize: 30, weight: .semibold)
+        exitButton.addAction(
+            UIAction { [weak self] _ in
+                self?.dismiss(animated: true) { self?.onExit() }
+            }, for: .primaryActionTriggered)
+
+        let buttons = UIStackView(arrangedSubviews: [continueButton, exitButton])
+        buttons.translatesAutoresizingMaskIntoConstraints = false
+        buttons.axis = .horizontal
+        buttons.spacing = 40
+        buttons.distribution = .fillEqually
+        panel.addSubview(buttons)
+
+        NSLayoutConstraint.activate([
+            panel.centerXAnchor.constraint(equalTo: view.centerXAnchor),
+            panel.centerYAnchor.constraint(equalTo: view.centerYAnchor),
+            panel.widthAnchor.constraint(equalToConstant: 820),
+
+            title.topAnchor.constraint(equalTo: panel.topAnchor, constant: 56),
+            title.leadingAnchor.constraint(equalTo: panel.leadingAnchor, constant: 56),
+            title.trailingAnchor.constraint(equalTo: panel.trailingAnchor, constant: -56),
+
+            buttons.topAnchor.constraint(equalTo: title.bottomAnchor, constant: 48),
+            buttons.leadingAnchor.constraint(equalTo: panel.leadingAnchor, constant: 80),
+            buttons.trailingAnchor.constraint(equalTo: panel.trailingAnchor, constant: -80),
+            buttons.bottomAnchor.constraint(equalTo: panel.bottomAnchor, constant: -56),
+        ])
+    }
+
+    override func pressesBegan(_ presses: Set<UIPress>, with event: UIPressesEvent?) {
+        for press in presses where press.type == .menu {
+            dismiss(animated: true) { self.onExit() }
+            return
+        }
+        super.pressesBegan(presses, with: event)
     }
 }

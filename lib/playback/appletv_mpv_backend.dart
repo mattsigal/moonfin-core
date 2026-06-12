@@ -130,6 +130,8 @@ class AppleTvMpvBackend implements PlayerBackend {
       case 'setBitrate':
       case 'selectChannel':
       case 'toggleFavorite':
+      case 'stillWatchingContinue':
+      case 'stillWatchingStop':
         _uiActionStream.add(map.cast<String, dynamic>());
       case 'tracksChanged':
         _tracksKnown = true;
@@ -394,6 +396,7 @@ class AppleTvMpvBackend implements PlayerBackend {
     List<Map<String, dynamic>> mediaSegments = const [],
     bool canFavorite = false,
     bool isFavorite = false,
+    bool showStillWatching = false,
     bool isLive = false,
     Map<String, dynamic>? liveProgram,
     String liveChannelNumber = '',
@@ -422,6 +425,7 @@ class AppleTvMpvBackend implements PlayerBackend {
       'mediaSegments': mediaSegments,
       'canFavorite': canFavorite,
       'isFavorite': isFavorite,
+      'showStillWatching': showStillWatching,
       'isLive': isLive,
       'liveProgram': ?liveProgram,
       'liveChannelNumber': liveChannelNumber,
