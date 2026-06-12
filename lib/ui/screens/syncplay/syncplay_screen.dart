@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -10,6 +12,7 @@ import 'package:playback_core/playback_core.dart';
 import '../../../di/providers.dart';
 import '../../../l10n/app_localizations.dart';
 import '../../../syncplay/syncplay_manager.dart';
+import '../../../syncplay/syncplay_state.dart';
 import '../../../preference/user_preferences.dart';
 import '../../../util/platform_detection.dart';
 import '../../../util/focus/dpad_keys.dart';
@@ -29,11 +32,29 @@ class _SyncPlayScreenState extends ConsumerState<SyncPlayScreen> {
   final _groupNameController = TextEditingController();
   final _groupNameFocus = FocusNode(debugLabel: 'syncplay_group_name');
   final _tvFieldKey = GlobalKey<CustomTVTextFieldState>();
+  final _refreshFocusNode = FocusNode(debugLabel: 'syncplay_refresh');
+  final _ignoreWaitFocus = FocusNode(debugLabel: 'syncplay_ignore_wait');
 
   @override
   void initState() {
     super.initState();
     _groupNameFocus.onKeyEvent = _onGroupNameKey;
+    _refreshFocusNode.onKeyEvent = (node, event) {
+      if ((event is KeyDownEvent || event is KeyRepeatEvent) &&
+          event.logicalKey == LogicalKeyboardKey.arrowDown) {
+        _ignoreWaitFocus.requestFocus();
+        return KeyEventResult.handled;
+      }
+      return KeyEventResult.ignored;
+    };
+    _ignoreWaitFocus.onKeyEvent = (node, event) {
+      if ((event is KeyDownEvent || event is KeyRepeatEvent) &&
+          event.logicalKey == LogicalKeyboardKey.arrowUp) {
+        _refreshFocusNode.requestFocus();
+        return KeyEventResult.handled;
+      }
+      return KeyEventResult.ignored;
+    };
     WidgetsBinding.instance.addPostFrameCallback((_) {
       ref.read(syncPlayManagerProvider).fetchGroups();
     });
@@ -43,6 +64,8 @@ class _SyncPlayScreenState extends ConsumerState<SyncPlayScreen> {
   void dispose() {
     _groupNameController.dispose();
     _groupNameFocus.dispose();
+    _refreshFocusNode.dispose();
+    _ignoreWaitFocus.dispose();
     super.dispose();
   }
 
@@ -97,7 +120,9 @@ class _SyncPlayScreenState extends ConsumerState<SyncPlayScreen> {
     final isTV = PlatformDetection.isTV;
     final showCreateGroup = !manager.state.enabled;
     return RequestInitialFocus(
-      targetNode: (isTV && showCreateGroup) ? _groupNameFocus : null,
+      targetNode: isTV
+          ? (showCreateGroup ? _groupNameFocus : _ignoreWaitFocus)
+          : null,
       child: _buildContent(context),
     );
   }
@@ -112,6 +137,7 @@ class _SyncPlayScreenState extends ConsumerState<SyncPlayScreen> {
           title: Text(l10n.syncPlay),
           actions: [
             IconButton(
+              focusNode: _refreshFocusNode,
               icon: const Icon(Icons.refresh),
               onPressed: manager.isLoading ? null : () => manager.fetchGroups(),
             ),
@@ -146,14 +172,19 @@ class _SyncPlayScreenState extends ConsumerState<SyncPlayScreen> {
       children: [
         if (manager.errorMessage != null)
           _ErrorBanner(message: manager.errorMessage!),
-        if (manager.state.enabled) _ActiveGroupSection(manager: manager),
-        if (!manager.state.enabled) _CreateGroupSection(
-          controller: _groupNameController,
-          manager: manager,
-          focusNode: _groupNameFocus,
-          tvFieldKey: _tvFieldKey,
-          onKeyboardVisibilityChanged: _handleTvKeyboardVisibility,
-        ),
+        if (manager.state.enabled)
+          _ActiveGroupSection(
+            manager: manager,
+            ignoreWaitFocus: _ignoreWaitFocus,
+          ),
+        if (!manager.state.enabled)
+          _CreateGroupSection(
+            controller: _groupNameController,
+            manager: manager,
+            focusNode: _groupNameFocus,
+            tvFieldKey: _tvFieldKey,
+            onKeyboardVisibilityChanged: _handleTvKeyboardVisibility,
+          ),
         const SizedBox(height: 16),
         _AvailableGroupsSection(manager: manager),
       ],
@@ -215,7 +246,12 @@ class _ErrorBanner extends StatelessWidget {
 
 class _ActiveGroupSection extends StatelessWidget {
   final SyncPlayManager manager;
-  const _ActiveGroupSection({required this.manager});
+  final FocusNode ignoreWaitFocus;
+
+  const _ActiveGroupSection({
+    required this.manager,
+    required this.ignoreWaitFocus,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -255,9 +291,10 @@ class _ActiveGroupSection extends StatelessWidget {
                     .toList(),
               ),
             const Divider(height: 24),
-            _buildTile(
+            _buildTileWithFocused(
               context,
-              tile: SwitchListTile(
+              builder: (context, focused) => SwitchListTile(
+                focusNode: ignoreWaitFocus,
                 contentPadding: PlatformDetection.isTV
                     ? const EdgeInsets.symmetric(horizontal: 16)
                     : EdgeInsets.zero,
@@ -267,21 +304,21 @@ class _ActiveGroupSection extends StatelessWidget {
                 onChanged: (v) => manager.requestSetIgnoreWait(v),
               ),
             ),
-            _buildTile(
+            _buildTileWithFocused(
               context,
-              tile: ListTile(
+              builder: (context, focused) => ListTile(
                 contentPadding: PlatformDetection.isTV
                     ? const EdgeInsets.symmetric(horizontal: 16)
                     : EdgeInsets.zero,
                 leading: const Icon(Icons.repeat),
                 title: Text(l10n.syncPlayRepeat),
-                subtitle: Text(_repeatLabel(s.repeatMode, l10n)),
-                onTap: manager.cycleRepeatMode,
+                trailing: buildSelectionBubble(context, _repeatLabel(s.repeatMode, l10n), focused),
+                onTap: () => _showRepeatPicker(context, s, l10n),
               ),
             ),
-            _buildTile(
+            _buildTileWithFocused(
               context,
-              tile: ListTile(
+              builder: (context, focused) => ListTile(
                 contentPadding: PlatformDetection.isTV
                     ? const EdgeInsets.symmetric(horizontal: 16)
                     : EdgeInsets.zero,
@@ -291,10 +328,8 @@ class _ActiveGroupSection extends StatelessWidget {
                       : Icons.shuffle,
                 ),
                 title: Text(l10n.shuffle),
-                subtitle: Text(s.shuffleMode == SyncPlayShuffleMode.shuffle
-                    ? l10n.syncPlayShuffleModeShuffled
-                    : l10n.syncPlayShuffleModeSorted),
-                onTap: manager.toggleShuffleMode,
+                trailing: buildSelectionBubble(context, _shuffleLabel(s.shuffleMode, l10n), focused),
+                onTap: () => _showShufflePicker(context, s, l10n),
               ),
             ),
             _buildTile(
@@ -420,11 +455,93 @@ class _ActiveGroupSection extends StatelessWidget {
     return tile;
   }
 
+  Widget _buildTileWithFocused(
+    BuildContext context, {
+    required Widget Function(BuildContext context, bool focused) builder,
+  }) {
+    if (PlatformDetection.isTV) {
+      return TvFocusHighlight(
+        builder: builder,
+      );
+    }
+    return builder(context, false);
+  }
+
+  void _showRepeatPicker(BuildContext context, SyncPlayState s, AppLocalizations l10n) async {
+    final result = await showFocusRestoringDialog<SyncPlayRepeatMode>(
+      context: context,
+      useRootNavigator: false,
+      builder: (ctx) => withBackClose(
+        ctx,
+        SimpleDialog(
+          title: Text(l10n.syncPlayRepeat, style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w600)),
+          children: SyncPlayRepeatMode.values.map((v) {
+            final selected = v == s.repeatMode;
+            return TvFocusHighlight(
+              builder: (_, focused) => ListTile(
+                autofocus: v == s.repeatMode,
+                title: Text(
+                  _repeatLabel(v, l10n),
+                  style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w600),
+                ),
+                trailing: selected ? const Icon(Icons.check) : null,
+                onTap: () {
+                  Navigator.pop(ctx, v);
+                },
+              ),
+            );
+          }).toList(),
+        ),
+      ),
+    );
+    if (result != null && result != s.repeatMode) {
+      manager.requestSetRepeatMode(result);
+    }
+  }
+
+  void _showShufflePicker(BuildContext context, SyncPlayState s, AppLocalizations l10n) async {
+    final result = await showFocusRestoringDialog<SyncPlayShuffleMode>(
+      context: context,
+      useRootNavigator: false,
+      builder: (ctx) => withBackClose(
+        ctx,
+        SimpleDialog(
+          title: Text(l10n.shuffle, style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w600)),
+          children: SyncPlayShuffleMode.values.map((v) {
+            final selected = v == s.shuffleMode;
+            return TvFocusHighlight(
+              builder: (_, focused) => ListTile(
+                autofocus: v == s.shuffleMode,
+                title: Text(
+                  _shuffleLabel(v, l10n),
+                  style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w600),
+                ),
+                trailing: selected ? const Icon(Icons.check) : null,
+                onTap: () {
+                  Navigator.pop(ctx, v);
+                },
+              ),
+            );
+          }).toList(),
+        ),
+      ),
+    );
+    if (result != null && result != s.shuffleMode) {
+      manager.requestSetShuffleMode(result);
+    }
+  }
+
   String _repeatLabel(SyncPlayRepeatMode mode, AppLocalizations l10n) =>
       switch (mode) {
         SyncPlayRepeatMode.repeatNone => l10n.off,
         SyncPlayRepeatMode.repeatOne => l10n.syncPlayRepeatOne,
         SyncPlayRepeatMode.repeatAll => l10n.all,
+      };
+
+  String _shuffleLabel(SyncPlayShuffleMode mode, AppLocalizations l10n) =>
+      switch (mode) {
+        SyncPlayShuffleMode.shuffle => l10n.syncPlayShuffleModeShuffled,
+        SyncPlayShuffleMode.sorted => l10n.syncPlayShuffleModeSorted,
       };
 }
 
@@ -560,7 +677,6 @@ class _CreateGroupSection extends StatelessWidget {
   }
 
   Widget _buildCreateButton(BuildContext context, AppLocalizations l10n) {
-
     return FilledButton.icon(
       onPressed: manager.isLoading
           ? null
@@ -613,7 +729,7 @@ class _AvailableGroupsSection extends StatelessWidget {
             const SizedBox(height: 8),
             if (groups.isEmpty)
               Padding(
-                padding: EdgeInsets.symmetric(vertical: 12),
+                padding: const EdgeInsets.symmetric(vertical: 12),
                 child: Text(l10n.syncPlayNoGroupsAvailable),
               )
             else
