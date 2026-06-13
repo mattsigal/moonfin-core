@@ -22,6 +22,7 @@ class FocusableWrapper extends StatefulWidget {
   final double borderRadius;
   final bool autoScroll;
   final double scrollAlignment;
+  final ScrollPositionAlignmentPolicy alignmentPolicy;
   final bool useComfortableZone;
   final bool descendantsAreFocusable;
   final bool disableScale;
@@ -48,6 +49,7 @@ class FocusableWrapper extends StatefulWidget {
     this.borderRadius = FocusTheme.defaultBorderRadius,
     this.autoScroll = false,
     this.scrollAlignment = 0.5,
+    this.alignmentPolicy = ScrollPositionAlignmentPolicy.explicit,
     this.useComfortableZone = false,
     this.descendantsAreFocusable = true,
     this.disableScale = false,
@@ -122,6 +124,7 @@ class _FocusableWrapperState extends State<FocusableWrapper>
         Scrollable.ensureVisible(
           ctx,
           alignment: widget.scrollAlignment,
+          alignmentPolicy: widget.alignmentPolicy,
           duration: FocusTheme.animationDuration,
           curve: Curves.easeOut,
         );
@@ -140,7 +143,7 @@ class _FocusableWrapperState extends State<FocusableWrapper>
     Scrollable.ensureVisible(
       ctx,
       alignment: widget.scrollAlignment,
-      alignmentPolicy: ScrollPositionAlignmentPolicy.explicit,
+      alignmentPolicy: widget.alignmentPolicy,
       duration: FocusTheme.animationDuration,
       curve: Curves.easeOut,
     );
