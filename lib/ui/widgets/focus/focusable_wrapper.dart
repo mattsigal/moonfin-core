@@ -32,6 +32,7 @@ class FocusableWrapper extends StatefulWidget {
   final Duration longPressDuration;
   final FocusOnKeyEventCallback? onKeyEvent;
   final String? semanticLabel;
+  final bool suppressFocusGlow;
 
   const FocusableWrapper({
     super.key,
@@ -59,6 +60,7 @@ class FocusableWrapper extends StatefulWidget {
     this.longPressDuration = const Duration(milliseconds: 500),
     this.onKeyEvent,
     this.semanticLabel,
+    this.suppressFocusGlow = false,
   });
 
   @override
@@ -209,11 +211,13 @@ class _FocusableWrapperState extends State<FocusableWrapper>
             backgroundColor: _focused
                 ? color.withValues(alpha: 0.18)
                 : null,
+            suppressFocusGlow: widget.suppressFocusGlow,
           )
         : FocusTheme.focusDecoration(
             isFocused: _focused,
             radius: widget.borderRadius,
             color: color,
+            suppressFocusGlow: widget.suppressFocusGlow,
           );
 
     Widget content = AnimatedContainer(

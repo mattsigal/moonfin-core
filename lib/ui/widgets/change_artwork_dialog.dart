@@ -874,16 +874,12 @@ class _ChangeArtworkDialogState extends State<ChangeArtworkDialog> {
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
     final theme = Theme.of(context);
-    final size = MediaQuery.of(context).size;
-    final isTv = PlatformDetection.isTV;
-    final double maxWidth = isTv ? (size.width * 0.95).clamp(800.0, 1100.0) : 850.0;
-    final double maxHeight = isTv ? (size.height * 0.85).clamp(550.0, 850.0) : 650.0;
 
     return Dialog(
       backgroundColor: Colors.transparent,
       child: Container(
         clipBehavior: Clip.antiAlias,
-        constraints: BoxConstraints(minWidth: 450, maxWidth: maxWidth, maxHeight: maxHeight),
+        constraints: const BoxConstraints(minWidth: 450, maxWidth: 850, maxHeight: 650),
         decoration: BoxDecoration(
           color: AppColorScheme.surface.withValues(alpha: 0.95),
           borderRadius: BorderRadius.circular(24),
@@ -1278,22 +1274,21 @@ class _ChangeArtworkDialogState extends State<ChangeArtworkDialog> {
             ),
             itemCount: totalCount,
             itemBuilder: (context, i) {
-              final cardNode = (i == 0) ? _getFirstCardFocusNode(category) : null;
               if (i < currentCount) {
                 if (currentTags.isEmpty) {
-                  return _buildCurrentCard(
-                    category,
-                    null,
-                    dims,
-                    focusNode: cardNode,
+                  return Align(
+                    alignment: Alignment.topCenter,
+                    child: _buildCurrentCard(category, null, dims),
                   );
                 }
-                return _buildCurrentCard(
-                  category,
-                  currentTags[i],
-                  dims,
-                  imageIndex: category == 'Backdrop' ? i : null,
-                  focusNode: cardNode,
+                return Align(
+                  alignment: Alignment.topCenter,
+                  child: _buildCurrentCard(
+                    category,
+                    currentTags[i],
+                    dims,
+                    imageIndex: category == 'Backdrop' ? i : null,
+                  ),
                 );
               }
 
@@ -1305,12 +1300,9 @@ class _ChangeArtworkDialogState extends State<ChangeArtworkDialog> {
 
               final remoteIdx = i - currentCount;
               final remoteImage = filteredRemoteList[remoteIdx];
-              return _buildRemoteCard(
-                category,
-                remoteImage,
-                dims,
-                isActionLoading,
-                focusNode: cardNode,
+              return Align(
+                alignment: Alignment.topCenter,
+                child: _buildRemoteCard(category, remoteImage, dims, isActionLoading),
               );
             },
           ),
@@ -1465,68 +1457,70 @@ class _ChangeArtworkDialogState extends State<ChangeArtworkDialog> {
         ),
         SizedBox(
           height: dims.height + 56,
-          child: ListView.builder(
+          child: SingleChildScrollView(
             controller: _getScrollController(category),
             scrollDirection: Axis.horizontal,
             padding: const EdgeInsets.only(left: 8, right: 32, top: 8, bottom: 8),
             clipBehavior: Clip.hardEdge,
-            itemCount: totalCount,
-            itemBuilder: (context, i) {
-              final isFirst = (i == 0);
-              final isLast = (i == totalCount - 1);
-              final cardNode = isFirst ? _getFirstCardFocusNode(category) : null;
-              KeyEventResult keyHandler(FocusNode node, KeyEvent event) =>
-                  consumeIfEdge(event, atLeftEdge: isFirst, atRightEdge: isLast);
-              final alignmentPolicy = isFirst ? ScrollPositionAlignmentPolicy.keepVisibleAtStart : ScrollPositionAlignmentPolicy.explicit;
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: List.generate(totalCount, (i) {
+                final isFirst = (i == 0);
+                final isLast = (i == totalCount - 1);
+                final cardNode = isFirst ? _getFirstCardFocusNode(category) : null;
+                KeyEventResult keyHandler(FocusNode node, KeyEvent event) =>
+                    consumeIfEdge(event, atLeftEdge: isFirst, atRightEdge: isLast);
+                final alignmentPolicy = isFirst ? ScrollPositionAlignmentPolicy.keepVisibleAtStart : ScrollPositionAlignmentPolicy.explicit;
 
-              if (i < currentCount) {
-                if (currentTags.isEmpty) {
+                if (i < currentCount) {
+                  if (currentTags.isEmpty) {
+                    return _buildCurrentCard(
+                      category,
+                      null,
+                      dims,
+                      focusNode: cardNode,
+                      onKeyEvent: keyHandler,
+                      scrollAlignment: isFirst ? 0.0 : 0.5,
+                      alignmentPolicy: alignmentPolicy,
+                    );
+                  }
                   return _buildCurrentCard(
                     category,
-                    null,
+                    currentTags[i],
                     dims,
+                    imageIndex: category == 'Backdrop' ? i : null,
                     focusNode: cardNode,
                     onKeyEvent: keyHandler,
                     scrollAlignment: isFirst ? 0.0 : 0.5,
                     alignmentPolicy: alignmentPolicy,
                   );
                 }
-                return _buildCurrentCard(
+
+                if (isCategoryLoading) {
+                  return Center(
+                    child: Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 24),
+                      child: CircularProgressIndicator(
+                        color: AppColorScheme.accent,
+                        strokeWidth: 2,
+                      ),
+                    ),
+                  );
+                }
+
+                final remoteIdx = i - currentCount;
+                final remoteImage = filteredRemoteList[remoteIdx];
+                return _buildRemoteCard(
                   category,
-                  currentTags[i],
+                  remoteImage,
                   dims,
-                  imageIndex: category == 'Backdrop' ? i : null,
-                  focusNode: cardNode,
+                  isActionLoading,
                   onKeyEvent: keyHandler,
                   scrollAlignment: isFirst ? 0.0 : 0.5,
                   alignmentPolicy: alignmentPolicy,
                 );
-              }
-
-              if (isCategoryLoading) {
-                return Center(
-                  child: Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 24),
-                    child: CircularProgressIndicator(
-                      color: AppColorScheme.accent,
-                      strokeWidth: 2,
-                    ),
-                  ),
-                );
-              }
-
-              final remoteIdx = i - currentCount;
-              final remoteImage = filteredRemoteList[remoteIdx];
-              return _buildRemoteCard(
-                category,
-                remoteImage,
-                dims,
-                isActionLoading,
-                onKeyEvent: keyHandler,
-                scrollAlignment: isFirst ? 0.0 : 0.5,
-                alignmentPolicy: alignmentPolicy,
-              );
-            },
+              }),
+            ),
           ),
         ),
         const Divider(height: 24, thickness: 1, color: Colors.white10),
@@ -1545,23 +1539,25 @@ class _ChangeArtworkDialogState extends State<ChangeArtworkDialog> {
     ScrollPositionAlignmentPolicy alignmentPolicy = ScrollPositionAlignmentPolicy.explicit,
   }) {
     final l10n = AppLocalizations.of(context);
+    final double cardWidth = dims.width;
+    final double cardHeight = dims.height;
     final isGridView = _focusedCategory != null;
-    final double? cardWidth = isGridView ? null : dims.width;
 
     Widget cardWidget;
 
     if (tag == null) {
-      cardWidget = FocusableWrapper(
-        borderRadius: 8,
-        autoScroll: true,
-        focusNode: focusNode,
-        onKeyEvent: onKeyEvent,
-        scrollAlignment: scrollAlignment,
-        alignmentPolicy: alignmentPolicy,
-        onNavigateUp: isGridView ? null : () => _handleNavigateUpFromCard(category),
-        onNavigateDown: isGridView ? null : () => _handleNavigateDownFromCard(category),
-        child: AspectRatio(
-          aspectRatio: dims.aspectRatio,
+      cardWidget = SizedBox(
+        width: cardWidth,
+        height: cardHeight,
+        child: FocusableWrapper(
+          borderRadius: 8,
+          autoScroll: true,
+          focusNode: focusNode,
+          onKeyEvent: onKeyEvent,
+          scrollAlignment: scrollAlignment,
+          alignmentPolicy: alignmentPolicy,
+          onNavigateUp: isGridView ? null : () => _handleNavigateUpFromCard(category),
+          onNavigateDown: isGridView ? null : () => _handleNavigateDownFromCard(category),
           child: Container(
             decoration: BoxDecoration(
               borderRadius: BorderRadius.circular(8),
@@ -1583,18 +1579,19 @@ class _ChangeArtworkDialogState extends State<ChangeArtworkDialog> {
       );
     } else {
       final imageUrl = _getCurrentImageUrl(category, tag, imageIndex: imageIndex);
-      cardWidget = FocusableWrapper(
-        borderRadius: 8,
-        autoScroll: true,
-        focusNode: focusNode,
-        onKeyEvent: onKeyEvent,
-        scrollAlignment: scrollAlignment,
-        alignmentPolicy: alignmentPolicy,
-        onNavigateUp: isGridView ? null : () => _handleNavigateUpFromCard(category),
-        onNavigateDown: isGridView ? null : () => _handleNavigateDownFromCard(category),
-        onSelect: () => _deleteImage(category, imageIndex: imageIndex),
-        child: AspectRatio(
-          aspectRatio: dims.aspectRatio,
+      cardWidget = SizedBox(
+        width: cardWidth,
+        height: cardHeight,
+        child: FocusableWrapper(
+          borderRadius: 8,
+          autoScroll: true,
+          focusNode: focusNode,
+          onKeyEvent: onKeyEvent,
+          scrollAlignment: scrollAlignment,
+          alignmentPolicy: alignmentPolicy,
+          onNavigateUp: isGridView ? null : () => _handleNavigateUpFromCard(category),
+          onNavigateDown: isGridView ? null : () => _handleNavigateDownFromCard(category),
+          onSelect: () => _deleteImage(category, imageIndex: imageIndex),
           child: ClipRRect(
             borderRadius: BorderRadius.circular(8),
             child: Stack(
@@ -1663,7 +1660,6 @@ class _ChangeArtworkDialogState extends State<ChangeArtworkDialog> {
     }
 
     return Container(
-      width: cardWidth,
       margin: const EdgeInsets.only(right: 12),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -1680,7 +1676,6 @@ class _ChangeArtworkDialogState extends State<ChangeArtworkDialog> {
     Map<String, dynamic> remoteImage,
     ImageDimensions dims,
     bool isActionLoading, {
-    FocusNode? focusNode,
     FocusOnKeyEventCallback? onKeyEvent,
     double scrollAlignment = 0.5,
     ScrollPositionAlignmentPolicy alignmentPolicy = ScrollPositionAlignmentPolicy.explicit,
@@ -1695,114 +1690,116 @@ class _ChangeArtworkDialogState extends State<ChangeArtworkDialog> {
     final thumbUrl = (remoteImage['ThumbnailUrl'] as String?) ?? url;
 
     final isGridView = _focusedCategory != null;
-    final double? cardWidth = isGridView ? null : dims.width;
 
     return Container(
-      width: cardWidth,
       margin: const EdgeInsets.only(right: 12),
-      child: FocusableWrapper(
-        borderRadius: 8,
-        autoScroll: true,
-        focusNode: focusNode,
-        onKeyEvent: onKeyEvent,
-        scrollAlignment: scrollAlignment,
-        alignmentPolicy: alignmentPolicy,
-        onNavigateUp: isGridView ? null : () => _handleNavigateUpFromCard(category),
-        onNavigateDown: isGridView ? null : () => _handleNavigateDownFromCard(category),
-        onSelect: isActionLoading
-            ? null
-            : () => _downloadImage(category, remoteImage),
-        child: Padding(
-          padding: const EdgeInsets.all(4),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              AspectRatio(
-                aspectRatio: dims.aspectRatio,
-                child: ClipRRect(
-                  borderRadius: BorderRadius.circular(8),
-                  child: Stack(
-                    children: [
-                      Positioned.fill(
-                        child: CachedNetworkImage(
-                          imageUrl: thumbUrl,
-                          fit: BoxFit.cover,
-                          placeholder: (context, url) => Container(
-                            color: Colors.white12,
-                            child: const Center(
-                              child: SizedBox(
-                                width: 20,
-                                height: 20,
-                                child: CircularProgressIndicator(strokeWidth: 2),
-                              ),
-                            ),
-                          ),
-                          errorWidget: (context, url, error) => Container(
-                            color: Colors.white12,
-                            child: const Icon(Icons.broken_image, color: Colors.white24),
-                          ),
-                        ),
-                      ),
-                      Positioned.fill(
-                        child: Container(
-                          decoration: BoxDecoration(
-                            gradient: LinearGradient(
-                              begin: Alignment.topCenter,
-                              end: Alignment.bottomCenter,
-                              colors: [
-                                Colors.transparent,
-                                Colors.black.withValues(alpha: 0.7),
-                              ],
-                              stops: const [0.6, 1.0],
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          SizedBox(
+            width: dims.width,
+            height: dims.height,
+            child: FocusableWrapper(
+              borderRadius: 8,
+              autoScroll: true,
+              onKeyEvent: onKeyEvent,
+              scrollAlignment: scrollAlignment,
+              alignmentPolicy: alignmentPolicy,
+              onNavigateUp: isGridView ? null : () => _handleNavigateUpFromCard(category),
+              onNavigateDown: isGridView ? null : () => _handleNavigateDownFromCard(category),
+              onSelect: isActionLoading
+                  ? null
+                  : () => _downloadImage(category, remoteImage),
+              child: ClipRRect(
+                borderRadius: BorderRadius.circular(8),
+                child: Stack(
+                  children: [
+                    Positioned.fill(
+                      child: CachedNetworkImage(
+                        imageUrl: thumbUrl,
+                        fit: BoxFit.cover,
+                        placeholder: (context, url) => Container(
+                          color: Colors.white12,
+                          child: const Center(
+                            child: SizedBox(
+                              width: 20,
+                              height: 20,
+                              child: CircularProgressIndicator(strokeWidth: 2),
                             ),
                           ),
                         ),
+                        errorWidget: (context, url, error) => Container(
+                          color: Colors.white12,
+                          child: const Icon(Icons.broken_image, color: Colors.white24),
+                        ),
                       ),
-                    ],
-                  ),
-                ),
-              ),
-              const SizedBox(height: 4),
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  Expanded(
-                    child: Text(
-                      provider,
-                      style: const TextStyle(fontSize: 10, color: Colors.white38),
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
                     ),
-                  ),
-                  if (rating != null && rating > 0) ...[
-                    const SizedBox(width: 4),
-                    Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        const Icon(Icons.favorite, color: Colors.redAccent, size: 10),
-                        const SizedBox(width: 2),
-                        Text(
-                          votes != null ? '$votes' : rating.toStringAsFixed(1),
-                          style: const TextStyle(fontSize: 10, color: Colors.white38),
+                    Positioned.fill(
+                      child: Container(
+                        decoration: BoxDecoration(
+                          gradient: LinearGradient(
+                            begin: Alignment.topCenter,
+                            end: Alignment.bottomCenter,
+                            colors: [
+                              Colors.transparent,
+                              Colors.black.withValues(alpha: 0.7),
+                            ],
+                            stops: const [0.6, 1.0],
+                          ),
                         ),
-                      ],
+                      ),
                     ),
                   ],
-                ],
-              ),
-              if (width != null && height != null) ...[
-                const SizedBox(height: 2),
-                Text(
-                  '${width}x$height',
-                  style: const TextStyle(fontSize: 10, color: Colors.white38),
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
                 ),
-              ],
-            ],
+              ),
+            ),
           ),
-        ),
+          const SizedBox(height: 4),
+          SizedBox(
+            width: dims.width,
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Expanded(
+                      child: Text(
+                        provider,
+                        style: const TextStyle(fontSize: 10, color: Colors.white38),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ),
+                    if (rating != null && rating > 0) ...[
+                      const SizedBox(width: 4),
+                      Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          const Icon(Icons.favorite, color: Colors.redAccent, size: 10),
+                          const SizedBox(width: 2),
+                          Text(
+                            votes != null ? '$votes' : rating.toStringAsFixed(1),
+                            style: const TextStyle(fontSize: 10, color: Colors.white38),
+                          ),
+                        ],
+                      ),
+                    ],
+                  ],
+                ),
+                if (width != null && height != null) ...[
+                  const SizedBox(height: 2),
+                  Text(
+                    '${width}x$height',
+                    style: const TextStyle(fontSize: 10, color: Colors.white38),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                ],
+              ],
+            ),
+          ),
+        ],
       ),
     );
   }
