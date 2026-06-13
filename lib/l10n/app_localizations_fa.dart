@@ -7534,6 +7534,10 @@ class AppLocalizationsFa extends AppLocalizations {
   String get externalPlayerApp => 'برنامه پخش خارجی';
 
   @override
+  String get externalPlayerAppDescription =>
+      'Set external player to enable long-press play option';
+
+  @override
   String get externalPlayerAskEachTimeSubtitle =>
       'نمایش انتخابگر برنامه هنگام شروع پخش.';
 

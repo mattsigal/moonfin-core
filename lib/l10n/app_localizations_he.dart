@@ -7470,6 +7470,10 @@ class AppLocalizationsHe extends AppLocalizations {
   String get externalPlayerApp => 'External player app';
 
   @override
+  String get externalPlayerAppDescription =>
+      'Set external player to enable long-press play option';
+
+  @override
   String get externalPlayerAskEachTimeSubtitle =>
       'Show app chooser when playback starts.';
 

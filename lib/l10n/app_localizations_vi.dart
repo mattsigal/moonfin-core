@@ -7582,6 +7582,10 @@ class AppLocalizationsVi extends AppLocalizations {
   String get externalPlayerApp => 'Ứng dụng trình phát bên ngoài';
 
   @override
+  String get externalPlayerAppDescription =>
+      'Set external player to enable long-press play option';
+
+  @override
   String get externalPlayerAskEachTimeSubtitle =>
       'Hiển thị trình chọn ứng dụng khi bắt đầu phát lại.';
 

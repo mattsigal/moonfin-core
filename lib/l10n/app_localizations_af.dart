@@ -7579,6 +7579,10 @@ class AppLocalizationsAf extends AppLocalizations {
   String get externalPlayerApp => 'Eksterne speler-app';
 
   @override
+  String get externalPlayerAppDescription =>
+      'Set external player to enable long-press play option';
+
+  @override
   String get externalPlayerAskEachTimeSubtitle =>
       'Wys programkieser wanneer afspeel begin.';
 

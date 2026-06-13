@@ -134,7 +134,7 @@ BoxDecoration _settingsTileDecoration(
   );
 }
 
-Widget _buildSelectionBubble(BuildContext context, String label, bool focused) {
+Widget buildSettingsSelectionBubble(BuildContext context, String label, bool focused) {
   final theme = Theme.of(context);
   final colorScheme = theme.colorScheme;
   return Container(
@@ -372,7 +372,7 @@ class _EnumPreferenceTileState<T extends Enum>
                   )
                 : null,
             title: Text(widget.title, style: _kSettingsTitleTextStyle),
-            trailing: _buildSelectionBubble(context, label, focused),
+            trailing: buildSettingsSelectionBubble(context, label, focused),
             subtitle: widget.description != null
                 ? Text(widget.description!, style: _kSettingsDescriptionTextStyle)
                 : null,
@@ -659,7 +659,7 @@ class _StringPickerPreferenceTileState
                   )
                 : null,
             title: Text(widget.title, style: _kSettingsTitleTextStyle),
-            trailing: _buildSelectionBubble(context, label, focused),
+            trailing: buildSettingsSelectionBubble(context, label, focused),
             subtitle: widget.description != null
                 ? Text(widget.description!, style: _kSettingsDescriptionTextStyle)
                 : null,
@@ -775,7 +775,7 @@ class _IntPickerPreferenceTileState extends State<IntPickerPreferenceTile> {
                   )
                 : null,
             title: Text(widget.title, style: _kSettingsTitleTextStyle),
-            trailing: _buildSelectionBubble(context, label, focused),
+            trailing: buildSettingsSelectionBubble(context, label, focused),
             subtitle: widget.description != null
                 ? Text(widget.description!, style: _kSettingsDescriptionTextStyle)
                 : null,

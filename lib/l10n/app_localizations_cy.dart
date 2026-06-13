@@ -7597,6 +7597,10 @@ class AppLocalizationsCy extends AppLocalizations {
   String get externalPlayerApp => 'Ap chwaraewr allanol';
 
   @override
+  String get externalPlayerAppDescription =>
+      'Set external player to enable long-press play option';
+
+  @override
   String get externalPlayerAskEachTimeSubtitle =>
       'Dangos dewisydd ap pan fydd chwarae yn dechrau.';
 

@@ -7566,6 +7566,10 @@ class AppLocalizationsBn extends AppLocalizations {
   String get externalPlayerApp => 'এক্সটার্নাল প্লেয়ার অ্যাপ';
 
   @override
+  String get externalPlayerAppDescription =>
+      'Set external player to enable long-press play option';
+
+  @override
   String get externalPlayerAskEachTimeSubtitle =>
       'প্লেব্যাক শুরু হলে অ্যাপ চয়নকারী দেখান।';
 

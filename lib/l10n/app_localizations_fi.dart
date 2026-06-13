@@ -7598,6 +7598,10 @@ class AppLocalizationsFi extends AppLocalizations {
   String get externalPlayerApp => 'Ulkoinen soitinsovellus';
 
   @override
+  String get externalPlayerAppDescription =>
+      'Set external player to enable long-press play option';
+
+  @override
   String get externalPlayerAskEachTimeSubtitle =>
       'Näytä sovelluksen valitsin, kun toisto alkaa.';
 

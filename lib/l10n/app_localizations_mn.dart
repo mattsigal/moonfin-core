@@ -7602,6 +7602,10 @@ class AppLocalizationsMn extends AppLocalizations {
   String get externalPlayerApp => 'Гадаад тоглуулагчийн програм';
 
   @override
+  String get externalPlayerAppDescription =>
+      'Set external player to enable long-press play option';
+
+  @override
   String get externalPlayerAskEachTimeSubtitle =>
       'Дахин тоглуулах үед програм сонгогчийг харуул.';
 

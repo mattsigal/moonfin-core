@@ -7623,6 +7623,10 @@ class AppLocalizationsTe extends AppLocalizations {
   String get externalPlayerApp => 'బాహ్య ప్లేయర్ యాప్';
 
   @override
+  String get externalPlayerAppDescription =>
+      'Set external player to enable long-press play option';
+
+  @override
   String get externalPlayerAskEachTimeSubtitle =>
       'ప్లేబ్యాక్ ప్రారంభమైనప్పుడు యాప్ ఎంపికను చూపండి.';
 

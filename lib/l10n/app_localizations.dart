@@ -13475,6 +13475,12 @@ abstract class AppLocalizations {
   /// **'External player app'**
   String get externalPlayerApp;
 
+  /// No description provided for @externalPlayerAppDescription.
+  ///
+  /// In en, this message translates to:
+  /// **'Set external player to enable long-press play option'**
+  String get externalPlayerAppDescription;
+
   /// No description provided for @externalPlayerAskEachTimeSubtitle.
   ///
   /// In en, this message translates to:
@@ -13586,7 +13592,7 @@ abstract class AppLocalizations {
   /// No description provided for @useExternalPlayer.
   ///
   /// In en, this message translates to:
-  /// **'Use external player'**
+  /// **'Always use external player'**
   String get useExternalPlayer;
 
   /// No description provided for @useExternalPlayerSubtitle.

@@ -7648,6 +7648,10 @@ class AppLocalizationsEs extends AppLocalizations {
   String get externalPlayerApp => 'Aplicación de reproductor externo';
 
   @override
+  String get externalPlayerAppDescription =>
+      'Set external player to enable long-press play option';
+
+  @override
   String get externalPlayerAskEachTimeSubtitle =>
       'Mostrar el selector de aplicaciones cuando comience la reproducción.';
 
