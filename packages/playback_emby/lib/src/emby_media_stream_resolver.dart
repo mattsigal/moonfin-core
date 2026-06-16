@@ -22,9 +22,12 @@ class EmbyMediaStreamResolver implements MediaStreamResolver {
   }) async {
     final itemId = MediaStreamResolver.extractItemId(mediaItem);
 
+    final resolvedMediaSourceId =
+        MediaStreamResolver.resolveStaticMediaSourceId(mediaItem, mediaSourceId);
+
     final request = PlaybackInfoRequest(
       itemId: itemId,
-      mediaSourceId: mediaSourceId,
+      mediaSourceId: resolvedMediaSourceId,
       deviceProfile: deviceProfile,
       maxStreamingBitrate: maxStreamingBitrate,
       audioStreamIndex: audioStreamIndex,
@@ -50,7 +53,7 @@ class EmbyMediaStreamResolver implements MediaStreamResolver {
       throw Exception('No media sources available for item $itemId');
     }
 
-    final source = _selectBestSource(info.mediaSources, preferredId: mediaSourceId);
+    final source = _selectBestSource(info.mediaSources, preferredId: resolvedMediaSourceId);
     var (url, playMethod) = _resolveStreamUrl(
       itemId,
       source,

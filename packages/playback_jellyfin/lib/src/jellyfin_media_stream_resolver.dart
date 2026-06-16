@@ -56,9 +56,12 @@ class JellyfinMediaStreamResolver implements MediaStreamResolver {
   }) async {
     final itemId = MediaStreamResolver.extractItemId(mediaItem);
 
+    final resolvedMediaSourceId =
+        MediaStreamResolver.resolveStaticMediaSourceId(mediaItem, mediaSourceId);
+
     final request = PlaybackInfoRequest(
       itemId: itemId,
-      mediaSourceId: mediaSourceId,
+      mediaSourceId: resolvedMediaSourceId,
       deviceProfile: deviceProfile,
       maxStreamingBitrate: maxStreamingBitrate,
       audioStreamIndex: audioStreamIndex,
@@ -85,7 +88,7 @@ class JellyfinMediaStreamResolver implements MediaStreamResolver {
       throw Exception('No media sources available for item $itemId');
     }
 
-    final source = _selectBestSource(info.mediaSources, preferredId: mediaSourceId);
+    final source = _selectBestSource(info.mediaSources, preferredId: resolvedMediaSourceId);
     final hasKnownMediaStreams = source.mediaStreams.isNotEmpty;
     final hasVideoStream = source.mediaStreams.any((stream) => stream['Type'] == 'Video');
     final isAudioByStreams = hasKnownMediaStreams && !hasVideoStream;
