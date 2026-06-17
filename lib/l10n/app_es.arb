@@ -2295,7 +2295,7 @@
             }
         }
     },
-    "seerr": "Vidente",
+    "seerr": "Seerr",
     "@seerr": {
         "description": "Seerr brand name"
     },
@@ -6046,7 +6046,7 @@
     "folders": "Carpetas",
     "libraries": "Bibliotecas",
     "syncPlay": "SyncPlay",
-    "jellyseerr": "Jellyseerr",
+    "jellyseerr": "Seerr",
     "seeAll": "Ver todo",
     "noItems": "No hay elementos",
     "switchUser": "Cambiar de usuario",

@@ -2312,7 +2312,7 @@
             }
         }
     },
-    "seerr": "بیننده",
+    "seerr": "Seerr",
     "@seerr": {
         "description": "Seerr brand name"
     },
@@ -6293,7 +6293,7 @@
             }
         }
     },
-    "jellyseerr": "Jellyseerr",
+    "jellyseerr": "Seerr",
     "seeAll": "مشاهده همه",
     "noItems": "هیچ موردی وجود ندارد",
     "switchUser": "تغییر کاربر",

@@ -2312,7 +2312,7 @@
             }
         }
     },
-    "seerr": "সেয়ার",
+    "seerr": "Seerr",
     "@seerr": {
         "description": "Seerr brand name"
     },
@@ -6293,7 +6293,7 @@
             }
         }
     },
-    "jellyseerr": "Jellyseerr",
+    "jellyseerr": "Seerr",
     "seeAll": "সব দেখুন",
     "noItems": "কোনো আইটেম নেই",
     "switchUser": "ব্যবহারকারী পরিবর্তন করুন",

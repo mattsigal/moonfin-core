@@ -2312,7 +2312,7 @@
             }
         }
     },
-    "seerr": "Nägija",
+    "seerr": "Seerr",
     "@seerr": {
         "description": "Seerr brand name"
     },
@@ -6293,7 +6293,7 @@
             }
         }
     },
-    "jellyseerr": "Jellyseerr",
+    "jellyseerr": "Seerr",
     "seeAll": "Vaata kõiki",
     "noItems": "Üksusi pole",
     "switchUser": "Vaheta kasutajat",

@@ -2312,7 +2312,7 @@
             }
         }
     },
-    "seerr": "Vidente",
+    "seerr": "Seerr",
     "@seerr": {
         "description": "Seerr brand name"
     },
@@ -6325,7 +6325,7 @@
             }
         }
     },
-    "jellyseerr": "Jellyseerr",
+    "jellyseerr": "Seerr",
     "seeAll": "Ver todo",
     "noItems": "Sin artículos",
     "switchUser": "Cambiar de usuario",

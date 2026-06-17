@@ -2312,7 +2312,7 @@
             }
         }
     },
-    "seerr": "Гледач",
+    "seerr": "Seerr",
     "@seerr": {
         "description": "Seerr brand name"
     },
@@ -6293,7 +6293,7 @@
             }
         }
     },
-    "jellyseerr": "Jellyseerr",
+    "jellyseerr": "Seerr",
     "seeAll": "Види ги сите",
     "noItems": "Нема ставки",
     "switchUser": "Префрли корисник",

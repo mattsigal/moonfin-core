@@ -111,7 +111,7 @@
     "@addServer": {
         "description": "Button to manually add a server address"
     },
-    "embyConnect": "Emby Connecter",
+    "embyConnect": "Emby Connect",
     "@embyConnect": {
         "description": "Emby Connect sign-in option label"
     },
@@ -160,7 +160,7 @@
     "@secureStorageUnavailableMessage": {
         "description": "Explanation when secure storage is not available"
     },
-    "ok": "D'ACCORD",
+    "ok": "OK",
     "@ok": {
         "description": "Generic OK button label"
     },
@@ -180,7 +180,7 @@
     "@themeMoonfinSubtitle": {
         "description": "Preview description for the Moonfin theme"
     },
-    "themeNeonPulse": "Néon Impulsion",
+    "themeNeonPulse": "Neon Pulse",
     "@themeNeonPulse": {
         "description": "Display name for the Neon Pulse theme"
     },
@@ -301,7 +301,7 @@
     "@browseAll": {
         "description": "Button to browse all items in a library"
     },
-    "genres": "Genre",
+    "genres": "Genres",
     "@genres": {
         "description": "Genres navigation label"
     },
@@ -461,7 +461,7 @@
     "@albums": {
         "description": "Music browse view button label"
     },
-    "albumArtists": "Artistes d'album",
+    "albumArtists": "Artistes de l'album",
     "@albumArtists": {
         "description": "Music browse view button label"
     },
@@ -506,7 +506,7 @@
             }
         }
     },
-    "hoursAgo": "{count}h il y a",
+    "hoursAgo": "il y a {count}h",
     "@hoursAgo": {
         "description": "Relative time in hours",
         "placeholders": {
@@ -515,7 +515,7 @@
             }
         }
     },
-    "daysAgo": "{count}d il y a",
+    "daysAgo": "il y a {count}j",
     "@daysAgo": {
         "description": "Relative time in days",
         "placeholders": {
@@ -536,15 +536,15 @@
     "@apply": {
         "description": "Button label to apply selected options"
     },
-    "audiobookGenres": "Genres d'audiolivres",
+    "audiobookGenres": "Genres de livres audio",
     "@audiobookGenres": {
         "description": "Title for audiobook genre picker panel"
     },
-    "pickAudiobookGenres": "Choisissez quels genres afficher dans Découvrir les audiolivres.",
+    "pickAudiobookGenres": "Choisissez quels genres afficher dans Découvrir pour les livres audio.",
     "@pickAudiobookGenres": {
         "description": "Instruction text in audiobook genre picker"
     },
-    "discoverAudiobooks": "Découvrir des audiolivres",
+    "discoverAudiobooks": "Découvrir des livres audio",
     "@discoverAudiobooks": {
         "description": "Section title for audiobook discovery"
     },
@@ -617,7 +617,7 @@
     "@pickUpAgain": {
         "description": "Book rail title for in-progress bookmarked items"
     },
-    "bookHighlightsDescription": "Vos livres avec des surlignages, des favoris ou une progression de lecture.",
+    "bookHighlightsDescription": "Vos livres favoris, en cours de lecture ou contenant des passages surlignés.",
     "@bookHighlightsDescription": {
         "description": "Subtitle for saved highlights section"
     },
@@ -629,7 +629,7 @@
     "@handPickedFromListeningQueue": {
         "description": "Subtitle for primary book rail from audiobooks"
     },
-    "booksWithHighlights": "Livres avec des surlignages, des favoris ou une progression de lecture.",
+    "booksWithHighlights": "Livres favoris, en cours de lecture ou contenant des passages surlignés.",
     "@booksWithHighlights": {
         "description": "Subtitle for bookmarks secondary rail"
     },
@@ -645,7 +645,7 @@
     "@quickAccessFavorites": {
         "description": "Subtitle for favorites book rail"
     },
-    "searchAudiobooks": "Rechercher des audiolivres",
+    "searchAudiobooks": "Rechercher des livres audio",
     "@searchAudiobooks": {
         "description": "Placeholder text in audiobook search bar"
     },
@@ -670,7 +670,7 @@
             }
         }
     },
-    "genresCount": "{count}genres",
+    "genresCount": "{count} genres",
     "@genresCount": {
         "description": "Metric pill showing genre count",
         "placeholders": {
@@ -704,7 +704,7 @@
     "@bookmarksAndProgress": {
         "description": "Panel header for bookmarks section"
     },
-    "titlesArrangedForBrowsing": "{count} titres organisés pour une navigation en lecture en premier.",
+    "titlesArrangedForBrowsing": "{count} titres organisés pour une navigation privilégiant la lecture.",
     "@titlesArrangedForBrowsing": {
         "description": "Panel subtitle showing total titles",
         "placeholders": {
@@ -749,7 +749,7 @@
     "@nothingMatchesSection": {
         "description": "Empty state for book experience when no items match"
     },
-    "audiobooks": "Audiolivres",
+    "audiobooks": "Livres audio",
     "@audiobooks": {
         "description": "Audiobooks navigation and tab label"
     },
@@ -838,7 +838,7 @@
     "@librivoxPage": {
         "description": "Button label for LibriVox external link"
     },
-    "internetArchive": "Archives Internet",
+    "internetArchive": "Internet Archive",
     "@internetArchive": {
         "description": "Button label for Internet Archive external link"
     },
@@ -906,7 +906,7 @@
             }
         }
     },
-    "audiobookCountLabel": "{count, plural, =1{1 audiobook} other{{count} audiobooks}}",
+    "audiobookCountLabel": "{count, plural, =0{0 livre audio} =1{1 livre audio} other{{count} livres audio}}",
     "@audiobookCountLabel": {
         "description": "Subtitle showing number of audiobooks by an author",
         "placeholders": {
@@ -939,7 +939,7 @@
     "@save": {
         "description": "Save action button label"
     },
-    "moreLikeThis": "Plus comme ça",
+    "moreLikeThis": "Plus de ce genre",
     "@moreLikeThis": {
         "description": "Section header for similar items"
     },
@@ -1041,7 +1041,7 @@
     "@publicationDateUnknown": {
         "description": "Placeholder when publication date is unknown"
     },
-    "seasonCount": "{count, plural, =1{1 Season} other{{count} Seasons}}",
+    "seasonCount": "{count, plural, =0{0 Saison} =1{1 Saison} other{{count} Saisons}}",
     "@seasonCount": {
         "description": "Number of seasons for a series",
         "placeholders": {
@@ -1132,7 +1132,7 @@
     "@favorite": {
         "description": "Action button label to favorite an item"
     },
-    "playlist": "Liste de lecture",
+    "playlist": "Playlist",
     "@playlist": {
         "description": "Action button label for adding to a playlist"
     },
@@ -1172,11 +1172,11 @@
     "@deleteItem": {
         "description": "Dialog title for deleting an item"
     },
-    "deletePlaylist": "Supprimer la liste de lecture",
+    "deletePlaylist": "Supprimer la Playlist",
     "@deletePlaylist": {
         "description": "Dialog title for deleting a playlist"
     },
-    "deletePlaylistMessage": "Supprimer cette liste de lecture du serveur ?",
+    "deletePlaylistMessage": "Supprimer cette Playlist du serveur ?",
     "@deletePlaylistMessage": {
         "description": "Confirmation message for deleting a playlist"
     },
@@ -1184,7 +1184,7 @@
     "@deleteItemMessage": {
         "description": "Confirmation message for deleting an item"
     },
-    "failedToDeletePlaylist": "Échec de la suppression de la liste de lecture",
+    "failedToDeletePlaylist": "Échec de la suppression de la playlist",
     "@failedToDeletePlaylist": {
         "description": "Error message when playlist deletion fails"
     },
@@ -1192,11 +1192,11 @@
     "@failedToDeleteItem": {
         "description": "Error message when item deletion fails"
     },
-    "renamePlaylist": "Renommer la liste de lecture",
+    "renamePlaylist": "Renommer la Playlist",
     "@renamePlaylist": {
         "description": "Dialog title for renaming a playlist"
     },
-    "playlistName": "Nom de la liste de lecture",
+    "playlistName": "Nom de la Playlist",
     "@playlistName": {
         "description": "Hint text for playlist name input field"
     },
@@ -1404,7 +1404,7 @@
     "@studio": {
         "description": "Metadata label for studio"
     },
-    "studioMoreCount": "+{count} plus",
+    "studioMoreCount": "{count, plural, =1{+ 1 autre} other{+ {count} autres}}",
     "@studioMoreCount": {
         "description": "Label showing additional studio count",
         "placeholders": {
@@ -1452,7 +1452,7 @@
             }
         }
     },
-    "trackCount": "{count, plural, =1{1 track} other{{count} tracks}}",
+    "trackCount": "{count, plural, =0{0 piste} =1{1 piste} other{{count} pistes}}",
     "@trackCount": {
         "description": "Label showing number of tracks in an album",
         "placeholders": {
@@ -1461,7 +1461,7 @@
             }
         }
     },
-    "chapterCount": "{count, plural, =1{1 chapter} other{{count} chapters}}",
+    "chapterCount": "{count, plural, =0{0 chapitre} =1{1 chapitre} other{{count} chapitres}}",
     "@chapterCount": {
         "description": "Label showing number of chapters in an audiobook",
         "placeholders": {
@@ -2129,7 +2129,7 @@
     "@premiere": {
         "description": "Premiere category filter label"
     },
-    "guideTimeline": "Frise du guide",
+    "guideTimeline": "Grille des Programmes",
     "@guideTimeline": {
         "description": "Section title for the TV guide timeline"
     },
@@ -2295,7 +2295,7 @@
             }
         }
     },
-    "seerr": "Voyant",
+    "seerr": "Seerr",
     "@seerr": {
         "description": "Seerr brand name"
     },
@@ -2340,7 +2340,7 @@
             }
         }
     },
-    "tracksCount": "{count} tracks",
+    "tracksCount": "{count} pistes",
     "@tracksCount": {
         "description": "Number of tracks in an album",
         "placeholders": {
@@ -2468,7 +2468,7 @@
             }
         }
     },
-    "episodeCount": "{count, plural, =1{1 episode} other{{count} episodes}}",
+    "episodeCount": "{count, plural, =0{0 épisode} =1{1 épisode} other{{count} épisodes}}",
     "@episodeCount": {
         "description": "Number of episodes with pluralization",
         "placeholders": {
@@ -2696,11 +2696,11 @@
     "@showBackdropImages": {
         "description": "Description for background backdrops"
     },
-    "seriesThumbnails": "Vignettes de séries",
+    "seriesThumbnails": "Afficher les vignettes des séries",
     "@seriesThumbnails": {
         "description": "Setting for series thumbnails"
     },
-    "seriesThumbnailsDescription": "Épisodes uniquement : utiliser l’illustration de la série correspondant au type d’image de chaque rangée",
+    "seriesThumbnailsDescription": "Pour les séries TV, utiliser le visuel principal de la série au lieu de la miniature de l'épisode.",
     "@seriesThumbnailsDescription": {
         "description": "Description for series thumbnails setting"
     },
@@ -2942,7 +2942,7 @@
     "@polish": {
         "description": "Language: Polish"
     },
-    "ac3Passthrough": "Pass-through AC3",
+    "ac3Passthrough": "Passthrough AC3",
     "@ac3Passthrough": {
         "description": "Setting for AC3 passthrough"
     },
@@ -3047,7 +3047,7 @@
     "@resumeAndSkip": {
         "description": "Section title for resume and skip settings"
     },
-    "resumeRewind": "Retour arrière à la reprise",
+    "resumeRewind": "Retour arrière à la reprise de la lecture",
     "@resumeRewind": {
         "description": "Setting for resume rewind"
     },
@@ -3167,7 +3167,7 @@
     "@semiTransparentBlack": {
         "description": "Color: semi-transparent black"
     },
-    "global": "Mondial",
+    "global": "Global",
     "@global": {
         "description": "Profile: global"
     },
@@ -3226,7 +3226,7 @@
     "@syncing": {
         "description": "Label while syncing"
     },
-    "syncToProfile": "Synchroniser vers le profil",
+    "syncToProfile": "Synchroniser le profil",
     "@syncToProfile": {
         "description": "Button to sync to a profile"
     },
@@ -3434,7 +3434,7 @@
     "@bannerLabel": {
         "description": "Image type: banner"
     },
-    "overridePerLibrarySettings": "Remplacer les paramètres par bibliothèque",
+    "overridePerLibrarySettings": "Écraser les paramètres par bibliothèque",
     "@overridePerLibrarySettings": {
         "description": "Setting for overriding per-library settings"
     },
@@ -3503,11 +3503,11 @@
     "@mediaBarMode": {
         "description": "Setting for choosing media bar style"
     },
-    "mediaBarModeDescription": "Choisissez Moonfin, MakD ou desactivez la barre media",
+    "mediaBarModeDescription": "Choisissez parmi différents styles pour la barre média ou désactivez la barre média",
     "@mediaBarModeDescription": {
         "description": "Description for media bar style setting"
     },
-    "mediaBarModeMoonfin": "Aileron de lune",
+    "mediaBarModeMoonfin": "Moonfin",
     "@mediaBarModeMoonfin": {
         "description": "Media bar style option: Moonfin"
     },
@@ -3515,7 +3515,7 @@
     "@mediaBarModeMakd": {
         "description": "Media bar style option: MakD"
     },
-    "mediaBarModeOff": "Desactive",
+    "mediaBarModeOff": "Désactivé",
     "@mediaBarModeOff": {
         "description": "Media bar style option: Off"
     },
@@ -3583,7 +3583,7 @@
     "@episodePreviewDescription": {
         "description": "Description for episode preview"
     },
-    "previewAudio": "Audio de l’aperçu",
+    "previewAudio": "Aperçu de l'audio",
     "@previewAudio": {
         "description": "Setting for preview audio"
     },
@@ -3751,7 +3751,7 @@
     "@mode": {
         "description": "Setting for mode"
     },
-    "libraryArt": "Illustrations de bibliothèque",
+    "libraryArt": "Visuels de bibliothèque",
     "@libraryArt": {
         "description": "Screensaver mode: library art"
     },
@@ -3901,7 +3901,7 @@
     "@ratingSourcesDescription": {
         "description": "Description for rating sources"
     },
-    "pluginLabel": "Plugin",
+    "pluginLabel": "Moonbase Plugin",
     "@pluginLabel": {
         "description": "Settings title for plugin"
     },
@@ -3997,7 +3997,7 @@
     "@networks": {
         "description": "Seerr row: networks"
     },
-    "resetRowsToDefaults": "Réinitialiser les lignes par défaut",
+    "resetRowsToDefaults": "Réinitialiser les rangées par défaut",
     "@resetRowsToDefaults": {
         "description": "Tooltip for reset rows to defaults"
     },
@@ -4030,15 +4030,15 @@
             }
         }
     },
-    "discoverRows": "Lignes de découverte",
+    "discoverRows": "Rangées de découverte",
     "@discoverRows": {
         "description": "Section title for discover rows"
     },
-    "discoverRowsDescriptionPlugin": "Faites glisser pour réorganiser. Activez ou désactivez les lignes. L’ordre des lignes activées se synchronise avec le plugin Moonfin.",
+    "discoverRowsDescriptionPlugin": "Faites glisser pour réorganiser. Activez ou désactivez les rangées. L'ordre des rangées activées se synchronise avec le plugin Moonfin.",
     "@discoverRowsDescriptionPlugin": {
         "description": "Description for discover rows with plugin"
     },
-    "discoverRowsDescription": "Faites glisser pour réorganiser. Activez ou désactivez les lignes.",
+    "discoverRowsDescription": "Faites glisser pour réorganiser. Activez ou désactivez les rangées.",
     "@discoverRowsDescription": {
         "description": "Description for discover rows without plugin"
     },
@@ -4144,7 +4144,7 @@
     "@navbarStyleToolbarAppearance": {
         "description": "Navigation settings subtitle"
     },
-    "reorderToggleHomeRows": "Réorganiser et afficher/masquer les lignes d’accueil",
+    "reorderToggleHomeRows": "Réorganiser et afficher/masquer les rangées d'accueil",
     "@reorderToggleHomeRows": {
         "description": "Home sections settings subtitle"
     },
@@ -5583,7 +5583,7 @@
     "adminMetadataFieldCriticRating": "Note des critiques",
     "adminMetadataFieldTagline": "Slogan",
     "adminMetadataFieldOverview": "Synopsis",
-    "adminMetadataGenres": "Genre",
+    "adminMetadataGenres": "Genres",
     "adminMetadataTags": "Balises",
     "adminMetadataStudios": "Ateliers",
     "adminMetadataPeople": "Personnes",
@@ -6014,7 +6014,7 @@
     "folders": "Dossiers",
     "libraries": "Bibliothèques",
     "syncPlay": "SyncPlay",
-    "jellyseerr": "Jellyseerr",
+    "jellyseerr": "Seerr",
     "seeAll": "Voir tout",
     "noItems": "Aucun élément",
     "switchUser": "Changer d'utilisateur",
@@ -6292,15 +6292,15 @@
             }
         }
     },
-    "dtsPassthrough": "Passage DTS",
+    "dtsPassthrough": "Passthrough DTS",
     "@dtsPassthrough": {
         "description": "Setting for DTS passthrough"
     },
-    "enableDtsPassthrough": "Audio Bitstream DTS vers AVR uniquement ; nécessite la prise en charge du récepteur et la piste source DTS",
+    "enableDtsPassthrough": "Audio Bitstream DTS vers AVR uniquement ; nécessite la piste source DTS et sa prise en charge par l'AVR",
     "@enableDtsPassthrough": {
         "description": "Description for DTS passthrough"
     },
-    "unpauseRewind": "Reprendre le rembobinage",
+    "unpauseRewind": "Retour arrière après avoir mis en pause",
     "@unpauseRewind": {
         "description": "Setting for rewinding a little when resuming from pause"
     },
@@ -6523,12 +6523,12 @@
     "rememberMyChoice": "Souviens-toi de mon choix",
     "playHdr10Fallback": "Lire la solution de secours HDR10",
     "requestTranscode": "Demander un transcodage",
-    "homeScreenSectionsIntegrationDescription": "Détectez les lignes exposées par le plugin « Home Screen Sections » d'IAmParadox27. Les lignes peuvent être activées et réorganisées ci-dessous.",
+    "homeScreenSectionsIntegrationDescription": "Détectez les rangées exposées par le plugin « Home Screen Sections » d'IAmParadox27. Les rangées peuvent être activées et réorganisées ci-dessous.",
     "homeScreenSectionsIntegrationNoServers": "Aucun serveur Jellyfin n'a encore signalé le plugin.",
-    "kefinTweaksIntegrationDescription": "Détectez les lignes configurées via le plugin \"KefinTweaks\" de ranaldsgift. Les sections personnalisées, récemment publiées, à revoir, saisonnières et récemment ajoutées à la bibliothèque sont reflétées à partir de la configuration KefinTweaks sur chaque serveur Jellyfin.",
+    "kefinTweaksIntegrationDescription": "Détectez les rangées configurées via le plugin \"KefinTweaks\" de ranaldsgift. Les sections personnalisées, récemment publiées, à revoir, saisonnières et récemment ajoutées à la bibliothèque sont reflétées à partir de la configuration KefinTweaks sur chaque serveur Jellyfin.",
     "kefinTweaksIntegrationNoServers": "Aucun serveur Jellyfin ne signale KefinTweaks pour le moment.",
     "integrationOpenHomeSections": "Sections d'accueil ouvertes",
-    "integrationOpenHomeSectionsSubtitle": "Activer, désactiver et réorganiser les lignes",
+    "integrationOpenHomeSectionsSubtitle": "Activer, désactiver et réorganiser les rangées",
     "integrationInstalledButDisabled": "Installé mais désactivé",
     "integrationNotInstalled": "Non installé",
     "integrationSectionsCount": "{count, plural, one {# section} other {# sections}}",
@@ -6562,7 +6562,7 @@
     "settingsAccountSecurity": "Compte et sécurité",
     "settingsAccountSecuritySubtitle": "Authentification, code PIN et contrôle parental",
     "settingsPersonalization": "Personnalisation",
-    "settingsPersonalizationSubtitle": "Thème, navigation, lignes d'accueil et visibilité de la bibliothèque",
+    "settingsPersonalizationSubtitle": "Thème, navigation, rangées d'accueil et visibilité de la bibliothèque",
     "settingsDynamicContent": "Contenu dynamique",
     "settingsDynamicContentSubtitle": "Barre média et superpositions visuelles",
     "settingsPlaybackSyncplay": "Lecture & SyncPlay",
@@ -6666,7 +6666,7 @@
     "settingsBitstreamAc3ToExternalDecoder": "Bitstream AC3 vers décodeur externe",
     "settingsCinemaMode": "Mode cinéma",
     "settingsCinemaModeSubtitle": "Lire des bandes-annonces/prerolls avant un long métrage principal",
-    "settingsNextUpDisplayDescription": "Extended affiche une carte complète avec les illustrations et la description de l'épisode. Minimal montre une superposition de compte à rebours compacte. Désactivé masque entièrement l’invite.",
+    "settingsNextUpDisplayDescription": "Extended affiche une carte complète avec le visuel et la description de l'épisode. Minimal montre une superposition de compte à rebours compacte. Désactivé masque entièrement l'invite.",
     "settingsShort": "Court",
     "settingsLong": "Long",
     "settingsVeryLong": "Très longtemps",
@@ -6716,7 +6716,7 @@
             }
         }
     },
-    "latestLibraryName": "Dernier {libraryName}",
+    "latestLibraryName": "{libraryName}, ajouts récents",
     "@latestLibraryName": {
         "description": "Row title for latest media in a specific library",
         "placeholders": {
@@ -6725,7 +6725,7 @@
             }
         }
     },
-    "desktopUiScale": "Échelle de l'interface utilisateur de bureau",
+    "desktopUiScale": "Échelle de l'interface utilisateur",
     "@desktopUiScale": {
         "description": "Setting for desktop UI scale"
     },
@@ -6749,7 +6749,7 @@
     "@jellyfinAccount": {
         "description": "Auth option label for Seerr sign in using Jellyfin credentials"
     },
-    "localAccount": "Locale",
+    "localAccount": "Local",
     "@localAccount": {
         "description": "Auth option label for Seerr sign in using local Seerr credentials"
     },
@@ -6757,7 +6757,7 @@
     "@seasonalEffectsDescription": {
         "description": "Description for seasonal effects settings"
     },
-    "mediaSources": "Sources médiatiques",
+    "mediaSources": "Média sources",
     "@mediaSources": {
         "description": "Section heading for media source options"
     },
@@ -6821,11 +6821,11 @@
     "@settingsAudioOutputMode": {
         "description": "Setting for audio output mode"
     },
-    "settingsAudioOutputModeAvrPassthrough": "Passage AVR",
+    "settingsAudioOutputModeAvrPassthrough": "AVR Passthrough",
     "@settingsAudioOutputModeAvrPassthrough": {
         "description": "Audio output mode option for AVR passthrough"
     },
-    "settingsAudioFallbackCodec": "Codec de secours audio",
+    "settingsAudioFallbackCodec": "Codec audio de secours",
     "@settingsAudioFallbackCodec": {
         "description": "Setting for fallback audio codec"
     },
@@ -6845,7 +6845,7 @@
     "@settingsAudioPassthroughAdvanced": {
         "description": "Section title for advanced passthrough controls"
     },
-    "settingsAudioCodecPassthrough": "Passage de codecs",
+    "settingsAudioCodecPassthrough": "Passthrough de codecs",
     "@settingsAudioCodecPassthrough": {
         "description": "Title for codec passthrough settings group"
     },
@@ -6853,27 +6853,27 @@
     "@settingsAudioCodecPassthroughDescription": {
         "description": "Description for codec passthrough settings group"
     },
-    "settingsAudioEac3Passthrough": "Passage EAC3",
+    "settingsAudioEac3Passthrough": "Passthrough EAC3",
     "@settingsAudioEac3Passthrough": {
         "description": "Setting for EAC3 passthrough"
     },
-    "settingsAudioEac3JocPassthrough": "Passage EAC3 JOC (Atmos)",
+    "settingsAudioEac3JocPassthrough": "Passthrough EAC3 JOC (Atmos)",
     "@settingsAudioEac3JocPassthrough": {
         "description": "Setting for EAC3 JOC Atmos passthrough"
     },
-    "settingsAudioDtsCorePassthrough": "Passage de base DTS",
+    "settingsAudioDtsCorePassthrough": "Passthrough DTS Core",
     "@settingsAudioDtsCorePassthrough": {
         "description": "Setting for DTS core passthrough"
     },
-    "settingsAudioDtsHdPassthrough": "Passage DTS-HD MA",
+    "settingsAudioDtsHdPassthrough": "Passthrough DTS-HD MA",
     "@settingsAudioDtsHdPassthrough": {
         "description": "Setting for DTS-HD MA passthrough"
     },
-    "settingsAudioTrueHdPassthrough": "Passage TrueHD",
+    "settingsAudioTrueHdPassthrough": "Passthrough TrueHD",
     "@settingsAudioTrueHdPassthrough": {
         "description": "Setting for TrueHD passthrough"
     },
-    "settingsAudioTrueHdAtmosPassthrough": "Passage TrueHD Atmos",
+    "settingsAudioTrueHdAtmosPassthrough": "Passthrough TrueHD Atmos",
     "@settingsAudioTrueHdAtmosPassthrough": {
         "description": "Setting for TrueHD Atmos passthrough"
     },
@@ -6881,11 +6881,11 @@
     "@settingsAudioBitstreamEac3ToExternalDecoder": {
         "description": "Description for EAC3 passthrough"
     },
-    "settingsAudioBitstreamEac3JocToExternalDecoder": "Bitstream Dolby Atmos sur EAC3 (JOC) vers un décodeur externe.",
+    "settingsAudioBitstreamEac3JocToExternalDecoder": "Bitstream Dolby Atmos via EAC3 (JOC) vers un décodeur externe.",
     "@settingsAudioBitstreamEac3JocToExternalDecoder": {
         "description": "Description for EAC3 JOC passthrough"
     },
-    "settingsAudioBitstreamDtsHdToExternalDecoder": "Bitstream DTS-HD MA (inclut le noyau DTS) vers un décodeur externe.",
+    "settingsAudioBitstreamDtsHdToExternalDecoder": "Bitstream DTS-HD MA (DTS Core inclus) vers un décodeur externe.",
     "@settingsAudioBitstreamDtsHdToExternalDecoder": {
         "description": "Description for DTS-HD MA passthrough"
     },
@@ -6901,19 +6901,19 @@
     "@settingsDetectedAudioCapabilitiesUnavailable": {
         "description": "Message shown when runtime audio capability snapshot is missing"
     },
-    "settingsAudioRouteLabel": "Itinéraire",
+    "settingsAudioRouteLabel": "Sortie",
     "@settingsAudioRouteLabel": {
         "description": "Label for active audio route row"
     },
-    "settingsAudioDecodeLabel": "Décoder",
+    "settingsAudioDecodeLabel": "Décodage",
     "@settingsAudioDecodeLabel": {
         "description": "Label for audio decode capability row"
     },
-    "settingsAudioPassthroughLabel": "Passage",
+    "settingsAudioPassthroughLabel": "Passthrough",
     "@settingsAudioPassthroughLabel": {
         "description": "Label for audio passthrough capability row"
     },
-    "settingsAudioHdRoute": "Parcours audio HD",
+    "settingsAudioHdRoute": "Sortie audio HD",
     "@settingsAudioHdRoute": {
         "description": "Label indicating the active route supports HD audio"
     },
@@ -6933,7 +6933,7 @@
     "@settingsAudioRouteBluetooth": {
         "description": "Audio route type Bluetooth"
     },
-    "settingsAudioRouteSpeaker": "Conférencier",
+    "settingsAudioRouteSpeaker": "Enceintes",
     "@settingsAudioRouteSpeaker": {
         "description": "Audio route type speaker"
     },
@@ -6974,11 +6974,11 @@
     "@settingsAudioDiagnosticsHlsFmp4AudioCodecs": {
         "description": "Diagnostics label for HLS fMP4 audio codecs"
     },
-    "settingsAudioDiagnosticsAudioSpdifPassthrough": "relais audio-SPDIF",
+    "settingsAudioDiagnosticsAudioSpdifPassthrough": "Passthrough audio-SPDIF",
     "@settingsAudioDiagnosticsAudioSpdifPassthrough": {
         "description": "Diagnostics label for audio-spdif passthrough codecs"
     },
-    "settingsAudioDiagnosticsActiveAudioRoute": "Itinéraire audio actif",
+    "settingsAudioDiagnosticsActiveAudioRoute": "Sortie audio active",
     "@settingsAudioDiagnosticsActiveAudioRoute": {
         "description": "Diagnostics label for active audio route"
     },
@@ -7048,7 +7048,7 @@
     "@useDetailedSubHeadings": {
         "description": "Label for setting to toggle detailed or minimal subrow on library pages"
     },
-    "useDetailedSubHeadingsDescription": "Afficher la sous-ligne détaillée ou minimale sur les pages de la bibliothèque.",
+    "useDetailedSubHeadingsDescription": "Afficher la sous-rangée détaillée ou minimale sur les pages de la bibliothèque.",
     "@useDetailedSubHeadingsDescription": {
         "description": "Subtitle for the use detailed sub headings setting"
     },
@@ -7102,25 +7102,25 @@
     "bottomBar": "Barre inférieure",
     "homeRowsStyleClassic": "Classique",
     "homeRowsStyleModern": "Moderne",
-    "homeRowsSection": "Lignes d'accueil",
-    "rowsType": "Type de lignes",
-    "rowsTypeDescription": "Classic conserve le type d'image par ligne et la superposition d'informations. Modern utilise des rangées du portrait à la toile de fond.",
-    "displayFavoritesRows": "Afficher les lignes de favoris",
-    "displayFavoritesRowsSubtitle": "Afficher les films, séries et autres lignes préférées dans les sections d'accueil.",
-    "favoritesRowSorting": "Tri des lignes des favoris",
-    "favoritesRowSortingDescription": "Triez les lignes des favoris par date d'ajout, date de sortie, par ordre alphabétique, etc.",
-    "displayCollectionsRows": "Afficher les lignes des collections",
-    "displayCollectionsRowsSubtitle": "Afficher les lignes des collections dans les sections d'accueil.",
-    "collectionsRowSorting": "Tri des lignes de collections",
-    "collectionsRowSortingDescription": "Triez les lignes des collections par date d'ajout, date de sortie, par ordre alphabétique, etc.",
-    "displayGenresRows": "Afficher les lignes de genres",
-    "displayGenresRowsSubtitle": "Afficher les lignes de genres dans les sections d'accueil.",
-    "genresRowSorting": "Tri des lignes par genre",
-    "genresRowSortingDescription": "Triez les lignes de genres par date d'ajout, date de sortie, par ordre alphabétique, etc.",
-    "genresRowItems": "Éléments de ligne de genres",
-    "genresRowItemsDescription": "Afficher des films, des séries ou les deux dans les lignes Genres.",
+    "homeRowsSection": "Rangées d'accueil",
+    "rowsType": "Type de rangée",
+    "rowsTypeDescription": "Classic conserve le type d'image par rangée et la superposition d'informations. Modern utilise des rangées passant du portrait à l'arrière-plan.",
+    "displayFavoritesRows": "Afficher les rangées de favoris",
+    "displayFavoritesRowsSubtitle": "Afficher les films, séries et autres rangées préférées dans les sections d'accueil.",
+    "favoritesRowSorting": "Tri des rangées de favoris",
+    "favoritesRowSortingDescription": "Triez les rangées de favoris par date d'ajout, date de sortie, par ordre alphabétique, etc.",
+    "displayCollectionsRows": "Afficher les rangées de collections dans les sections d'accueil.",
+    "displayCollectionsRowsSubtitle": "Afficher les rangées de collections dans les sections d'accueil.",
+    "collectionsRowSorting": "Tri des rangées de collections",
+    "collectionsRowSortingDescription": "Triez les rangées de collections par date d'ajout, date de sortie, par ordre alphabétique, etc.",
+    "displayGenresRows": "Afficher les rangées de genres",
+    "displayGenresRowsSubtitle": "Afficher les rangées de genres dans les sections d'accueil.",
+    "genresRowSorting": "Tri des rangées par genre",
+    "genresRowSortingDescription": "Triez les rangées de genres par date d'ajout, date de sortie, par ordre alphabétique, etc.",
+    "genresRowItems": "Éléments de rangée de genres",
+    "genresRowItemsDescription": "Afficher des films, des séries ou les deux dans les rangées Genres.",
     "appearance": "Apparence",
-    "cardSize": "Taille de la carte",
+    "cardSize": "Taille des cartes des rangées d'accueil",
     "externalPlayerApp": "Application de lecteur externe",
     "externalPlayerAskEachTimeSubtitle": "Afficher le sélecteur d'application lorsque la lecture démarre.",
     "loadingInstalledPlayers": "Chargement des lecteurs installés...",
@@ -7140,7 +7140,7 @@
     "playerRouting": "Routage des joueurs",
     "preferSoftwareDecoders": "Préférer les décodeurs logiciels",
     "preferSoftwareDecodersSubtitle": "Utilisez FFmpeg (audio) et libgav1 (AV1) avant les décodeurs matériels. Désactivez-le si le passage audio HDMI est interrompu.",
-    "useExternalPlayer": "Utiliser un lecteur externe",
+    "useExternalPlayer": "Toujours utiliser un lecteur externe",
     "useExternalPlayerSubtitle": "Ouvrez la lecture vidéo dans votre application externe sélectionnée sur Android TV.",
     "automaticQueuing": "File d'attente automatique",
     "preferSdhSubtitles": "Préférer les sous-titres SDH",
@@ -7365,5 +7365,301 @@
     "enableTunnelingTitle": "Activer le tunnel vidéo",
     "@enableTunnelingTitle": {
         "description": "Setting title: enable tunneled video playback (advanced)"
+    },
+    "systemLanguageDefault": "Langue du système",
+    "@systemLanguageDefault": {
+        "description": "Label for using the system default language in settings"
+    },
+    "accountPreferences": "PREFERENCES DU COMPTE",
+    "@accountPreferences": {
+        "description": "Section header for account preferences settings"
+    },
+    "interfaceLanguage": "Langage de l'interface",
+    "@interfaceLanguage": {
+        "description": "Label for the app interface language setting"
+    },
+    "empty": "Vide",
+    "@empty": {
+        "description": "Label indicating a section or category is empty"
+    },
+    "themeGlass": "Glass",
+    "@themeGlass": {
+        "description": "Display name for the Glass theme"
+    },
+    "endsIn": "Fin dans {time}",
+    "@endsIn": {
+        "description": "Label showing remaining time for segment or timeout",
+        "placeholders": {
+            "time": {
+                "type": "String"
+            }
+        }
+    },
+    "playerTooltipVolume": "Volume",
+    "@playerTooltipVolume": {
+        "description": "Tooltip for the volume control button in the player OSD"
+    },
+    "settingsAudioOutputModeDescription": "Choisissez comment l'audio est décodé. AVR Passthrough envoie les flux Dolby/DTS directement à votre ampli sans traitements ; Auto ou Downmix décode localement.",
+    "@settingsAudioOutputModeDescription": {
+        "description": "Description for audio output mode setting"
+    },
+    "themeGlassSubtitle": "Style \"Verre liquide\" avec arrière-plan en dégradé animé, surfaces dépolies et touches de bleu Apple",
+    "@themeGlassSubtitle": {
+        "description": "Preview description for the Glass theme"
+    },
+    "settingsScrollWheelAction": "Défilement avec la molette de la souris",
+    "@settingsScrollWheelAction": {
+        "description": "Setting title for the mouse scroll wheel action during playback"
+    },
+    "settingsScrollWheelActionDescription": "Choisir l'action du défilement avec la molette de la souris durant la lecture.",
+    "@settingsScrollWheelActionDescription": {
+        "description": "Description for the mouse scroll wheel action setting"
+    },
+    "scrollWheelActionOff": "Désactivé",
+    "@scrollWheelActionOff": {
+        "description": "Scroll wheel action option: do nothing"
+    },
+    "scrollWheelActionSeek": "Défilement (avant / arrière)",
+    "@scrollWheelActionSeek": {
+        "description": "Scroll wheel action option: seek forward and back"
+    },
+    "scrollWheelActionVolume": "Volume",
+    "@scrollWheelActionVolume": {
+        "description": "Scroll wheel action option: adjust volume"
+    },
+    "settingsAudioFallbackCodecDescription": "Sélectionnez le format cible pour transcoder l'audio multicanal lorsque le flux source ne peut pas être lu directement ou transmis en passthrough.",
+    "@settingsAudioFallbackCodecDescription": {
+        "description": "Description for audio fallback codec setting"
+    },
+    "settingsAudioFallbackCodecAuto": "Détection automatique\n(Recommandé)",
+    "@settingsAudioFallbackCodecAuto": {
+        "description": "Fallback codec option: Auto"
+    },
+    "settingsAudioFallbackCodecAac": "AAC\n(Par défaut)",
+    "@settingsAudioFallbackCodecAac": {
+        "description": "Fallback codec option: AAC"
+    },
+    "settingsAudioFallbackCodecAc3": "AC3\n(Dolby Digital)",
+    "@settingsAudioFallbackCodecAc3": {
+        "description": "Fallback codec option: AC3"
+    },
+    "settingsAudioFallbackCodecEac3": "EAC3\n(Dolby Digital Plus)",
+    "@settingsAudioFallbackCodecEac3": {
+        "description": "Fallback codec option: EAC3"
+    },
+    "settingsAudioFallbackCodecTrueHd": "TrueHD\n(Lossless)",
+    "@settingsAudioFallbackCodecTrueHd": {
+        "description": "Fallback codec option: TrueHD"
+    },
+    "settingsAudioFallbackCodecMp3": "MP3\n(Stéréo uniquement)",
+    "@settingsAudioFallbackCodecMp3": {
+        "description": "Fallback codec option: MP3"
+    },
+    "settingsAudioFallbackCodecOpus": "Opus\n(Efficient)",
+    "@settingsAudioFallbackCodecOpus": {
+        "description": "Fallback codec option: Opus"
+    },
+    "settingsAudioFallbackCodecFlac": "FLAC\n(Lossless)",
+    "@settingsAudioFallbackCodecFlac": {
+        "description": "Fallback codec option: FLAC"
+    },
+    "settingsMaxAudioChannels": "Nombre maximum de canaux audio",
+    "@settingsMaxAudioChannels": {
+        "description": "Setting for maximum audio channels capability"
+    },
+    "settingsMaxAudioChannelsDescription": "Configurez le nombre maximum de canaux de votre installation audio. Les flux multicanaux dépassant cette limite feront l'objet d'un downmix ou d'un transcodage.",
+    "@settingsMaxAudioChannelsDescription": {
+        "description": "Description for maximum audio channels setting"
+    },
+    "settingsMaxAudioChannelsAuto": "Détection automatique\n(Réglage matériel par défaut))",
+    "@settingsMaxAudioChannelsAuto": {
+        "description": "Option: Auto detect channels"
+    },
+    "settingsMaxAudioChannelsMono": "1.0 Mono",
+    "@settingsMaxAudioChannelsMono": {
+        "description": "Option: Mono (1 channel)"
+    },
+    "settingsMaxAudioChannelsStereo": "2.0 Stéréo",
+    "@settingsMaxAudioChannelsStereo": {
+        "description": "Option: Stereo (2 channels)"
+    },
+    "settingsMaxAudioChannels3_0": "3.0 / 2.1 Surround",
+    "@settingsMaxAudioChannels3_0": {
+        "description": "Option: 3 channels"
+    },
+    "settingsMaxAudioChannels4_0": "4.0 / 3.1 Quadraphonique",
+    "@settingsMaxAudioChannels4_0": {
+        "description": "Option: 4 channels"
+    },
+    "settingsMaxAudioChannels5_0": "5.0 / 4.1 Surround",
+    "@settingsMaxAudioChannels5_0": {
+        "description": "Option: 5 channels"
+    },
+    "settingsMaxAudioChannels5_1": "5.1 Surround",
+    "@settingsMaxAudioChannels5_1": {
+        "description": "Option: 5.1 Surround channels"
+    },
+    "settingsMaxAudioChannels6_1": "6.1 Surround",
+    "@settingsMaxAudioChannels6_1": {
+        "description": "Option: 6.1 Surround channels"
+    },
+    "settingsMaxAudioChannels7_1": "7.1 Surround",
+    "@settingsMaxAudioChannels7_1": {
+        "description": "Option: 7.1 Surround channels"
+    },
+    "showSeerrButton": "Afficher le bouton Seerr",
+    "@showSeerrButton": {
+        "description": "Setting for showing Seerr button"
+    },
+    "fullScreenRows": "Rangées d'accueil étendues",
+    "@fullScreenRows": {
+        "description": "Setting for full screen home rows"
+    },
+    "fullScreenRowsDescription": "Limiter les rangées d'accueil à une par écran",
+    "@fullScreenRowsDescription": {
+        "description": "Description for full screen home rows"
+    },
+    "currentUser": "Utilisateur actuel",
+    "@currentUser": {
+        "description": "Option: current user"
+    },
+    "seerrDiscoveryRows": "Rangées de découverte Seerr",
+    "@seerrDiscoveryRows": {
+        "description": "Subtitle shown under Seerr discovery home rows"
+    },
+    "settingsShowSeerrButtonInNavigation": "Afficher le bouton Seerr dans la barre de navigation",
+    "displaySeerrRows": "Afficher les rangées de découverte Seerr",
+    "displaySeerrRowsSubtitle": "Afficher les rangées de découverte Seerr dans les sections de l'accueil.",
+    "settingsProgressBar": "Barre de progression",
+    "@settingsProgressBar": {
+        "description": "Option label to show only progress bar on media segment countdown overlay"
+    },
+    "settingsMediaSegmentCountdown": "Compte à rebours des segments",
+    "@settingsMediaSegmentCountdown": {
+        "description": "Setting label for media segment countdown customizations"
+    },
+    "clockModeStatic": "Statique",
+    "@clockModeStatic": {
+        "description": "Screensaver clock mode: fixed in a corner"
+    },
+    "homeRowDisplay": "Affichage des rangées d'accueil",
+    "homeRowSections": "Sections des rangées d'accueil",
+    "homeRowToggles": "Activation des rangées d'accueil",
+    "homeRowTogglesSubtitle": "Activer ou désactiver les différentes catégories de rangées d'accueil",
+    "settingsTimer": "Minuteur",
+    "@settingsTimer": {
+        "description": "Option label to show only countdown timer on media segment countdown overlay"
+    },
+    "settingsNone": "Aucun",
+    "@settingsNone": {
+        "description": "Option label to hide all decorations on media segment countdown overlay"
+    },
+    "homeRowTogglesDescription": "Activer les options suivantes pour afficher les rangées dans les sections de l'accueil.",
+    "displayPlaylistsRows": "Afficher les rangées de playlists",
+    "displayPlaylistsRowsSubtitle": "Afficher les rangées de playlists dans les sections de l'accueil.",
+    "playlistsRowSorting": "Tri des rangées de playlists",
+    "playlistsRowSortingDescription": "Triez les rangées de playlists par date d'ajout, date de sortie, ordre alphabétique, et plus encore.",
+    "externalPlayerAppDescription": "Définir un lecteur externe pour activer l'option de lecture par appui long",
+    "changeArtwork": "Changer le visuel",
+    "missing": "Manquant",
+    "clearAllArtworkButton": "Effacer tous les visuels ?",
+    "clearAllArtworkWarning": "Êtes-vous sûr de vouloir supprimer tous les visuels téléchargés ?",
+    "directors": "RÉALISATEURS",
+    "@directors": {
+        "description": "Metadata label for directors"
+    },
+    "writer": "SCÉNARISTE",
+    "@writer": {
+        "description": "Metadata label for writer"
+    },
+    "showMediaDetailsOnLibraryPage": "Afficher les détails du média",
+    "@showMediaDetailsOnLibraryPage": {
+        "description": "Setting title to show/hide focused media details at the top of the library page"
+    },
+    "showMediaDetailsOnLibraryPageDescription": "Afficher les détails de l'élément sélectionné en haut des pages de la bibliothèque.",
+    "@showMediaDetailsOnLibraryPageDescription": {
+        "description": "Setting description to show/hide focused media details at the top of the library page"
+    },
+    "confirmClear": "Confirmer la suppression",
+    "confirmClearMessage": "Êtes-vous sûr de vouloir effacer ce {itemType} ?",
+    "@confirmClearMessage": {
+        "description": "Confirmation message when clearing a specific artwork",
+        "placeholders": {
+            "itemType": {
+                "type": "String"
+            }
+        }
+    },
+    "uploadButton": "Envoyer ?",
+    "resolutionLabel": "Résolution : ",
+    "onlyShowInterfaceLanguage": "Afficher uniquement les visuels dans la langue de l'interface",
+    "confirmClearAll": "Confirmer la suppression",
+    "imageUploadSuccess": "Image envoyée avec succès !",
+    "imageUploadFailed": "Échec de l'envoi de l'image : {error}",
+    "@imageUploadFailed": {
+        "placeholders": {
+            "error": {
+                "type": "String"
+            }
+        }
+    },
+    "imageDownloadFailed": "Impossible de définir l'image : {error}",
+    "@imageDownloadFailed": {
+        "placeholders": {
+            "error": {
+                "type": "String"
+            }
+        }
+    },
+    "imageDeleteFailed": "Impossible de supprimer l'image : {error}",
+    "@imageDeleteFailed": {
+        "placeholders": {
+            "error": {
+                "type": "String"
+            }
+        }
+    },
+    "clearAllArtworkFailed": "Impossible d'effacer tous les visuels : {error}",
+    "@clearAllArtworkFailed": {
+        "placeholders": {
+            "error": {
+                "type": "String"
+            }
+        }
+    },
+    "yes": "Oui",
+    "posterCategory": "Affiche",
+    "backdropsCategory": "Arrière-plans",
+    "bannerCategory": "Bannière",
+    "logoCategory": "Logo",
+    "thumbnailCategory": "Miniature",
+    "artCategory": "Visuel",
+    "discArtCategory": "Visuel du disque",
+    "screenshotCategory": "Capture d'écran",
+    "boxCoverCategory": "Jaquette",
+    "boxRearCoverCategory": "Jaquette arrière",
+    "menuArtCategory": "Visuel du menu",
+    "confirmItemPoster": "affiche",
+    "confirmItemBackdrop": "arrière-plan",
+    "confirmItemBanner": "bannière",
+    "confirmItemLogo": "logo",
+    "confirmItemThumbnail": "miniature",
+    "confirmItemArt": "visuel",
+    "confirmItemDiscArt": "visuel du disque",
+    "confirmItemScreenshot": "capture d'écran",
+    "confirmItemBoxCover": "jaquette",
+    "confirmItemBoxRearCover": "jaquette arrière",
+    "confirmItemMenuArt": "visuel du menu",
+    "resolutionAll": "Toutes",
+    "resolutionHigh": "Élevée (1080p+)",
+    "resolutionMedium": "Moyenne (720p)",
+    "resolutionLow": "Basse (<720p)",
+    "sources": "Sources",
+    "@sources": {
+        "description": "Title of the artwork source-provider filter dialog"
+    },
+    "clockModeBouncing": "Rebondissant",
+    "@clockModeBouncing": {
+        "description": "Screensaver clock mode: bounces around the screen"
     }
 }
