@@ -868,6 +868,11 @@ class PluginSyncService extends ChangeNotifier {
         'displayGenresRows',
         UserPreferences.displayGenresRows,
       );
+      _applyBool(
+        resolved,
+        'useDetailedSubHeadings',
+        UserPreferences.useDetailedSubHeadings,
+      );
       _applyString(
         resolved,
         'favoritesRowSortBy',
@@ -1349,6 +1354,9 @@ class PluginSyncService extends ChangeNotifier {
         UserPreferences.displayCollectionsRows,
       ),
       'displayGenresRows': _prefs.get(UserPreferences.displayGenresRows),
+      'useDetailedSubHeadings': _prefs.get(
+        UserPreferences.useDetailedSubHeadings,
+      ),
       'favoritesRowSortBy': _prefs.get(UserPreferences.favoritesRowSortBy).name,
       'collectionsRowSortBy': _prefs
           .get(UserPreferences.collectionsRowSortBy)
