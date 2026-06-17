@@ -42,8 +42,47 @@ class SyncService extends ChangeNotifier {
 
     int synced = 0, failed = 0;
 
+    // Batch-fetch server progress for every unsynced item in one request
+    // instead of a round-trip per item on reconnect.
+    final serverUserData = await _fetchServerUserData(
+      client,
+      unsynced.map((i) => i.itemId).toList(),
+    );
+
     for (final item in unsynced) {
       try {
+        final userData = serverUserData[item.itemId];
+        if (userData != null) {
+          final serverPlayed = userData['Played'] as bool? ?? false;
+          final serverTicks = userData['PlaybackPositionTicks'] as int? ?? 0;
+          final localPlayed = item.playbackPositionTicks == 0;
+
+          if (serverPlayed) {
+            // A played item is the furthest possible progress, so a server
+            // completion wins even over a newer partial offline position.
+            // Adopt the played state locally.
+            await _offlineRepo.setSyncedPlaybackPosition(
+              item.itemId,
+              0,
+              metadataJson: _mergeUserData(item.metadataJson, userData),
+            );
+            synced++;
+            continue;
+          }
+
+          // Otherwise furthest progress wins, but a local completion outranks
+          // any partial server position, so leave it to be pushed below.
+          if (!localPlayed && serverTicks > item.playbackPositionTicks) {
+            await _offlineRepo.setSyncedPlaybackPosition(
+              item.itemId,
+              serverTicks,
+              metadataJson: _mergeUserData(item.metadataJson, userData),
+            );
+            synced++;
+            continue;
+          }
+        }
+
         if (item.playbackPositionTicks == 0) {
           await client.userLibraryApi.markPlayed(item.itemId);
         } else {
@@ -56,7 +95,8 @@ class SyncService extends ChangeNotifier {
         }
         await _offlineRepo.markProgressSynced(item.itemId);
         synced++;
-      } catch (_) {
+      } catch (e) {
+        debugPrint('[Sync] Failed to sync progress for ${item.itemId}: $e');
         failed++;
       }
     }
@@ -66,22 +106,94 @@ class SyncService extends ChangeNotifier {
     return SyncResult(synced: synced, failed: failed);
   }
 
+  /// Returns [metadataJson] with its `UserData` replaced by the server's, so
+  /// the offline UI (which reads played/position from metadata) reflects the
+  /// adopted progress immediately rather than waiting for a metadata refresh.
+  String _mergeUserData(String metadataJson, Map<String, dynamic> userData) {
+    try {
+      final decoded = jsonDecode(metadataJson) as Map<String, dynamic>;
+      decoded['UserData'] = userData;
+      return jsonEncode(decoded);
+    } catch (_) {
+      return metadataJson;
+    }
+  }
+
+  /// Fetches the server's `UserData` for [itemIds] in a single query, keyed by
+  /// item id. Returns an empty map on failure so callers fall back to pushing
+  /// local progress. Ids are stringified because Emby returns them numerically.
+  Future<Map<String, Map<String, dynamic>>> _fetchServerUserData(
+    MediaServerClient client,
+    List<String> itemIds,
+  ) async {
+    final result = <String, Map<String, dynamic>>{};
+    if (itemIds.isEmpty) return result;
+    try {
+      final response = await client.itemsApi.getItems(
+        ids: itemIds,
+        fields: 'UserData',
+      );
+      final items = response['Items'] as List<dynamic>?;
+      if (items != null) {
+        for (final raw in items) {
+          final map = raw as Map<String, dynamic>;
+          final id = map['Id']?.toString();
+          final userData = map['UserData'] as Map<String, dynamic>?;
+          if (id != null && userData != null) {
+            result[id] = userData;
+          }
+        }
+      }
+    } catch (_) {}
+    return result;
+  }
+
   Future<void> refreshMetadata(MediaServerClient client) async {
     final items = await _offlineRepo.getItems();
     for (final item in items.where((i) => i.downloadStatus == 2)) {
       try {
         final serverData = await client.itemsApi.getItem(item.itemId);
+        final userData = serverData['UserData'] as Map<String, dynamic>?;
+        int? serverTicks;
+        if (userData != null) {
+          final serverPlayed = userData['Played'] as bool? ?? false;
+          serverTicks = serverPlayed ? 0 : (userData['PlaybackPositionTicks'] as int? ?? 0);
+        }
+
+        final localItem = await _offlineRepo.getItem(item.itemId);
+        if (localItem == null) continue;
+        final shouldUpdateTicks = localItem.progressSynced && serverTicks != null;
+
         await _offlineRepo.upsertItem(
           DownloadedItemsCompanion(
-            itemId: Value(item.itemId),
-            serverId: Value(item.serverId),
-            type: Value(item.type),
-            name: Value(item.name),
+            itemId: Value(localItem.itemId),
+            serverId: Value(localItem.serverId),
+            type: Value(localItem.type),
+            name: Value(localItem.name),
             metadataJson: Value(jsonEncode(serverData)),
-            downloadStatus: Value(item.downloadStatus),
+            downloadStatus: Value(localItem.downloadStatus),
+            localFilePath: Value(localItem.localFilePath),
+            posterPath: Value(localItem.posterPath),
+            backdropPath: Value(localItem.backdropPath),
+            logoPath: Value(localItem.logoPath),
+            thumbPath: Value(localItem.thumbPath),
+            downloadProgress: Value(localItem.downloadProgress),
+            errorMessage: Value(localItem.errorMessage),
+            fileSizeBytes: Value(localItem.fileSizeBytes),
+            downloadedAt: Value(localItem.downloadedAt),
+            qualityPreset: Value(localItem.qualityPreset),
+            seriesId: Value(localItem.seriesId),
+            seasonId: Value(localItem.seasonId),
+            seriesName: Value(localItem.seriesName),
+            seasonName: Value(localItem.seasonName),
+            indexNumber: Value(localItem.indexNumber),
+            parentIndexNumber: Value(localItem.parentIndexNumber),
+            progressSynced: Value(localItem.progressSynced),
+            playbackPositionTicks: shouldUpdateTicks ? Value(serverTicks) : Value(localItem.playbackPositionTicks),
           ),
         );
-      } catch (_) {
+      } catch (e) {
+        debugPrint('[Sync] Failed to refresh metadata for ${item.itemId}: $e');
       }
     }
   }
