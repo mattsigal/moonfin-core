@@ -939,7 +939,7 @@
     "@save": {
         "description": "Save action button label"
     },
-    "moreLikeThis": "Buna Benzer",
+    "moreLikeThis": "Benzerleri",
     "@moreLikeThis": {
         "description": "Section header for similar items"
     },
@@ -967,7 +967,7 @@
     "@chapters": {
         "description": "Section header for chapters"
     },
-    "features": "Özellikler",
+    "features": "Özel Özellikler",
     "@features": {
         "description": "Section header for special features"
     },
@@ -1112,7 +1112,7 @@
     "@version": {
         "description": "Action button label for version/media source selection"
     },
-    "cast": "Oyuncular",
+    "cast": "Yansıt",
     "@cast": {
         "description": "Action button label for casting to a device"
     },
@@ -1160,11 +1160,11 @@
     "@editMetadata": {
         "description": "Action button label to edit item metadata"
     },
-    "less": "Az",
+    "less": "Daha Az",
     "@less": {
         "description": "Action button label to collapse extra buttons"
     },
-    "more": "Daha",
+    "more": "Daha Fazla",
     "@more": {
         "description": "Action button label to expand extra buttons"
     },
@@ -5593,7 +5593,7 @@
     "adminMetadataAddPerson": "Kişi Ekle",
     "adminMetadataEditPerson": "Kişiyi Düzenle",
     "adminMetadataRole": "Rol",
-    "adminMetadataImagePrimary": "Öncelik",
+    "adminMetadataImagePrimary": "Birincil",
     "adminMetadataImageBackdrop": "Arka plan",
     "adminMetadataImageLogo": "Logo",
     "adminMetadataImageBanner": "Afiş",
