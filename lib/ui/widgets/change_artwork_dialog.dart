@@ -10,6 +10,9 @@ import '../../data/models/aggregated_item.dart';
 import '../../l10n/app_localizations.dart';
 import '../../util/focus/key_event_utils.dart';
 import '../../util/platform_detection.dart';
+import '../../auth/repositories/user_repository.dart';
+import '../../auth/repositories/session_repository.dart';
+import 'package:dio/dio.dart';
 import 'adaptive/adaptive_dialog.dart';
 import 'focus/focusable_wrapper.dart';
 import 'overlay_sheet.dart';
@@ -167,6 +170,7 @@ class _ChangeArtworkDialogState extends State<ChangeArtworkDialog> {
     _refreshItemMetadata();
     WidgetsBinding.instance.addPostFrameCallback((_) {
       _focusFirstItem();
+      _checkLibrariesWriteAccess();
     });
   }
 
@@ -468,6 +472,190 @@ class _ChangeArtworkDialogState extends State<ChangeArtworkDialog> {
     return '${client.baseUrl}/Items/${_item.id}/Images/$category?tag=$tag&maxWidth=300$indexParam';
   }
 
+  Future<void> _checkLibrariesWriteAccess() async {
+    final isAdmin = GetIt.instance<UserRepository>().currentUser?.isAdministrator ?? false;
+    if (!isAdmin) return;
+
+    final sessionRepo = GetIt.instance<SessionRepository>();
+    if (sessionRepo.hasCheckedWriteAccess) return;
+
+    sessionRepo.hasCheckedWriteAccess = true;
+
+    final client = GetIt.instance<MediaServerClient>();
+    final token = client.accessToken;
+    if (token == null) return;
+
+    try {
+      final dio = Dio();
+      final response = await dio.get(
+        '${client.baseUrl}/Moonfin/Libraries/CheckWriteAccess',
+        options: Options(headers: {
+          'Authorization': 'MediaBrowser Token="$token"',
+        }),
+      );
+
+      final data = response.data;
+      if (data is List) {
+        final reports = data.cast<Map<String, dynamic>>();
+        final itemPath = _item.rawData['Path'] as String?;
+        if (itemPath != null && itemPath.isNotEmpty) {
+          Map<String, dynamic>? matchingFailedReport;
+          String? matchingFailedPath;
+
+          for (final report in reports) {
+            final failedPaths = report['FailedPaths'] as List?;
+            if (failedPaths != null) {
+              for (final path in failedPaths) {
+                if (path is String && itemPath.startsWith(path)) {
+                  matchingFailedReport = report;
+                  matchingFailedPath = path;
+                  break;
+                }
+              }
+            }
+            if (matchingFailedReport != null) break;
+          }
+
+          if (matchingFailedReport != null && mounted) {
+            final libraryName = matchingFailedReport['LibraryName'] ?? 'Library';
+            await showDialog<void>(
+              context: context,
+              barrierDismissible: false,
+              builder: (context) => AlertDialog(
+                backgroundColor: AppColorScheme.surface,
+                title: const Text("Library Write Access Warning"),
+                content: Scrollbar(
+                  child: SingleChildScrollView(
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          "Your '$libraryName' library is configured to save artwork directly into the media folders ('Save artwork into media folders' is enabled). However, Jellyfin has tested write access and does not have permission to write files into this directory:\n\n$matchingFailedPath",
+                        ),
+                        const SizedBox(height: 12),
+                        const Text(
+                          "How to fix this:",
+                          style: TextStyle(fontWeight: FontWeight.bold),
+                        ),
+                        const SizedBox(height: 8),
+                        const Text(
+                          "1. Grant write permissions to the Jellyfin service user (e.g., jellyfin or Docker PUID/PGID) for your media library folders on the server.\n\n"
+                          "2. Or, go to your Jellyfin Dashboard -> Libraries, edit this library, and disable 'Save artwork into media folders' to store artwork in Jellyfin's internal database.",
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+                actions: [
+                  FocusableWrapper(
+                    autofocus: true,
+                    borderRadius: 8,
+                    suppressFocusGlow: true,
+                    onSelect: () => Navigator.of(context).pop(),
+                    child: const Padding(
+                      padding: EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                      child: Text(
+                        "Dismiss",
+                        style: TextStyle(fontWeight: FontWeight.bold),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            );
+          }
+        }
+      }
+      dio.close(force: true);
+    } catch (e) {
+      debugPrint('[Moonfin] Failed to check libraries write access: $e');
+    }
+  }
+
+  Future<void> _handleActionError(dynamic error, String actionName) async {
+    bool isLocalMetadataEnabled = false;
+    try {
+      final client = GetIt.instance<MediaServerClient>();
+      final folders = await client.adminLibraryApi.getVirtualFolders();
+      final itemPath = _item.rawData['Path'] as String?;
+      if (itemPath != null && itemPath.isNotEmpty) {
+        for (final folder in folders) {
+          if (folder.locations.any((loc) => itemPath.startsWith(loc))) {
+            isLocalMetadataEnabled =
+                folder.libraryOptions?['SaveLocalMetadata'] as bool? ?? false;
+            break;
+          }
+        }
+      }
+    } catch (e) {
+      debugPrint('Failed to check virtual folders: $e');
+    }
+
+    if (!mounted) return;
+
+    if (isLocalMetadataEnabled) {
+      await showDialog<void>(
+        context: context,
+        barrierDismissible: false,
+        builder: (context) => AlertDialog(
+          backgroundColor: AppColorScheme.surface,
+          title: const Text("Library Write Access Warning"),
+          content: Scrollbar(
+            child: SingleChildScrollView(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Text(
+                    "It looks like Jellyfin failed to update the artwork. Your library is configured to save artwork directly into the media folders ('Save artwork into media folders' is enabled). This error typically occurs when the Jellyfin server process does not have permission to write files into your media directories.",
+                  ),
+                  const SizedBox(height: 12),
+                  const Text(
+                    "How to fix this:",
+                    style: TextStyle(fontWeight: FontWeight.bold),
+                  ),
+                  const SizedBox(height: 8),
+                  const Text(
+                    "1. Grant write permissions to the Jellyfin service user (e.g., jellyfin or Docker PUID/PGID) for your media library folders on the server.\n\n"
+                    "2. Or, go to your Jellyfin Dashboard -> Libraries, edit this library, and disable 'Save artwork into media folders' to store artwork in Jellyfin's internal database.",
+                  ),
+                ],
+              ),
+            ),
+          ),
+          actions: [
+            FocusableWrapper(
+              autofocus: true,
+              borderRadius: 8,
+              suppressFocusGlow: true,
+              onSelect: () => Navigator.of(context).pop(),
+              child: const Padding(
+                padding: EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                child: Text(
+                  "Dismiss",
+                  style: TextStyle(fontWeight: FontWeight.bold),
+                ),
+              ),
+            ),
+          ],
+        ),
+      );
+    } else {
+      final l10n = AppLocalizations.of(context);
+      final message = switch (actionName) {
+        'download' => l10n.imageDownloadFailed(error.toString()),
+        'delete' => l10n.imageDeleteFailed(error.toString()),
+        'clear' => l10n.clearAllArtworkFailed(error.toString()),
+        'upload' => l10n.imageUploadFailed(error.toString()),
+        _ => error.toString(),
+      };
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(message)),
+      );
+    }
+  }
+
   Future<void> _fetchRemoteImages(String category) async {
     if (!mounted) return;
     setState(() {
@@ -539,9 +727,7 @@ class _ChangeArtworkDialogState extends State<ChangeArtworkDialog> {
         setState(() {
           _actionInProgress.remove(category);
         });
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(l10n.imageDownloadFailed(e.toString()))),
-        );
+        await _handleActionError(e, 'download');
       }
     }
   }
@@ -611,10 +797,7 @@ class _ChangeArtworkDialogState extends State<ChangeArtworkDialog> {
         setState(() {
           _actionInProgress.remove(category);
         });
-        final l10n = AppLocalizations.of(context);
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(l10n.imageDeleteFailed(e.toString()))),
-        );
+        await _handleActionError(e, 'delete');
       }
     }
   }
@@ -692,10 +875,7 @@ class _ChangeArtworkDialogState extends State<ChangeArtworkDialog> {
         setState(() {
           _actionInProgress.clear();
         });
-        final l10n = AppLocalizations.of(context);
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(l10n.clearAllArtworkFailed(e.toString()))),
-        );
+        await _handleActionError(e, 'clear');
       }
     }
   }
@@ -753,9 +933,7 @@ class _ChangeArtworkDialogState extends State<ChangeArtworkDialog> {
         setState(() {
           _actionInProgress.remove(category);
         });
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(l10n.imageUploadFailed(e.toString()))),
-        );
+        await _handleActionError(e, 'upload');
       }
     }
   }
