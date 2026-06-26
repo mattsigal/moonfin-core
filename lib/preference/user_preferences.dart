@@ -52,6 +52,19 @@ class UserPreferences extends ChangeNotifier {
     }
   }
 
+  void _migrateSubtitleModePreference() {
+    const legacyDefaultToNone = 'subtitles_default_to_none';
+    if (_store.containsKey(legacyDefaultToNone) &&
+        !_store.containsKey(subtitleMode.key)) {
+      final wasNone = _store.get(
+        Preference(key: legacyDefaultToNone, defaultValue: false),
+      );
+      if (wasNone) {
+        _store.set(subtitleMode, SubtitleMode.none);
+      }
+    }
+  }
+
   void _migrateOverlayPreferences() {
     if (!_store.containsKey(navbarOpacity.key)) {
       _store.set(navbarOpacity, _store.get(mediaBarOverlayOpacity));
