@@ -518,51 +518,9 @@ class _ChangeArtworkDialogState extends State<ChangeArtworkDialog> {
 
           if (matchingFailedReport != null && mounted) {
             final libraryName = matchingFailedReport['LibraryName'] ?? 'Library';
-            await showDialog<void>(
-              context: context,
-              barrierDismissible: false,
-              builder: (context) => AlertDialog(
-                backgroundColor: AppColorScheme.surface,
-                title: const Text("Library Write Access Warning"),
-                content: Scrollbar(
-                  child: SingleChildScrollView(
-                    child: Column(
-                      mainAxisSize: MainAxisSize.min,
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          "Your '$libraryName' library is configured to save artwork directly into the media folders ('Save artwork into media folders' is enabled). However, Jellyfin has tested write access and does not have permission to write files into this directory:\n\n$matchingFailedPath",
-                        ),
-                        const SizedBox(height: 12),
-                        const Text(
-                          "How to fix this:",
-                          style: TextStyle(fontWeight: FontWeight.bold),
-                        ),
-                        const SizedBox(height: 8),
-                        const Text(
-                          "1. Grant write permissions to the Jellyfin service user (e.g., jellyfin or Docker PUID/PGID) for your media library folders on the server.\n\n"
-                          "2. Or, go to your Jellyfin Dashboard -> Libraries, edit this library, and disable 'Save artwork into media folders' to store artwork in Jellyfin's internal database.",
-                        ),
-                      ],
-                    ),
-                  ),
-                ),
-                actions: [
-                  FocusableWrapper(
-                    autofocus: true,
-                    borderRadius: 8,
-                    suppressFocusGlow: true,
-                    onSelect: () => Navigator.of(context).pop(),
-                    child: const Padding(
-                      padding: EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                      child: Text(
-                        "Dismiss",
-                        style: TextStyle(fontWeight: FontWeight.bold),
-                      ),
-                    ),
-                  ),
-                ],
-              ),
+            final l10n = AppLocalizations.of(context);
+            await _showWriteAccessWarningDialog(
+              l10n.libraryWriteAccessProactiveBody(libraryName.toString(), matchingFailedPath ?? ''),
             );
           }
         }
@@ -596,52 +554,8 @@ class _ChangeArtworkDialogState extends State<ChangeArtworkDialog> {
     if (!mounted) return;
 
     if (isLocalMetadataEnabled) {
-      await showDialog<void>(
-        context: context,
-        barrierDismissible: false,
-        builder: (context) => AlertDialog(
-          backgroundColor: AppColorScheme.surface,
-          title: const Text("Library Write Access Warning"),
-          content: Scrollbar(
-            child: SingleChildScrollView(
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  const Text(
-                    "It looks like Jellyfin failed to update the artwork. Your library is configured to save artwork directly into the media folders ('Save artwork into media folders' is enabled). This error typically occurs when the Jellyfin server process does not have permission to write files into your media directories.",
-                  ),
-                  const SizedBox(height: 12),
-                  const Text(
-                    "How to fix this:",
-                    style: TextStyle(fontWeight: FontWeight.bold),
-                  ),
-                  const SizedBox(height: 8),
-                  const Text(
-                    "1. Grant write permissions to the Jellyfin service user (e.g., jellyfin or Docker PUID/PGID) for your media library folders on the server.\n\n"
-                    "2. Or, go to your Jellyfin Dashboard -> Libraries, edit this library, and disable 'Save artwork into media folders' to store artwork in Jellyfin's internal database.",
-                  ),
-                ],
-              ),
-            ),
-          ),
-          actions: [
-            FocusableWrapper(
-              autofocus: true,
-              borderRadius: 8,
-              suppressFocusGlow: true,
-              onSelect: () => Navigator.of(context).pop(),
-              child: const Padding(
-                padding: EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                child: Text(
-                  "Dismiss",
-                  style: TextStyle(fontWeight: FontWeight.bold),
-                ),
-              ),
-            ),
-          ],
-        ),
-      );
+      final l10n = AppLocalizations.of(context);
+      await _showWriteAccessWarningDialog(l10n.libraryWriteAccessReactiveBody);
     } else {
       final l10n = AppLocalizations.of(context);
       final message = switch (actionName) {
@@ -655,6 +569,51 @@ class _ChangeArtworkDialogState extends State<ChangeArtworkDialog> {
         SnackBar(content: Text(message)),
       );
     }
+  }
+
+  Future<void> _showWriteAccessWarningDialog(String bodyText) async {
+    final l10n = AppLocalizations.of(context);
+    await showDialog<void>(
+      context: context,
+      barrierDismissible: false,
+      builder: (context) => AlertDialog(
+        backgroundColor: AppColorScheme.surface,
+        title: Text(l10n.libraryWriteAccessWarningTitle),
+        content: Scrollbar(
+          child: SingleChildScrollView(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(bodyText),
+                const SizedBox(height: 12),
+                Text(
+                  l10n.libraryWriteAccessHowToFix,
+                  style: const TextStyle(fontWeight: FontWeight.bold),
+                ),
+                const SizedBox(height: 8),
+                Text(l10n.libraryWriteAccessFixSteps),
+              ],
+            ),
+          ),
+        ),
+        actions: [
+          FocusableWrapper(
+            autofocus: true,
+            borderRadius: 8,
+            suppressFocusGlow: true,
+            onSelect: () => Navigator.of(context).pop(),
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+              child: Text(
+                l10n.dismiss,
+                style: const TextStyle(fontWeight: FontWeight.bold),
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
   }
 
   Future<void> _fetchRemoteImages(String category) async {
@@ -692,7 +651,6 @@ class _ChangeArtworkDialogState extends State<ChangeArtworkDialog> {
     String category,
     Map<String, dynamic> remoteImage,
   ) async {
-    final l10n = AppLocalizations.of(context);
     final url = remoteImage['Url'] as String?;
     if (url == null || url.isEmpty) return;
 
