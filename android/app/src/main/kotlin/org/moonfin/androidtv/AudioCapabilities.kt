@@ -223,7 +223,6 @@ object AudioCapabilities {
         // turn the TrueHD-Atmos passthrough toggle on explicitly (override wins).
 
 
-
         val supportsAc3 = canPassthroughAc3 || canPassthroughEac3
         val supportsDts = canPassthroughDts || canPassthroughDtsHd || canPassthroughDtsX
         val supportsTrueHd = canPassthroughTrueHd || canPassthroughTrueHdJoc
