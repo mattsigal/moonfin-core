@@ -479,20 +479,20 @@ class _ChangeArtworkDialogState extends State<ChangeArtworkDialog> {
     final sessionRepo = GetIt.instance<SessionRepository>();
     if (sessionRepo.hasCheckedWriteAccess) return;
 
-    sessionRepo.hasCheckedWriteAccess = true;
-
     final client = GetIt.instance<MediaServerClient>();
     final token = client.accessToken;
     if (token == null) return;
 
+    final dio = Dio();
+    configureServerDio(dio);
     try {
-      final dio = Dio();
       final response = await dio.get(
         '${client.baseUrl}/Moonfin/Libraries/CheckWriteAccess',
         options: Options(headers: {
           'Authorization': 'MediaBrowser Token="$token"',
         }),
       );
+      sessionRepo.hasCheckedWriteAccess = true;
 
       final data = response.data;
       if (data is List) {
