@@ -2839,7 +2839,7 @@ class _VideoPlayerScreenState extends State<VideoPlayerScreen>
     }
 
     return SubtitleViewConfiguration(
-      visible: !isAssOrPgs,
+      visible: PlatformDetection.isDesktop ? false : !isAssOrPgs,
       style: TextStyle(
         inherit: false,
         height: 1.4,
