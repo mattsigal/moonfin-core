@@ -5212,6 +5212,30 @@ abstract class AppLocalizations {
   /// **'Show folder browsing option'**
   String get showFolderBrowsingOption;
 
+  /// Setting for grouping items into collections
+  ///
+  /// In en, this message translates to:
+  /// **'Group Items into Collections'**
+  String get groupItemsIntoCollections;
+
+  /// Description for grouping items into collections
+  ///
+  /// In en, this message translates to:
+  /// **'Hide Collection associated library items when browsing libraries'**
+  String get hideCollectionAssociatedItems;
+
+  /// Title of the alert dialog explaining server settings requirement
+  ///
+  /// In en, this message translates to:
+  /// **'Library Grouping Notice'**
+  String get groupItemsIntoCollectionsDialogTitle;
+
+  /// Message of the alert dialog explaining server settings requirement
+  ///
+  /// In en, this message translates to:
+  /// **'To use this setting, please ensure the \"Group movies into collections\" and/or \"Group shows into collections\" Library settings are enabled under your library\'s Display settings on your Jellyfin or Emby server.'**
+  String get groupItemsIntoCollectionsDialogMessage;
+
   /// Section title for library visibility
   ///
   /// In en, this message translates to:

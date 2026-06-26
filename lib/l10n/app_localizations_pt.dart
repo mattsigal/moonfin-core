@@ -2863,6 +2863,20 @@ class AppLocalizationsPt extends AppLocalizations {
       'Mostrar opção de navegação por pastas';
 
   @override
+  String get groupItemsIntoCollections => 'Group Items into Collections';
+
+  @override
+  String get hideCollectionAssociatedItems =>
+      'Hide Collection associated library items when browsing libraries';
+
+  @override
+  String get groupItemsIntoCollectionsDialogTitle => 'Library Grouping Notice';
+
+  @override
+  String get groupItemsIntoCollectionsDialogMessage =>
+      'To use this setting, please ensure the \"Group movies into collections\" and/or \"Group shows into collections\" Library settings are enabled under your library\'s Display settings on your Jellyfin or Emby server.';
+
+  @override
   String get libraryVisibility => 'Visibilidade da Biblioteca';
 
   @override
