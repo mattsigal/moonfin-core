@@ -47,10 +47,15 @@ class _LibrariesCategoryScreen extends StatelessWidget {
                     try {
                       final config =
                           await client.adminSystemApi.getServerConfiguration();
-                      final groupingEnabled =
-                          config['EnableGroupingIntoCollections'] as bool? ??
-                              false;
-                      if (groupingEnabled) {
+                      final groupMovies =
+                          (config['EnableGroupingMoviesIntoCollections'] as bool?) ??
+                          (config['EnableGroupingIntoCollections'] as bool?) ??
+                          false;
+                      final groupShows =
+                          (config['EnableGroupingShowsIntoCollections'] as bool?) ??
+                          (config['EnableGroupingIntoCollections'] as bool?) ??
+                          false;
+                      if (groupMovies && groupShows) {
                         return;
                       }
                     } catch (_) {}
