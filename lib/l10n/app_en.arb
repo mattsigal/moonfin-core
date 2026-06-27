@@ -7636,5 +7636,25 @@
   "subtitleRendering": "Subtitle Rendering",
   "@subtitleRendering": {
     "description": "Header for subtitle rendering settings"
+  },
+  "displayOptions": "Display Options",
+  "@displayOptions": {
+    "description": "Title for details display options dialog"
+  },
+  "releaseDateAscending": "Release Date (Ascending)",
+  "@releaseDateAscending": {
+    "description": "Sort option for crew/cast contributions in ascending release date order"
+  },
+  "releaseDateDescending": "Release Date (Descending)",
+  "@releaseDateDescending": {
+    "description": "Sort option for crew/cast contributions in descending release date order"
+  },
+  "groupContributions": "Group Contributions",
+  "@groupContributions": {
+    "description": "Section header for grouping person contributions"
+  },
+  "groupMultipleRoles": "Group multiple roles",
+  "@groupMultipleRoles": {
+    "description": "Option to group multiple roles for a person"
   }
 }

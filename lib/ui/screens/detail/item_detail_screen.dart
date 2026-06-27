@@ -2408,7 +2408,7 @@ class _DetailContentState extends State<_DetailContent> {
             ),
             const SizedBox(width: 16),
             _DetailActionButton(
-              label: 'Display',
+              label: l10n.display,
               icon: Icons.tune,
               onPressed: () => _showDisplaySettingsDialog(context),
               isActive: false,
@@ -12495,6 +12495,7 @@ class _PersonDisplaySettingsDialogState
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
     final onSurface = AppColorScheme.onSurface;
     final accent = AppColorScheme.accent;
     final dividerColor = onSurface.withValues(alpha: 0.12);
@@ -12518,7 +12519,7 @@ class _PersonDisplaySettingsDialogState
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 8),
               child: Text(
-                'Display Options',
+                l10n.displayOptions,
                 style: TextStyle(
                   fontSize: 20,
                   fontWeight: FontWeight.w600,
@@ -12530,7 +12531,7 @@ class _PersonDisplaySettingsDialogState
             Padding(
               padding: const EdgeInsets.fromLTRB(24, 12, 24, 4),
               child: Text(
-                'Sort By',
+                l10n.sortBy,
                 style: TextStyle(
                   fontSize: 13,
                   fontWeight: FontWeight.w500,
@@ -12539,21 +12540,21 @@ class _PersonDisplaySettingsDialogState
               ),
             ),
             _radioTile(
-              label: 'Alphabetical',
+              label: l10n.settingsAlphabetical,
               selected: _sortOption == 'alphabetical',
               onTap: () => _updateSort('alphabetical'),
               accent: accent,
               onSurface: onSurface,
             ),
             _radioTile(
-              label: 'Release Date (Ascending)',
+              label: l10n.releaseDateAscending,
               selected: _sortOption == 'releaseDateAsc',
               onTap: () => _updateSort('releaseDateAsc'),
               accent: accent,
               onSurface: onSurface,
             ),
             _radioTile(
-              label: 'Release Date (Descending)',
+              label: l10n.releaseDateDescending,
               selected: _sortOption == 'releaseDateDesc',
               onTap: () => _updateSort('releaseDateDesc'),
               accent: accent,
@@ -12563,7 +12564,7 @@ class _PersonDisplaySettingsDialogState
             Padding(
               padding: const EdgeInsets.fromLTRB(24, 12, 24, 4),
               child: Text(
-                'Group Contributions',
+                l10n.groupContributions,
                 style: TextStyle(
                   fontSize: 13,
                   fontWeight: FontWeight.w500,
@@ -12572,7 +12573,7 @@ class _PersonDisplaySettingsDialogState
               ),
             ),
             _checkboxTile(
-              label: 'Group multiple roles',
+              label: l10n.groupMultipleRoles,
               checked: _groupItems,
               onTap: () => _updateGroup(!_groupItems),
               accent: accent,
