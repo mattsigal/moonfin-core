@@ -134,70 +134,7 @@ class _ImdbListsScreenState extends State<_ImdbListsScreen> {
   }
 
   Future<bool> _fetchAndCacheList(HomeSectionType type, String title) async {
-    if (_isFetching) return false;
-    _isFetching = true;
-
-    final progressNotifier = ValueNotifier<double>(0.0);
-    var dialogDismissed = false;
-
-    unawaited(
-      showFocusRestoringDialog<void>(
-        context: context,
-        barrierDismissible: false,
-        builder: (ctx) {
-          return withCleanSettingsTypography(
-            ctx,
-            PopScope(
-              canPop: false,
-              child: AlertDialog(
-                title: Text('Fetching $title'),
-                content: const Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    SizedBox(height: 8),
-                    SizedBox(
-                      width: 50,
-                      height: 50,
-                      child: CircularProgressIndicator(),
-                    ),
-                    SizedBox(height: 24),
-                    Text(
-                      'Downloading list from IMDb and saving locally...',
-                      textAlign: TextAlign.center,
-                      style: TextStyle(fontSize: 12, color: Colors.grey),
-                    ),
-                  ],
-                ),
-              ),
-            ),
-          );
-        },
-      ).then((_) {
-        dialogDismissed = true;
-      }),
-    );
-
-    try {
-      final imdbService = GetIt.instance<ImdbExternalListsService>();
-      final items = await imdbService
-          .fetchChart(type, limit: 250)
-          .timeout(const Duration(seconds: 15));
-      await imdbService.saveChartToCache(type, items);
-      return true;
-    } catch (e) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Failed to fetch $title from IMDb: $e')),
-        );
-      }
-      return false;
-    } finally {
-      _isFetching = false;
-      progressNotifier.dispose();
-      if (mounted && !dialogDismissed) {
-        Navigator.of(context, rootNavigator: true).pop();
-      }
-    }
+    return true;
   }
 
   void _syncSingleImdbSectionState(HomeSectionType type, bool enabled) {
@@ -423,70 +360,7 @@ class _TmdbListsScreenState extends State<_TmdbListsScreen> {
   }
 
   Future<bool> _fetchAndCacheList(HomeSectionType type, String title) async {
-    if (_isFetching) return false;
-    _isFetching = true;
-
-    final progressNotifier = ValueNotifier<double>(0.0);
-    var dialogDismissed = false;
-
-    unawaited(
-      showFocusRestoringDialog<void>(
-        context: context,
-        barrierDismissible: false,
-        builder: (ctx) {
-          return withCleanSettingsTypography(
-            ctx,
-            PopScope(
-              canPop: false,
-              child: AlertDialog(
-                title: Text('Fetching $title'),
-                content: const Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    SizedBox(height: 8),
-                    SizedBox(
-                      width: 50,
-                      height: 50,
-                      child: CircularProgressIndicator(),
-                    ),
-                    SizedBox(height: 24),
-                    Text(
-                      'Downloading list from TMDB and saving locally...',
-                      textAlign: TextAlign.center,
-                      style: TextStyle(fontSize: 12, color: Colors.grey),
-                    ),
-                  ],
-                ),
-              ),
-            ),
-          );
-        },
-      ).then((_) {
-        dialogDismissed = true;
-      }),
-    );
-
-    try {
-      final tmdbService = GetIt.instance<TmdbExternalListsService>();
-      final items = await tmdbService
-          .fetchChart(type, limit: 250)
-          .timeout(const Duration(seconds: 15));
-      await tmdbService.saveChartToCache(type, items);
-      return true;
-    } catch (e) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Failed to fetch $title from TMDB: $e')),
-        );
-      }
-      return false;
-    } finally {
-      _isFetching = false;
-      progressNotifier.dispose();
-      if (mounted && !dialogDismissed) {
-        Navigator.of(context, rootNavigator: true).pop();
-      }
-    }
+    return true;
   }
 
   void _syncSingleTmdbSectionState(HomeSectionType type, bool enabled) {

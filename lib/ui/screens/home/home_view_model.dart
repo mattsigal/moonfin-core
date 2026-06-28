@@ -26,8 +26,7 @@ import '../../../data/services/seerr/seerr_api_models.dart';
 import '../../../data/utils/bounded_concurrency.dart';
 import '../../../preference/seerr_preferences.dart';
 import '../../../data/viewmodels/seerr_discover_view_model.dart';
-import '../../../data/services/imdb_external_lists_service.dart';
-import '../../../data/services/tmdb_external_lists_service.dart';
+import '../../../data/repositories/mdblist_repository.dart';
 import 'package:dio/dio.dart';
 
 class HomeViewModel extends ChangeNotifier {
@@ -1209,118 +1208,156 @@ class HomeViewModel extends ChangeNotifier {
       case HomeSectionType.sonarrCalendar:
         return _loadSonarrCalendarRow(forceRefresh: forceRefresh);
       case HomeSectionType.imdbTop250Movies:
-        return _loadImdbRow(
+        return _loadMdbListRow(
           HomeSectionType.imdbTop250Movies,
           l10n.imdbTop250Movies,
           'imdb_top_250_movies',
+          'top_rated_movies',
+          'movie',
         );
       case HomeSectionType.imdbTop250TvShows:
-        return _loadImdbRow(
+        return _loadMdbListRow(
           HomeSectionType.imdbTop250TvShows,
           l10n.imdbTop250TvShows,
           'imdb_top_250_tv_shows',
+          'top_rated_shows',
+          'show',
         );
       case HomeSectionType.imdbMostPopularMovies:
-        return _loadImdbRow(
+        return _loadMdbListRow(
           HomeSectionType.imdbMostPopularMovies,
           l10n.imdbMostPopularMovies,
           'imdb_most_popular_movies',
+          'moviemeter',
+          'movie',
         );
       case HomeSectionType.imdbMostPopularTvShows:
-        return _loadImdbRow(
+        return _loadMdbListRow(
           HomeSectionType.imdbMostPopularTvShows,
           l10n.imdbMostPopularTvShows,
           'imdb_most_popular_tv_shows',
+          'moviemeter',
+          'show',
         );
       case HomeSectionType.imdbLowestRatedMovies:
-        return _loadImdbRow(
+        return _loadMdbListRow(
           HomeSectionType.imdbLowestRatedMovies,
           l10n.imdbLowestRatedMovies,
           'imdb_lowest_rated_movies',
+          'bottom',
+          'movie',
         );
       case HomeSectionType.imdbTopEnglishMovies:
-        return _loadImdbRow(
+        return _loadMdbListRow(
           HomeSectionType.imdbTopEnglishMovies,
           l10n.imdbTopEnglishMovies,
           'imdb_top_english_movies',
+          'top_english_movies',
+          'movie',
         );
       case HomeSectionType.tmdbPopularMovies:
-        return _loadTmdbRow(
+        return _loadMdbListRow(
           HomeSectionType.tmdbPopularMovies,
           'Popular Movies',
           'tmdb_popular_movies',
+          'popular',
+          'movie',
         );
       case HomeSectionType.tmdbTopRatedMovies:
-        return _loadTmdbRow(
+        return _loadMdbListRow(
           HomeSectionType.tmdbTopRatedMovies,
           'Top Rated Movies',
           'tmdb_top_rated_movies',
+          'top_rated_movies',
+          'movie',
         );
       case HomeSectionType.tmdbNowPlayingMovies:
-        return _loadTmdbRow(
+        return _loadMdbListRow(
           HomeSectionType.tmdbNowPlayingMovies,
           'Now Playing Movies',
           'tmdb_now_playing_movies',
+          'now_playing_movies',
+          'movie',
         );
       case HomeSectionType.tmdbUpcomingMovies:
-        return _loadTmdbRow(
+        return _loadMdbListRow(
           HomeSectionType.tmdbUpcomingMovies,
           'Upcoming Movies',
           'tmdb_upcoming_movies',
+          'upcoming_movies',
+          'movie',
         );
       case HomeSectionType.tmdbPopularTv:
-        return _loadTmdbRow(
+        return _loadMdbListRow(
           HomeSectionType.tmdbPopularTv,
           'Popular TV',
           'tmdb_popular_tv',
+          'popular',
+          'show',
         );
       case HomeSectionType.tmdbTopRatedTv:
-        return _loadTmdbRow(
+        return _loadMdbListRow(
           HomeSectionType.tmdbTopRatedTv,
           'Top Rated TV',
           'tmdb_top_rated_tv',
+          'top_rated_shows',
+          'show',
         );
       case HomeSectionType.tmdbAiringTodayTv:
-        return _loadTmdbRow(
+        return _loadMdbListRow(
           HomeSectionType.tmdbAiringTodayTv,
           'Airing Today TV',
           'tmdb_airing_today_tv',
+          'airing_today_shows',
+          'show',
         );
       case HomeSectionType.tmdbOnTheAirTv:
-        return _loadTmdbRow(
+        return _loadMdbListRow(
           HomeSectionType.tmdbOnTheAirTv,
           'On The Air TV',
           'tmdb_on_the_air_tv',
+          'on_the_air_shows',
+          'show',
         );
       case HomeSectionType.tmdbTrendingMovieDaily:
-        return _loadTmdbRow(
+        return _loadMdbListRow(
           HomeSectionType.tmdbTrendingMovieDaily,
           'Trending Movies (Daily)',
           'tmdb_trending_movie_daily',
+          'trending_movies_daily',
+          'movie',
         );
       case HomeSectionType.tmdbTrendingMovieWeekly:
-        return _loadTmdbRow(
+        return _loadMdbListRow(
           HomeSectionType.tmdbTrendingMovieWeekly,
           'Trending Movies (Weekly)',
           'tmdb_trending_movie_weekly',
+          'trending_movies_weekly',
+          'movie',
         );
       case HomeSectionType.tmdbTrendingTvDaily:
-        return _loadTmdbRow(
+        return _loadMdbListRow(
           HomeSectionType.tmdbTrendingTvDaily,
           'Trending TV (Daily)',
           'tmdb_trending_tv_daily',
+          'trending_shows_daily',
+          'show',
         );
       case HomeSectionType.tmdbTrendingTvWeekly:
-        return _loadTmdbRow(
+        return _loadMdbListRow(
           HomeSectionType.tmdbTrendingTvWeekly,
           'Trending TV (Weekly)',
           'tmdb_trending_tv_weekly',
+          'trending_shows_weekly',
+          'show',
         );
       case HomeSectionType.tmdbTrendingAllWeekly:
-        return _loadTmdbRow(
+        return _loadMdbListRow(
           HomeSectionType.tmdbTrendingAllWeekly,
           'Trending All (Weekly)',
           'tmdb_trending_all_weekly',
+          'trending_all_weekly',
+          '',
         );
       case HomeSectionType.recentlyReleased:
         return _loadRecentlyReleasedRow();
@@ -2182,34 +2219,38 @@ class HomeViewModel extends ChangeNotifier {
     }
   }
 
-  Future<List<HomeRow>> _loadImdbRow(
+  Future<List<HomeRow>> _loadMdbListRow(
     HomeSectionType type,
     String title,
     String rowId,
+    String slug,
+    String mediatype,
   ) async {
     try {
-      final imdbService = GetIt.instance<ImdbExternalListsService>();
-      var imdbItems = await imdbService.loadChartFromCache(type);
-      if (imdbItems.isEmpty) {
-        imdbItems = await imdbService.fetchChart(type, limit: 250);
-      }
-      if (imdbItems.isEmpty) {
+      final mdbListRepo = GetIt.instance<MdbListRepository>();
+      final items = await mdbListRepo.getListItems(slug, mediaType: mediatype);
+      if (items == null || items.isEmpty) {
         return const [];
       }
 
-      final displayItems = imdbItems;
-      final aggregatedItems = displayItems.map((imdbItem) {
+      final aggregatedItems = items.map((item) {
+        final imdbId = item.providerIds.imdb ?? '';
+        final tmdbId = item.providerIds.tmdb ?? item.id?.toString() ?? '';
+        final type = item.type; // 'movie' or 'show'
+        final displayType = type == 'show' ? 'Series' : 'Movie';
+        final seerrMediaType = type == 'show' ? 'tv' : 'movie';
+
         return AggregatedItem(
-          id: imdbItem.imdbId,
+          id: imdbId.isNotEmpty ? imdbId : tmdbId,
           serverId: 'seerr',
           rawData: {
-            'Name': imdbItem.title,
-            'Type': imdbItem.type,
+            'Name': item.name,
+            'Type': displayType,
             'Overview': '',
-            'PosterPath': imdbItem.posterUrl ?? '',
-            'BackdropPath': imdbItem.posterUrl ?? '',
-            'ProductionYear': imdbItem.year,
-            'SeerrMediaType': imdbItem.type == 'Series' ? 'tv' : 'movie',
+            'PosterPath': '',
+            'BackdropPath': '',
+            'ProductionYear': item.productionYear,
+            'SeerrMediaType': seerrMediaType,
           },
         );
       }).toList();
@@ -2223,6 +2264,7 @@ class HomeViewModel extends ChangeNotifier {
         )
       ];
     } catch (e) {
+      debugPrint('[MdbListHomeRow] Failed to load MdbList row $type ($slug): $e');
       return const [];
     }
   }
@@ -2236,51 +2278,6 @@ class HomeViewModel extends ChangeNotifier {
       }
     } catch (_) {}
     return null;
-  }
-
-  Future<List<HomeRow>> _loadTmdbRow(
-    HomeSectionType type,
-    String title,
-    String rowId,
-  ) async {
-    try {
-      final tmdbService = GetIt.instance<TmdbExternalListsService>();
-      var tmdbItems = await tmdbService.loadChartFromCache(type);
-      if (tmdbItems.isEmpty) {
-        tmdbItems = await tmdbService.fetchChart(type, limit: 250);
-      }
-      if (tmdbItems.isEmpty) {
-        return const [];
-      }
-
-      final aggregatedItems = tmdbItems.map((tmdbItem) {
-        return AggregatedItem(
-          id: tmdbItem.imdbId, // contains TMDB ID string
-          serverId: 'seerr',
-          rawData: {
-            'Name': tmdbItem.title,
-            'Type': tmdbItem.type,
-            'Overview': '',
-            'PosterPath': tmdbItem.posterUrl ?? '',
-            'BackdropPath': tmdbItem.posterUrl ?? '',
-            'ProductionYear': tmdbItem.year,
-            'SeerrMediaType': tmdbItem.type == 'Series' ? 'tv' : 'movie',
-          },
-        );
-      }).toList();
-
-      return [
-        HomeRow(
-          id: rowId,
-          title: title,
-          rowType: HomeRowType.pluginDynamic,
-          items: aggregatedItems,
-        )
-      ];
-    } catch (e) {
-      debugPrint('[TmdbHomeRow] Failed to load TMDB row $type: $e');
-      return const [];
-    }
   }
 
   Future<List<HomeRow>> _loadRadarrCalendarRow({bool forceRefresh = false}) async {

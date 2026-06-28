@@ -210,14 +210,14 @@ class SeerrMediaDetailViewModel extends ChangeNotifier {
           try {
             searchPage = await _repo.search(title);
           } catch (e) {
-            print('[SeerrDetail] Search by title failed: $e');
+            debugPrint('[SeerrDetail] Search by title failed: $e');
           }
         }
         if (searchPage == null || searchPage.results.isEmpty) {
           try {
             searchPage = await _repo.search(itemId);
           } catch (e) {
-            print('[SeerrDetail] Search by IMDb ID failed: $e');
+            debugPrint('[SeerrDetail] Search by IMDb ID failed: $e');
           }
         }
         if (searchPage == null || searchPage.results.isEmpty) {
@@ -241,7 +241,7 @@ class SeerrMediaDetailViewModel extends ChangeNotifier {
           notifyListeners();
           _loadRelated(tmdbId, 'tv');
         } catch (e) {
-          print('[SeerrDetail] getTvDetails failed: $e. Attempting fallback to search...');
+          debugPrint('[SeerrDetail] getTvDetails failed: $e. Attempting fallback to search...');
           final fallbackDetails = await _trySearchFallbackTv(tmdbId, title);
           if (fallbackDetails != null) {
             _state = SeerrMediaDetailState(tv: fallbackDetails, currentUser: user);
@@ -257,7 +257,7 @@ class SeerrMediaDetailViewModel extends ChangeNotifier {
           notifyListeners();
           _loadRelated(tmdbId, 'movie');
         } catch (e) {
-          print('[SeerrDetail] getMovieDetails failed: $e. Attempting fallback to search...');
+          debugPrint('[SeerrDetail] getMovieDetails failed: $e. Attempting fallback to search...');
           final fallbackDetails = await _trySearchFallbackMovie(tmdbId, title);
           if (fallbackDetails != null) {
             _state = SeerrMediaDetailState(movie: fallbackDetails, currentUser: user);
@@ -495,9 +495,7 @@ class SeerrMediaDetailViewModel extends ChangeNotifier {
           voteCount: match.voteCount,
           mediaInfo: match.mediaInfo,
         );
-      }
-    } catch (e) {
-      print('[SeerrDetail] TV search fallback error: $e');
+      debugPrint('[SeerrDetail] TV search fallback error: $e');
     }
     return null;
   }
@@ -527,9 +525,7 @@ class SeerrMediaDetailViewModel extends ChangeNotifier {
           voteCount: match.voteCount,
           mediaInfo: match.mediaInfo,
         );
-      }
-    } catch (e) {
-      print('[SeerrDetail] Movie search fallback error: $e');
+      debugPrint('[SeerrDetail] Movie search fallback error: $e');
     }
     return null;
   }

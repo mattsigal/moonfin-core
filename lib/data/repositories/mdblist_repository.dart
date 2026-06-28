@@ -1,6 +1,7 @@
 import 'dart:async';
 
 import 'package:dio/dio.dart';
+import 'package:flutter/foundation.dart';
 import 'package:server_core/server_core.dart';
 
 class MdbListRepository {
@@ -141,4 +142,145 @@ class MdbListRepository {
       _cache.remove(_cache.keys.first);
     }
   }
+
+  Future<List<MdbListCatalogEntry>?> getCatalog() async {
+    try {
+      final baseUrl = _client.baseUrl;
+      final token = _client.accessToken;
+      if (token == null) return null;
+
+      final response = await _dio.get(
+        '$baseUrl/Moonfin/MdbList/Lists',
+        options: Options(
+          headers: {'Authorization': 'MediaBrowser Token="$token"'},
+        ),
+      );
+
+      final data = response.data;
+      if (data is! Map<String, dynamic>) return null;
+
+      final success = data['success'] as bool? ?? false;
+      if (!success || data['error'] != null) return null;
+
+      final lists = data['lists'] as List?;
+      if (lists == null) return null;
+
+      return lists
+          .map((item) => MdbListCatalogEntry.fromJson(item as Map<String, dynamic>))
+          .toList();
+    } catch (e) {
+      debugPrint('[MdbListRepository] Failed to get lists catalog: $e');
+      return null;
+    }
+  }
+
+  Future<List<MdbListItem>?> getListItems(String slug, {String? mediaType}) async {
+    try {
+      final baseUrl = _client.baseUrl;
+      final token = _client.accessToken;
+      if (token == null) return null;
+
+      final queryParams = <String, dynamic>{};
+      if (mediaType != null && mediaType.isNotEmpty) {
+        queryParams['mediatype'] = mediaType;
+      }
+
+      final response = await _dio.get(
+        '$baseUrl/Moonfin/MdbList/Lists/$slug/Items',
+        queryParameters: queryParams,
+        options: Options(
+          headers: {'Authorization': 'MediaBrowser Token="$token"'},
+        ),
+      );
+
+      final data = response.data;
+      if (data is! Map<String, dynamic>) return null;
+
+      final success = data['success'] as bool? ?? false;
+      if (!success || data['error'] != null) return null;
+
+      final itemsList = data['items'] as List?;
+      if (itemsList == null) return null;
+
+      return itemsList
+          .map((item) => MdbListItem.fromJson(item as Map<String, dynamic>))
+          .toList();
+    } catch (e) {
+      debugPrint('[MdbListRepository] Failed to get list items for $slug: $e');
+      return null;
+    }
+  }
 }
+
+class MdbListCatalogEntry {
+  final String slug;
+  final String name;
+  final String? mediatype;
+  final int count;
+
+  MdbListCatalogEntry({
+    required this.slug,
+    required this.name,
+    this.mediatype,
+    required this.count,
+  });
+
+  factory MdbListCatalogEntry.fromJson(Map<String, dynamic> json) {
+    return MdbListCatalogEntry(
+      slug: json['slug'] as String? ?? '',
+      name: json['name'] as String? ?? '',
+      mediatype: json['mediatype'] as String?,
+      count: json['count'] as int? ?? 0,
+    );
+  }
+}
+
+class MdbListItem {
+  final int? id;
+  final String name;
+  final String type;
+  final int? productionYear;
+  final int? rank;
+  final MdbListItemProviderIds providerIds;
+
+  MdbListItem({
+    this.id,
+    required this.name,
+    required this.type,
+    this.productionYear,
+    this.rank,
+    required this.providerIds,
+  });
+
+  factory MdbListItem.fromJson(Map<String, dynamic> json) {
+    return MdbListItem(
+      id: json['id'] as int?,
+      name: json['name'] as String? ?? '',
+      type: json['type'] as String? ?? '',
+      productionYear: json['productionYear'] as int?,
+      rank: json['rank'] as int?,
+      providerIds: MdbListItemProviderIds.fromJson(json['providerIds'] as Map<String, dynamic>? ?? {}),
+    );
+  }
+}
+
+class MdbListItemProviderIds {
+  final String? imdb;
+  final String? tmdb;
+  final String? tvdb;
+
+  MdbListItemProviderIds({
+    this.imdb,
+    this.tmdb,
+    this.tvdb,
+  });
+
+  factory MdbListItemProviderIds.fromJson(Map<String, dynamic> json) {
+    return MdbListItemProviderIds(
+      imdb: json['Imdb'] as String?,
+      tmdb: json['Tmdb'] as String?,
+      tvdb: json['Tvdb'] as String?,
+    );
+  }
+}
+
