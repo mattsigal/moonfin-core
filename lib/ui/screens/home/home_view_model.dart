@@ -2187,18 +2187,13 @@ class HomeViewModel extends ChangeNotifier {
     String title,
     String rowId,
   ) async {
-    print('[ImdbHomeRow] Starting _loadImdbRow for type: $type, title: $title');
     try {
       final imdbService = GetIt.instance<ImdbExternalListsService>();
       var imdbItems = await imdbService.loadChartFromCache(type);
-      print('[ImdbHomeRow] Loaded ${imdbItems.length} items from cache for $type');
       if (imdbItems.isEmpty) {
-        print('[ImdbHomeRow] Cache empty for $type, fetching from IMDb...');
         imdbItems = await imdbService.fetchChart(type, limit: 250);
-        print('[ImdbHomeRow] Fetched ${imdbItems.length} items from IMDb for $type');
       }
       if (imdbItems.isEmpty) {
-        print('[ImdbHomeRow] No items available for $type');
         return const [];
       }
 
@@ -2219,7 +2214,6 @@ class HomeViewModel extends ChangeNotifier {
         );
       }).toList();
 
-      print('[ImdbHomeRow] Returning ${aggregatedItems.length} items for $rowId');
       return [
         HomeRow(
           id: rowId,
@@ -2229,7 +2223,6 @@ class HomeViewModel extends ChangeNotifier {
         )
       ];
     } catch (e) {
-      print('[ImdbHomeRow] Failed to load IMDb row $type: $e');
       return const [];
     }
   }
