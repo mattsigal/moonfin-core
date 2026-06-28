@@ -143,37 +143,6 @@ class MdbListRepository {
     }
   }
 
-  Future<List<MdbListCatalogEntry>?> getCatalog() async {
-    try {
-      final baseUrl = _client.baseUrl;
-      final token = _client.accessToken;
-      if (token == null) return null;
-
-      final response = await _dio.get(
-        '$baseUrl/Moonfin/MdbList/Lists',
-        options: Options(
-          headers: {'Authorization': 'MediaBrowser Token="$token"'},
-        ),
-      );
-
-      final data = response.data;
-      if (data is! Map<String, dynamic>) return null;
-
-      final success = data['success'] as bool? ?? false;
-      if (!success || data['error'] != null) return null;
-
-      final lists = data['lists'] as List?;
-      if (lists == null) return null;
-
-      return lists
-          .map((item) => MdbListCatalogEntry.fromJson(item as Map<String, dynamic>))
-          .toList();
-    } catch (e) {
-      debugPrint('[MdbListRepository] Failed to get lists catalog: $e');
-      return null;
-    }
-  }
-
   Future<List<MdbListItem>?> getListItems(String slug, {String? mediaType}) async {
     try {
       final baseUrl = _client.baseUrl;
