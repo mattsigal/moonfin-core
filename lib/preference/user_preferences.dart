@@ -265,6 +265,17 @@ class UserPreferences extends ChangeNotifier {
     'tmdb_trending_tv_daily_enabled',
     'tmdb_trending_tv_weekly_enabled',
     'tmdb_trending_all_weekly_enabled',
+    'enable_radarr_calendar',
+    'enable_sonarr_calendar',
+    'radarr_calendar_show_cinema',
+    'radarr_calendar_show_digital',
+    'radarr_calendar_show_physical',
+    'radarr_calendar_show_date',
+    'sonarr_calendar_show_date',
+    'sonarr_calendar_show_episode_info',
+    'last_radarr_calendar_fetch_time',
+    'last_sonarr_calendar_fetch_time',
+    'merge_radarr_sonarr_calendars',
   };
 
   bool _isScopedPreference<T>(Preference<T> pref) {
@@ -1528,6 +1539,61 @@ class UserPreferences extends ChangeNotifier {
 
   static final tmdbTrendingAllWeeklyEnabled = Preference(
     key: 'tmdb_trending_all_weekly_enabled',
+    defaultValue: false,
+  );
+
+  static final enableRadarrCalendar = Preference(
+    key: 'enable_radarr_calendar',
+    defaultValue: false,
+  );
+
+  static final enableSonarrCalendar = Preference(
+    key: 'enable_sonarr_calendar',
+    defaultValue: false,
+  );
+
+  static final radarrCalendarShowCinema = Preference(
+    key: 'radarr_calendar_show_cinema',
+    defaultValue: true,
+  );
+
+  static final radarrCalendarShowDigital = Preference(
+    key: 'radarr_calendar_show_digital',
+    defaultValue: true,
+  );
+
+  static final radarrCalendarShowPhysical = Preference(
+    key: 'radarr_calendar_show_physical',
+    defaultValue: true,
+  );
+
+  static final radarrCalendarShowDate = Preference(
+    key: 'radarr_calendar_show_date',
+    defaultValue: true,
+  );
+
+  static final sonarrCalendarShowDate = Preference(
+    key: 'sonarr_calendar_show_date',
+    defaultValue: true,
+  );
+
+  static final sonarrCalendarShowEpisodeInfo = Preference(
+    key: 'sonarr_calendar_show_episode_info',
+    defaultValue: true,
+  );
+
+  static final lastRadarrCalendarFetchTime = Preference(
+    key: 'last_radarr_calendar_fetch_time',
+    defaultValue: 0,
+  );
+
+  static final lastSonarrCalendarFetchTime = Preference(
+    key: 'last_sonarr_calendar_fetch_time',
+    defaultValue: 0,
+  );
+
+  static final mergeRadarrSonarrCalendars = Preference(
+    key: 'merge_radarr_sonarr_calendars',
     defaultValue: false,
   );
 

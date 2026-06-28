@@ -16,6 +16,37 @@ class _ExternalListsScreenState extends State<_ExternalListsScreen> {
     debugLabel: 'imdb_lists_button',
   );
 
+  bool _radarrInstalled = false;
+  bool _sonarrInstalled = false;
+  bool _checkingServices = true;
+
+  @override
+  void initState() {
+    super.initState();
+    _checkServices();
+  }
+
+  Future<void> _checkServices() async {
+    try {
+      final repo = GetIt.instance<SeerrRepository>();
+      final radarr = await repo.getRadarrSettings();
+      final sonarr = await repo.getSonarrSettings();
+      if (mounted) {
+        setState(() {
+          _radarrInstalled = radarr.isNotEmpty;
+          _sonarrInstalled = sonarr.isNotEmpty;
+          _checkingServices = false;
+        });
+      }
+    } catch (_) {
+      if (mounted) {
+        setState(() {
+          _checkingServices = false;
+        });
+      }
+    }
+  }
+
   @override
   void dispose() {
     _imdbScope.dispose();
@@ -32,6 +63,7 @@ class _ExternalListsScreenState extends State<_ExternalListsScreen> {
           final l10n = AppLocalizations.of(context);
           final syncService = GetIt.instance<PluginSyncService>();
           final tmdbAvailable = syncService.tmdbAvailable;
+          final showUpcomingCalendars = !_checkingServices && (_radarrInstalled || _sonarrInstalled);
 
           return RequestInitialFocus(
             targetNode: PlatformDetection.isTV ? _imdbListsFocusNode : null,
@@ -64,6 +96,13 @@ class _ExternalListsScreenState extends State<_ExternalListsScreen> {
                           ? () => context.pushSettingsScreen(const _TmdbListsScreen())
                           : null,
                     ),
+                    if (showUpcomingCalendars)
+                      _TvSettingsListTile(
+                        leading: const Icon(Icons.calendar_month),
+                        title: const Text('Upcoming Calendars'),
+                        subtitle: const Text('Toggle Upcoming Calendars from Radarr/Sonarr.'),
+                        onTap: () => context.pushSettingsScreen(const _UpcomingCalendarsScreen()),
+                      ),
                   ],
                 ),
               ),
@@ -809,6 +848,175 @@ class _TmdbListsScreenState extends State<_TmdbListsScreen> {
                         );
                       },
                     ),
+                  ],
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _UpcomingCalendarsScreen extends StatefulWidget {
+  const _UpcomingCalendarsScreen();
+
+  @override
+  State<_UpcomingCalendarsScreen> createState() => _UpcomingCalendarsScreenState();
+}
+
+class _UpcomingCalendarsScreenState extends State<_UpcomingCalendarsScreen> {
+  final _scope = FocusScopeNode(debugLabel: 'UpcomingCalendarsScope');
+  final _firstNode = FocusNode(debugLabel: 'radarr_calendar_enable');
+
+  @override
+  void dispose() {
+    _scope.dispose();
+    _firstNode.dispose();
+    super.dispose();
+  }
+
+  void _syncCalendarSectionState(HomeSectionType type, bool enabled) {
+    final prefs = GetIt.instance<UserPreferences>();
+    final configs = List<HomeSectionConfig>.from(prefs.homeSectionsConfig);
+
+    final idx = configs.indexWhere((c) => c.type == type);
+    var changed = false;
+    if (idx >= 0) {
+      if (configs[idx].enabled != enabled) {
+        configs[idx] = configs[idx].copyWith(enabled: enabled);
+        changed = true;
+      }
+    } else {
+      configs.add(HomeSectionConfig(
+        type: type,
+        enabled: enabled,
+        order: configs.length,
+      ));
+      changed = true;
+    }
+
+    if (changed) {
+      prefs.setHomeSectionsConfig(configs);
+    }
+    _pushPersonalizationSync();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
+    final prefs = GetIt.instance<UserPreferences>();
+    
+    final radarrEnabled = prefs.get(UserPreferences.enableRadarrCalendar);
+    final sonarrEnabled = prefs.get(UserPreferences.enableSonarrCalendar);
+
+    return withCleanSettingsTypography(
+      context,
+      RequestInitialFocus(
+        targetNode: PlatformDetection.isTV ? _firstNode : null,
+        child: Scaffold(
+          appBar: buildSettingsAppBar(
+            context,
+            const Text('Upcoming Calendars'),
+          ),
+          body: FocusScope(
+            node: _scope,
+            autofocus: true,
+            child: ListView(
+              children: [
+                adaptiveListSection(
+                  children: [
+                    SwitchPreferenceTile(
+                      key: const ValueKey('mergeRadarrSonarrCalendars'),
+                      preference: UserPreferences.mergeRadarrSonarrCalendars,
+                      title: "Merge Sonarr and Radarr Calendars?",
+                      icon: Icons.merge_type,
+                      onChanged: () => setState(() {}),
+                    ),
+                  ],
+                ),
+                const _SectionHeader('Radarr'),
+                adaptiveListSection(
+                  children: [
+                    SwitchPreferenceTile(
+                      key: const ValueKey('enableRadarrCalendar'),
+                      focusNode: _firstNode,
+                      preference: UserPreferences.enableRadarrCalendar,
+                      title: "Enable Radarr's Upcoming Calendar",
+                      icon: Icons.movie_outlined,
+                      onChangedValue: (isEnabled) {
+                        _syncCalendarSectionState(
+                          HomeSectionType.radarrCalendar,
+                          isEnabled,
+                        );
+                        setState(() {});
+                      },
+                    ),
+                    if (radarrEnabled) ...[
+                      SwitchPreferenceTile(
+                        key: const ValueKey('radarrCalendarShowCinema'),
+                        preference: UserPreferences.radarrCalendarShowCinema,
+                        title: 'Show Upcoming Cinema Releases',
+                        icon: Icons.theater_comedy,
+                        onChanged: () => setState(() {}),
+                      ),
+                      SwitchPreferenceTile(
+                        key: const ValueKey('radarrCalendarShowDigital'),
+                        preference: UserPreferences.radarrCalendarShowDigital,
+                        title: 'Show Upcoming Digital Releases',
+                        icon: Icons.tv,
+                        onChanged: () => setState(() {}),
+                      ),
+                      SwitchPreferenceTile(
+                        key: const ValueKey('radarrCalendarShowPhysical'),
+                        preference: UserPreferences.radarrCalendarShowPhysical,
+                        title: 'Show Upcoming Physical Releases',
+                        icon: Icons.album,
+                        onChanged: () => setState(() {}),
+                      ),
+                      SwitchPreferenceTile(
+                        key: const ValueKey('radarrCalendarShowDate'),
+                        preference: UserPreferences.radarrCalendarShowDate,
+                        title: 'Show Release Date on Home Screen?',
+                        icon: Icons.calendar_month,
+                        onChanged: () => setState(() {}),
+                      ),
+                    ],
+                  ],
+                ),
+                const _SectionHeader('Sonarr'),
+                adaptiveListSection(
+                  children: [
+                    SwitchPreferenceTile(
+                      key: const ValueKey('enableSonarrCalendar'),
+                      preference: UserPreferences.enableSonarrCalendar,
+                      title: "Enable Sonarr's Upcoming Calendar",
+                      icon: Icons.live_tv,
+                      onChangedValue: (isEnabled) {
+                        _syncCalendarSectionState(
+                          HomeSectionType.sonarrCalendar,
+                          isEnabled,
+                        );
+                        setState(() {});
+                      },
+                    ),
+                    if (sonarrEnabled) ...[
+                      SwitchPreferenceTile(
+                        key: const ValueKey('sonarrCalendarShowEpisodeInfo'),
+                        preference: UserPreferences.sonarrCalendarShowEpisodeInfo,
+                        title: 'Display Episode Information?',
+                        icon: Icons.info_outline,
+                        onChanged: () => setState(() {}),
+                      ),
+                      SwitchPreferenceTile(
+                        key: const ValueKey('sonarrCalendarShowDate'),
+                        preference: UserPreferences.sonarrCalendarShowDate,
+                        title: 'Show Release Date on Home Screen?',
+                        icon: Icons.calendar_month,
+                        onChanged: () => setState(() {}),
+                      ),
+                    ],
                   ],
                 ),
               ],

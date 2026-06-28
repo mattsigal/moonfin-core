@@ -1318,6 +1318,30 @@ class PluginSyncService extends ChangeNotifier {
                 }
                 continue;
               }
+              if (type == prefs.HomeSectionType.radarrCalendar) {
+                final localEnabled = _prefs.get(UserPreferences.enableRadarrCalendar);
+                final idx = sections.indexWhere((s) => s.type == type);
+                if (idx >= 0) {
+                  sections[idx] = sections[idx].copyWith(enabled: localEnabled);
+                } else {
+                  sections.add(
+                    HomeSectionConfig(type: type, enabled: localEnabled, order: order++),
+                  );
+                }
+                continue;
+              }
+              if (type == prefs.HomeSectionType.sonarrCalendar) {
+                final localEnabled = _prefs.get(UserPreferences.enableSonarrCalendar);
+                final idx = sections.indexWhere((s) => s.type == type);
+                if (idx >= 0) {
+                  sections[idx] = sections[idx].copyWith(enabled: localEnabled);
+                } else {
+                  sections.add(
+                    HomeSectionConfig(type: type, enabled: localEnabled, order: order++),
+                  );
+                }
+                continue;
+              }
               if (!enabledTypes.contains(type)) {
                 sections.add(
                   HomeSectionConfig(type: type, enabled: false, order: order++),
@@ -1393,7 +1417,43 @@ class PluginSyncService extends ChangeNotifier {
       );
     }
 
-    order = _appendDisabledBuiltinSections(sections, order);
+    for (final type in prefs.HomeSectionType.values) {
+      if (type == prefs.HomeSectionType.none ||
+          fallbackEnabled.contains(type)) {
+        continue;
+      }
+      if (_isImdbSectionType(type)) {
+        final localEnabled = _prefs.get(_imdbPrefForType(type));
+        sections.add(
+          HomeSectionConfig(type: type, enabled: localEnabled, order: order++),
+        );
+        continue;
+      }
+      if (_isTmdbSectionType(type)) {
+        final localEnabled = _prefs.get(_tmdbPrefForType(type));
+        sections.add(
+          HomeSectionConfig(type: type, enabled: localEnabled, order: order++),
+        );
+        continue;
+      }
+      if (type == prefs.HomeSectionType.radarrCalendar) {
+        final localEnabled = _prefs.get(UserPreferences.enableRadarrCalendar);
+        sections.add(
+          HomeSectionConfig(type: type, enabled: localEnabled, order: order++),
+        );
+        continue;
+      }
+      if (type == prefs.HomeSectionType.sonarrCalendar) {
+        final localEnabled = _prefs.get(UserPreferences.enableSonarrCalendar);
+        sections.add(
+          HomeSectionConfig(type: type, enabled: localEnabled, order: order++),
+        );
+        continue;
+      }
+      sections.add(
+        HomeSectionConfig(type: type, enabled: false, order: order++),
+      );
+    }
 
     for (final entry in preserve) {
       sections.add(entry.copyWith(order: order++));

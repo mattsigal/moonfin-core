@@ -342,6 +342,16 @@ class HomeSectionConfig {
       enabled: false,
       order: 37,
     ),
+    HomeSectionConfig(
+      type: HomeSectionType.radarrCalendar,
+      enabled: false,
+      order: 38,
+    ),
+    HomeSectionConfig(
+      type: HomeSectionType.sonarrCalendar,
+      enabled: false,
+      order: 39,
+    ),
   ];
 
   static List<HomeSectionConfig> fromJsonString(String jsonString) {

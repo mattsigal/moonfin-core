@@ -235,15 +235,37 @@ class SeerrMediaDetailViewModel extends ChangeNotifier {
       }
 
       if (resolvedMediaType == 'tv') {
-        final details = await _repo.getTvDetails(tmdbId);
-        _state = SeerrMediaDetailState(tv: details, currentUser: user);
-        notifyListeners();
-        _loadRelated(tmdbId, 'tv');
+        try {
+          final details = await _repo.getTvDetails(tmdbId);
+          _state = SeerrMediaDetailState(tv: details, currentUser: user);
+          notifyListeners();
+          _loadRelated(tmdbId, 'tv');
+        } catch (e) {
+          print('[SeerrDetail] getTvDetails failed: $e. Attempting fallback to search...');
+          final fallbackDetails = await _trySearchFallbackTv(tmdbId, title);
+          if (fallbackDetails != null) {
+            _state = SeerrMediaDetailState(tv: fallbackDetails, currentUser: user);
+            notifyListeners();
+          } else {
+            rethrow;
+          }
+        }
       } else {
-        final details = await _repo.getMovieDetails(tmdbId);
-        _state = SeerrMediaDetailState(movie: details, currentUser: user);
-        notifyListeners();
-        _loadRelated(tmdbId, 'movie');
+        try {
+          final details = await _repo.getMovieDetails(tmdbId);
+          _state = SeerrMediaDetailState(movie: details, currentUser: user);
+          notifyListeners();
+          _loadRelated(tmdbId, 'movie');
+        } catch (e) {
+          print('[SeerrDetail] getMovieDetails failed: $e. Attempting fallback to search...');
+          final fallbackDetails = await _trySearchFallbackMovie(tmdbId, title);
+          if (fallbackDetails != null) {
+            _state = SeerrMediaDetailState(movie: fallbackDetails, currentUser: user);
+            notifyListeners();
+          } else {
+            rethrow;
+          }
+        }
       }
     } catch (e) {
       _state = SeerrMediaDetailState(error: e.toString());
@@ -445,5 +467,70 @@ class SeerrMediaDetailViewModel extends ChangeNotifier {
   String? get saved4kServerId {
     if (_state.isTv) return _prefs.fourKTvServerId;
     return _prefs.fourKMovieServerId;
+  }
+
+  Future<SeerrTvDetails?> _trySearchFallbackTv(int tmdbId, String? title) async {
+    try {
+      SeerrDiscoverPage? searchPage;
+      if (title != null && title.isNotEmpty) {
+        searchPage = await _repo.search(title);
+      }
+      if (searchPage == null || searchPage.results.isEmpty) {
+        searchPage = await _repo.search(tmdbId.toString());
+      }
+      if (searchPage != null && searchPage.results.isNotEmpty) {
+        final match = searchPage.results.firstWhere(
+          (item) => item.id == tmdbId,
+          orElse: () => searchPage!.results.first,
+        );
+        return SeerrTvDetails(
+          id: match.id,
+          mediaType: match.mediaType ?? 'tv',
+          name: match.name ?? match.title,
+          title: match.title ?? match.name,
+          posterPath: match.posterPath,
+          backdropPath: match.backdropPath,
+          overview: match.overview,
+          voteAverage: match.voteAverage,
+          voteCount: match.voteCount,
+          mediaInfo: match.mediaInfo,
+        );
+      }
+    } catch (e) {
+      print('[SeerrDetail] TV search fallback error: $e');
+    }
+    return null;
+  }
+
+  Future<SeerrMovieDetails?> _trySearchFallbackMovie(int tmdbId, String? title) async {
+    try {
+      SeerrDiscoverPage? searchPage;
+      if (title != null && title.isNotEmpty) {
+        searchPage = await _repo.search(title);
+      }
+      if (searchPage == null || searchPage.results.isEmpty) {
+        searchPage = await _repo.search(tmdbId.toString());
+      }
+      if (searchPage != null && searchPage.results.isNotEmpty) {
+        final match = searchPage.results.firstWhere(
+          (item) => item.id == tmdbId,
+          orElse: () => searchPage!.results.first,
+        );
+        return SeerrMovieDetails(
+          id: match.id,
+          mediaType: match.mediaType ?? 'movie',
+          title: match.title ?? match.name ?? '',
+          posterPath: match.posterPath,
+          backdropPath: match.backdropPath,
+          overview: match.overview,
+          voteAverage: match.voteAverage,
+          voteCount: match.voteCount,
+          mediaInfo: match.mediaInfo,
+        );
+      }
+    } catch (e) {
+      print('[SeerrDetail] Movie search fallback error: $e');
+    }
+    return null;
   }
 }

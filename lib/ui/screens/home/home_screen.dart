@@ -3757,7 +3757,10 @@ class _ContentRowsState extends State<_ContentRows>
             }
           } else {
             cardTitle = item.name;
-            cardSubtitle = canUseExpandedV2Card
+            cardSubtitle = (canUseExpandedV2Card &&
+                    row.id != 'radarr_calendar' &&
+                    row.id != 'sonarr_calendar' &&
+                    row.id != 'merged_calendar')
                 ? _v2MetadataLine(item)
                 : item.subtitle;
             cardSubtitleWidget = null;

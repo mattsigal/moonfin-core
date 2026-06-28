@@ -1194,6 +1194,8 @@ class _HomeSectionsScreenState extends State<HomeSectionsScreen> {
         HomeSectionType.seerrStudios => l10n.studios,
         HomeSectionType.seerrSeriesGenres => l10n.seriesGenres,
         HomeSectionType.seerrNetworks => l10n.networks,
+        HomeSectionType.radarrCalendar => 'Upcoming Movies (Radarr)',
+        HomeSectionType.sonarrCalendar => 'Upcoming TV Shows (Sonarr)',
         HomeSectionType.imdbTop250Movies => l10n.imdbTop250Movies,
         HomeSectionType.imdbTop250TvShows => l10n.imdbTop250TvShows,
         HomeSectionType.imdbMostPopularMovies => l10n.imdbMostPopularMovies,
