@@ -50,6 +50,7 @@ class ImdbExternalListItem {
   factory ImdbExternalListItem.fromJson(Map<String, dynamic> json) =>
       ImdbExternalListItem(
         imdbId: json['imdbId'] as String,
+        tmdbId: json['tmdbId'] as String? ?? '',
         title: json['title'] as String,
         posterUrl: json['posterUrl'] as String?,
         backdropUrl: json['backdropUrl'] as String?,
