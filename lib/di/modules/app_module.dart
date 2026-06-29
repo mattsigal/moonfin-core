@@ -62,6 +62,7 @@ void resetUserScopedSingletons() {
   unregister<TmdbRepository>();
   unregister<MdbListRepository>();
   unregister<RowDataSource>();
+  RowDataSource.clearRecommendationCache();
   unregister<ItemMutationRepository>();
   unregister<SearchRepository>();
   unregister<UserViewsRepository>();
