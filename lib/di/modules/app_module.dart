@@ -71,6 +71,7 @@ void resetUserScopedSingletons() {
 
 void registerAppModule() {
   _getIt.registerLazySingleton(() => SocketHandler());
+  _getIt.registerLazySingleton(() => CustomExternalListsService());
   _getIt.registerLazySingleton(
     () => BackgroundService(),
     dispose: (service) => service.dispose(),
