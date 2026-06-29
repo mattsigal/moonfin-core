@@ -2006,7 +2006,7 @@ class RowDataSource {
       if (genres.isNotEmpty) {
         futures.add(() async {
           try {
-            final cacheKey = 'genres:${candidateItemTypes.join(",")}:${genres.join(",")}';
+            final cacheKey = '$serverId:genres:${candidateItemTypes.join(",")}:${genres.join(",")}';
             if (_recommendationCache.containsKey(cacheKey)) {
               final cached = _recommendationCache[cacheKey]!;
               for (final item in cached) {
