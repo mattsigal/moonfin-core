@@ -50,7 +50,18 @@ class RowDataSource {
       'ParentBackdropItemId,ParentBackdropImageTags,SeriesId';
 
   // Cache for local recommendations to make them practically instantaneous
+  static const int _recommendationCacheMaxEntries = 64;
   static final Map<String, List<Map<String, dynamic>>> _recommendationCache = {};
+
+  static void clearRecommendationCache() => _recommendationCache.clear();
+
+  static void _cacheRecommendations(String key, List<Map<String, dynamic>> items) {
+    _recommendationCache.remove(key);
+    _recommendationCache[key] = items;
+    while (_recommendationCache.length > _recommendationCacheMaxEntries) {
+      _recommendationCache.remove(_recommendationCache.keys.first);
+    }
+  }
 
   // Cap image tags to one per type (server returns all by default)
   static const _imageTypes = 'Primary,Backdrop,Thumb';
