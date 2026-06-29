@@ -36,6 +36,7 @@ class ImdbExternalListItem {
 
   Map<String, dynamic> toJson() => {
         'imdbId': imdbId,
+        'tmdbId': tmdbId,
         'title': title,
         'posterUrl': posterUrl,
         'backdropUrl': backdropUrl,
