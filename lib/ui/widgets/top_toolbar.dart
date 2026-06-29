@@ -324,6 +324,11 @@ class _TopToolbarState extends State<TopToolbar> {
   }
 
   void _restoreFocusBelowToolbar() {
+    final playBtnNode = NavigationLayout.focusDetailsPlayButtonNotifier.value;
+    if (playBtnNode != null && playBtnNode.context != null && playBtnNode.canRequestFocus) {
+      playBtnNode.requestFocus();
+      return;
+    }
     final focusContent = NavigationLayout.focusContentFromNavbarNotifier.value;
     if (focusContent != null && widget.activeRoute == Destinations.home) {
       focusContent();
@@ -545,7 +550,8 @@ class _TopToolbarState extends State<TopToolbar> {
                     }
                   }
 
-                  if (widget.activeRoute != Destinations.home) {
+                  if (widget.activeRoute != Destinations.home &&
+                      NavigationLayout.focusDetailsPlayButtonNotifier.value == null) {
                     final success =
                         primary.focusInDirection(TraversalDirection.down);
                     if (success) {

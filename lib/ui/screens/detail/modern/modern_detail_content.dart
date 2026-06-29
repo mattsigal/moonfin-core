@@ -13,12 +13,14 @@ import '../../../../data/models/aggregated_item.dart';
 import '../../../../data/viewmodels/item_detail_view_model.dart';
 import '../../../../l10n/app_localizations.dart';
 import '../../../../preference/user_preferences.dart';
+import '../../../../preference/preference_constants.dart';
 import '../../../../util/platform_detection.dart';
 import '../../../navigation/destinations.dart';
 import '../../../widgets/logo_view.dart';
 import '../../../widgets/media_card.dart';
 import '../../../widgets/rating_display.dart';
 import '../../../widgets/focus/focusable_wrapper.dart';
+import '../../../widgets/navigation_layout.dart';
 import '../../../widgets/top_toolbar.dart';
 import '../item_detail_screen.dart'
     show
@@ -87,6 +89,10 @@ class _ModernDetailContentState extends State<ModernDetailContent> {
   final FocusNode _castFirstFocusNode = FocusNode(debugLabel: 'castFirst');
   final FocusNode _crewFirstFocusNode = FocusNode(debugLabel: 'crewFirst');
   final FocusNode _studiosFirstFocusNode = FocusNode(debugLabel: 'studiosFirst');
+  final FocusNode _chaptersFirstFocusNode = FocusNode(debugLabel: 'chaptersFirst');
+  final FocusNode _similarFirstFocusNode = FocusNode(debugLabel: 'similarFirst');
+  final FocusNode _seasonsFirstFocusNode = FocusNode(debugLabel: 'seasonsFirst');
+  final FocusNode _episodesFirstFocusNode = FocusNode(debugLabel: 'episodesFirst');
   late final ScrollController _scrollController = ScrollController();
   bool _showNavbarState = true;
   bool _audioExpanded = false;
@@ -167,6 +173,29 @@ class _ModernDetailContentState extends State<ModernDetailContent> {
   @override
   void initState() {
     super.initState();
+    
+    final FocusOnKeyEventCallback leftToSidebarHandler = (node, event) {
+      if (event is KeyDownEvent && event.logicalKey == LogicalKeyboardKey.arrowLeft) {
+        final navbarPosition = widget.prefs.get(UserPreferences.navbarPosition);
+        if (navbarPosition == NavbarPosition.left) {
+          final focusNavbar = NavigationLayout.focusNavbarNotifier.value;
+          if (focusNavbar != null) {
+            focusNavbar();
+            return KeyEventResult.handled;
+          }
+        }
+      }
+      return KeyEventResult.ignored;
+    };
+
+    _castFirstFocusNode.onKeyEvent = leftToSidebarHandler;
+    _crewFirstFocusNode.onKeyEvent = leftToSidebarHandler;
+    _studiosFirstFocusNode.onKeyEvent = leftToSidebarHandler;
+    _chaptersFirstFocusNode.onKeyEvent = leftToSidebarHandler;
+    _similarFirstFocusNode.onKeyEvent = leftToSidebarHandler;
+    _seasonsFirstFocusNode.onKeyEvent = leftToSidebarHandler;
+    _episodesFirstFocusNode.onKeyEvent = leftToSidebarHandler;
+
     _vm.addListener(_onViewModelChanged);
     _scrollController.addListener(_onScroll);
     if (PlatformDetection.isTV) {
@@ -178,6 +207,7 @@ class _ModernDetailContentState extends State<ModernDetailContent> {
       WidgetsBinding.instance.addPostFrameCallback((_) {
         if (mounted) widget.initialFocusNode?.requestFocus();
       });
+      NavigationLayout.focusDetailsPlayButtonNotifier.value = widget.initialFocusNode;
     }
   }
 
@@ -188,6 +218,7 @@ class _ModernDetailContentState extends State<ModernDetailContent> {
       WidgetsBinding.instance.addPostFrameCallback((_) {
         if (mounted) widget.initialFocusNode?.requestFocus();
       });
+      NavigationLayout.focusDetailsPlayButtonNotifier.value = widget.initialFocusNode;
     }
   }
 
@@ -210,6 +241,9 @@ class _ModernDetailContentState extends State<ModernDetailContent> {
 
   @override
   void dispose() {
+    if (NavigationLayout.focusDetailsPlayButtonNotifier.value == widget.initialFocusNode) {
+      NavigationLayout.focusDetailsPlayButtonNotifier.value = null;
+    }
     _vm.removeListener(_onViewModelChanged);
     _scrollController.removeListener(_onScroll);
     _scrollController.dispose();
@@ -227,6 +261,10 @@ class _ModernDetailContentState extends State<ModernDetailContent> {
     _castFirstFocusNode.dispose();
     _crewFirstFocusNode.dispose();
     _studiosFirstFocusNode.dispose();
+    _chaptersFirstFocusNode.dispose();
+    _similarFirstFocusNode.dispose();
+    _seasonsFirstFocusNode.dispose();
+    _episodesFirstFocusNode.dispose();
     super.dispose();
   }
 
@@ -243,11 +281,6 @@ class _ModernDetailContentState extends State<ModernDetailContent> {
   FocusNode _tabNode(int index) {
     while (_tabFocusNodes.length <= index) {
       final node = FocusNode(debugLabel: 'tab_$index');
-      node.addListener(() {
-        if (node.hasFocus && mounted) {
-          widget.onToggleNavbar?.call(false);
-        }
-      });
       _tabFocusNodes.add(node);
     }
     return _tabFocusNodes[index];
@@ -256,8 +289,28 @@ class _ModernDetailContentState extends State<ModernDetailContent> {
   void _focusSelectedTab() => _tabNode(_selectedTab).requestFocus();
 
   void _onTabBarNavigateDown() {
-    if (_detailsTabFocusNode.context != null && _detailsTabFocusNode.canRequestFocus) {
-      _detailsTabFocusNode.requestFocus();
+    if (_vm.item == null) return;
+    final l10n = AppLocalizations.of(context);
+    final tabs = _tabsFor(_vm.item!, l10n);
+    if (_selectedTab >= 0 && _selectedTab < tabs.length) {
+      final label = tabs[_selectedTab].label;
+      if (label == l10n.cast) {
+        if (_castFirstFocusNode.canRequestFocus) _castFirstFocusNode.requestFocus();
+      } else if (label == l10n.crewSection) {
+        if (_crewFirstFocusNode.canRequestFocus) _crewFirstFocusNode.requestFocus();
+      } else if (label == l10n.studios) {
+        if (_studiosFirstFocusNode.canRequestFocus) _studiosFirstFocusNode.requestFocus();
+      } else if (label == l10n.chapters) {
+        if (_chaptersFirstFocusNode.canRequestFocus) _chaptersFirstFocusNode.requestFocus();
+      } else if (label == l10n.details) {
+        if (_detailsTabFocusNode.canRequestFocus) _detailsTabFocusNode.requestFocus();
+      } else if (label == l10n.similar) {
+        if (_similarFirstFocusNode.canRequestFocus) _similarFirstFocusNode.requestFocus();
+      } else if (label == l10n.seasons) {
+        if (_seasonsFirstFocusNode.canRequestFocus) _seasonsFirstFocusNode.requestFocus();
+      } else if (label == l10n.episodes) {
+        if (_episodesFirstFocusNode.canRequestFocus) _episodesFirstFocusNode.requestFocus();
+      }
     }
   }
 
@@ -284,7 +337,7 @@ class _ModernDetailContentState extends State<ModernDetailContent> {
     final studios = _ModernTab(l10n.studios, _studiosTab);
     final chapters = _ModernTab(l10n.chapters, _chaptersTab);
     final details = _ModernTab(l10n.details, _detailsTab);
-    final similar = _ModernTab(l10n.similar, (_, _) => _itemGrid(_vm.similar));
+    final similar = _ModernTab(l10n.similar, (_, _) => _similarTab(context, _vm.similar));
 
     switch (item.type) {
       case 'Series':
@@ -368,85 +421,106 @@ class _ModernDetailContentState extends State<ModernDetailContent> {
     final counts = _episodeCountsBySeason();
     final showPosterUrl = _imageUrl(item);
     final cards = [
-      for (final season in _vm.seasons)
+      for (var i = 0; i < _vm.seasons.length; i++)
         SeasonCard(
-          title: season.name,
+          title: _vm.seasons[i].name,
           subtitle: l10n.episodeCount(
-            counts[season.id] ?? season.childCount ?? 0,
+            counts[_vm.seasons[i].id] ?? _vm.seasons[i].childCount ?? 0,
           ),
-          imageUrl: _imageUrl(season) ?? showPosterUrl,
-          isFallbackImage: _imageUrl(season) == null,
+          imageUrl: _imageUrl(_vm.seasons[i]) ?? showPosterUrl,
+          isFallbackImage: _imageUrl(_vm.seasons[i]) == null,
           landscape: _landscape,
           onNavigateUp: _focusSelectedTab,
+          focusNode: i == 0 ? _seasonsFirstFocusNode : null,
           onTap: () => context.push(
-            Destinations.item(season.id, serverId: season.serverId),
+            Destinations.item(_vm.seasons[i].id, serverId: _vm.seasons[i].serverId),
           ),
         ),
     ];
-    if (_landscape) {
-      return Focus(
-        onKeyEvent: (node, event) {
-          if (event is KeyDownEvent && event.logicalKey == LogicalKeyboardKey.arrowUp) {
-            _focusSelectedTab();
-            return KeyEventResult.handled;
-          }
-          return KeyEventResult.ignored;
-        },
-        child: SingleChildScrollView(
-          scrollDirection: Axis.horizontal,
-          child: Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
+    final child = _landscape
+        ? SingleChildScrollView(
+            scrollDirection: Axis.horizontal,
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                for (final card in cards)
+                  Padding(
+                    padding: const EdgeInsets.only(right: 12),
+                    child: card,
+                  ),
+              ],
+            ),
+          )
+        : Column(
             children: [
               for (final card in cards)
                 Padding(
-                  padding: const EdgeInsets.only(right: 12),
+                  padding: const EdgeInsets.only(bottom: 12),
                   child: card,
                 ),
             ],
-          ),
-        ),
-      );
-    }
-    return Column(
-      children: [
-        for (final card in cards)
-          Padding(
-            padding: const EdgeInsets.only(bottom: 12),
-            child: card,
-          ),
-      ],
+          );
+
+    return Focus(
+      canRequestFocus: false,
+      onFocusChange: (focused) {
+        if (focused && mounted) {
+          widget.onToggleNavbar?.call(false);
+        } else if (!focused && mounted) {
+          widget.onToggleNavbar?.call(true);
+        }
+      },
+      onKeyEvent: (node, event) {
+        if (event is KeyDownEvent && event.logicalKey == LogicalKeyboardKey.arrowUp) {
+          _focusSelectedTab();
+          return KeyEventResult.handled;
+        }
+        return KeyEventResult.ignored;
+      },
+      child: child,
     );
   }
 
   Widget _episodeListTab(BuildContext context, AggregatedItem item) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        for (var i = 0; i < _vm.episodes.length; i++)
-          Padding(
-            padding: const EdgeInsets.only(bottom: 8),
-            child: i == 0
-                ? Focus(
-                    onKeyEvent: (node, event) {
-                      if (event is KeyDownEvent && event.logicalKey == LogicalKeyboardKey.arrowUp) {
-                        _focusSelectedTab();
-                        return KeyEventResult.handled;
-                      }
-                      return KeyEventResult.ignored;
-                    },
-                    child: DetailEpisodeCard(
+    return Focus(
+      canRequestFocus: false,
+      onFocusChange: (focused) {
+        if (focused && mounted) {
+          widget.onToggleNavbar?.call(false);
+        } else if (!focused && mounted) {
+          widget.onToggleNavbar?.call(true);
+        }
+      },
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          for (var i = 0; i < _vm.episodes.length; i++)
+            Padding(
+              padding: const EdgeInsets.only(bottom: 8),
+              child: i == 0
+                  ? Focus(
+                      focusNode: _episodesFirstFocusNode,
+                      onKeyEvent: (node, event) {
+                        if (event is KeyDownEvent && event.logicalKey == LogicalKeyboardKey.arrowUp) {
+                          _focusSelectedTab();
+                          return KeyEventResult.handled;
+                        }
+                        return KeyEventResult.ignored;
+                      },
+                      child: DetailEpisodeCard(
+                        episode: _vm.episodes[i],
+                        imageApi: _vm.imageApi,
+                        onChanged: () => _vm.load(),
+                      ),
+                    )
+                  : DetailEpisodeCard(
                       episode: _vm.episodes[i],
                       imageApi: _vm.imageApi,
                       onChanged: () => _vm.load(),
                     ),
-                  )
-                : DetailEpisodeCard(
-                    episode: _vm.episodes[i],
-                    imageApi: _vm.imageApi,
-                    onChanged: () => _vm.load(),
-                  ),
-          ),
-      ],
+            ),
+        ],
+      ),
     );
   }
 
@@ -509,6 +583,7 @@ class _ModernDetailContentState extends State<ModernDetailContent> {
           padding: const EdgeInsets.only(bottom: 6),
           child: FocusableWrapper(
             onNavigateUp: isFirst ? _focusSelectedTab : null,
+            focusNode: isFirst ? _episodesFirstFocusNode : null,
             onSelect: () {
               setState(() {
                 if (_expandedSeasons.contains(season)) {
@@ -572,15 +647,33 @@ class _ModernDetailContentState extends State<ModernDetailContent> {
       }
     }
 
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.stretch,
-      children: children,
+    return Focus(
+      canRequestFocus: false,
+      onFocusChange: (focused) {
+        if (focused && mounted) {
+          widget.onToggleNavbar?.call(false);
+        } else if (!focused && mounted) {
+          widget.onToggleNavbar?.call(true);
+        }
+      },
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: children,
+      ),
     );
   }
 
   Widget _castTab(BuildContext context, AggregatedItem item) => SizedBox(
         height: 200,
         child: Focus(
+          canRequestFocus: false,
+          onFocusChange: (focused) {
+            if (focused && mounted) {
+              widget.onToggleNavbar?.call(false);
+            } else if (!focused && mounted) {
+              widget.onToggleNavbar?.call(true);
+            }
+          },
           onKeyEvent: (node, event) {
             if (event is KeyDownEvent && event.logicalKey == LogicalKeyboardKey.arrowUp) {
               _focusSelectedTab();
@@ -652,6 +745,14 @@ class _ModernDetailContentState extends State<ModernDetailContent> {
     return SizedBox(
       height: 200,
       child: Focus(
+        canRequestFocus: false,
+        onFocusChange: (focused) {
+          if (focused && mounted) {
+            widget.onToggleNavbar?.call(false);
+          } else if (!focused && mounted) {
+            widget.onToggleNavbar?.call(true);
+          }
+        },
         onKeyEvent: (node, event) {
           if (event is KeyDownEvent && event.logicalKey == LogicalKeyboardKey.arrowUp) {
             _focusSelectedTab();
@@ -720,6 +821,14 @@ class _ModernDetailContentState extends State<ModernDetailContent> {
       child: SizedBox(
         height: cardHeight + 20,
         child: Focus(
+          canRequestFocus: false,
+          onFocusChange: (focused) {
+            if (focused && mounted) {
+              widget.onToggleNavbar?.call(false);
+            } else if (!focused && mounted) {
+              widget.onToggleNavbar?.call(true);
+            }
+          },
           onKeyEvent: (node, event) {
             if (event is KeyDownEvent && event.logicalKey == LogicalKeyboardKey.arrowUp) {
               _focusSelectedTab();
@@ -787,6 +896,14 @@ class _ModernDetailContentState extends State<ModernDetailContent> {
       return const SizedBox.shrink();
     }
     return Focus(
+      canRequestFocus: false,
+      onFocusChange: (focused) {
+        if (focused && mounted) {
+          widget.onToggleNavbar?.call(false);
+        } else if (!focused && mounted) {
+          widget.onToggleNavbar?.call(true);
+        }
+      },
       onKeyEvent: (node, event) {
         if (event is KeyDownEvent && event.logicalKey == LogicalKeyboardKey.arrowUp) {
           _focusSelectedTab();
@@ -798,6 +915,7 @@ class _ModernDetailContentState extends State<ModernDetailContent> {
         item: item,
         imageApi: _vm.imageApi,
         onPlayFromChapter: widget.onPlayFromChapter ?? (_) {},
+        firstItemFocusNode: _chaptersFirstFocusNode,
       ),
     );
   }
@@ -805,6 +923,14 @@ class _ModernDetailContentState extends State<ModernDetailContent> {
   Widget _extrasTab(BuildContext context, AggregatedItem item) => SizedBox(
         height: 200,
         child: Focus(
+          canRequestFocus: false,
+          onFocusChange: (focused) {
+            if (focused && mounted) {
+              widget.onToggleNavbar?.call(false);
+            } else if (!focused && mounted) {
+              widget.onToggleNavbar?.call(true);
+            }
+          },
           onKeyEvent: (node, event) {
             if (event is KeyDownEvent && event.logicalKey == LogicalKeyboardKey.arrowUp) {
               _focusSelectedTab();
@@ -852,11 +978,31 @@ class _ModernDetailContentState extends State<ModernDetailContent> {
       final subtitleStreams = rawStreams.where((s) => s['Type'] == 'Subtitle').toList();
       
       final hasButtons = audioStreams.length > 2 || subtitleStreams.length > 2;
-      return _DetailsContainer(
-        isScrollable: true,
-        canRequestFocus: true,
-        focusNode: _detailsTabFocusNode,
-        child: _buildFileInformation(context, targetItem, mediaSource),
+      return Focus(
+        canRequestFocus: false,
+        onFocusChange: (focused) {
+          if (focused && mounted) {
+            widget.onToggleNavbar?.call(false);
+          } else if (!focused && mounted) {
+            widget.onToggleNavbar?.call(true);
+          }
+        },
+        child: _DetailsContainer(
+          isScrollable: hasButtons,
+          canRequestFocus: true,
+          focusNode: _detailsTabFocusNode,
+          onNavigateUp: _focusSelectedTab,
+          onSelect: hasButtons
+              ? () {
+                  if (audioStreams.length > 2) {
+                    _audioShowAllFocusNode.requestFocus();
+                  } else if (subtitleStreams.length > 2) {
+                    _subtitleShowAllFocusNode.requestFocus();
+                  }
+                }
+              : null,
+          child: _buildFileInformation(context, targetItem, mediaSource),
+        ),
       );
     }
     return const SizedBox.shrink();
@@ -1052,6 +1198,7 @@ class _ModernDetailContentState extends State<ModernDetailContent> {
                   onNavigateUp: _focusSelectedTab,
                   onSelect: () => setState(() => _audioExpanded = !_audioExpanded),
                   borderRadius: 6,
+                  suppressFocusGlow: true,
                   child: Padding(
                     padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
                     child: Text(
@@ -1123,6 +1270,7 @@ class _ModernDetailContentState extends State<ModernDetailContent> {
                   onNavigateUp: _focusSelectedTab,
                   onSelect: () => setState(() => _subtitlesExpanded = !_subtitlesExpanded),
                   borderRadius: 6,
+                  suppressFocusGlow: true,
                   child: Padding(
                     padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
                     child: Text(
@@ -1285,6 +1433,14 @@ class _ModernDetailContentState extends State<ModernDetailContent> {
         final childAspectRatio =
             cellWidth / (cellWidth / cardRatio + textHeight);
         return Focus(
+          canRequestFocus: false,
+          onFocusChange: (focused) {
+            if (focused && mounted) {
+              widget.onToggleNavbar?.call(false);
+            } else if (!focused && mounted) {
+              widget.onToggleNavbar?.call(true);
+            }
+          },
           onKeyEvent: (node, event) {
             if (event is KeyDownEvent && event.logicalKey == LogicalKeyboardKey.arrowUp) {
               _focusSelectedTab();
@@ -1326,8 +1482,78 @@ class _ModernDetailContentState extends State<ModernDetailContent> {
     );
   }
 
+  Widget _similarTab(BuildContext context, List<AggregatedItem> items) {
+    if (items.isEmpty) return const SizedBox.shrink();
+    final isMobile = _landscape == false;
+    final desktopScale = widget.prefs.get(UserPreferences.desktopUiScale).scaleFactor;
+    final cardWidth = isMobile ? 90.0 : 120.0 * desktopScale;
+    const cardRatio = 2 / 3;
+    final cardHeight = cardWidth / cardRatio + 48.0;
+
+    return SizedBox(
+      height: cardHeight + 24.0,
+      child: Focus(
+        canRequestFocus: false,
+        onFocusChange: (focused) {
+          if (focused && mounted) {
+            widget.onToggleNavbar?.call(false);
+          } else if (!focused && mounted) {
+            widget.onToggleNavbar?.call(true);
+          }
+        },
+        onKeyEvent: (node, event) {
+          if (event is KeyDownEvent && event.logicalKey == LogicalKeyboardKey.arrowUp) {
+            _focusSelectedTab();
+            return KeyEventResult.handled;
+          }
+          return KeyEventResult.ignored;
+        },
+        child: ListView.separated(
+          scrollDirection: Axis.horizontal,
+          clipBehavior: Clip.none,
+          padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 12),
+          itemCount: items.length,
+          separatorBuilder: (_, __) => SizedBox(width: isMobile ? 8.0 : 12.0 * desktopScale),
+          itemBuilder: (context, i) {
+            final entry = items[i];
+            return MediaCard(
+              title: entry.name,
+              imageUrl: _imageUrl(entry),
+              width: cardWidth,
+              aspectRatio: cardRatio,
+              isPlayed: entry.isPlayed,
+              isFavorite: entry.isFavorite,
+              itemType: entry.type,
+              focusNode: i == 0 ? _similarFirstFocusNode : null,
+              onKeyEvent: (node, event) {
+                if (event is KeyDownEvent && event.logicalKey == LogicalKeyboardKey.arrowUp) {
+                  _focusSelectedTab();
+                  return KeyEventResult.handled;
+                }
+                return KeyEventResult.ignored;
+              },
+              watchedBehavior:
+                  widget.prefs.get(UserPreferences.watchedIndicatorBehavior),
+              onTap: () => context.push(
+                Destinations.item(entry.id, serverId: entry.serverId),
+              ),
+            );
+          },
+        ),
+      ),
+    );
+  }
+
   Widget _tracksTab(BuildContext context, AggregatedItem item) {
     return Focus(
+      canRequestFocus: false,
+      onFocusChange: (focused) {
+        if (focused && mounted) {
+          widget.onToggleNavbar?.call(false);
+        } else if (!focused && mounted) {
+          widget.onToggleNavbar?.call(true);
+        }
+      },
       onKeyEvent: (node, event) {
         if (event is KeyDownEvent && event.logicalKey == LogicalKeyboardKey.arrowUp) {
           _focusSelectedTab();
@@ -1437,7 +1663,20 @@ class _ModernDetailContentState extends State<ModernDetailContent> {
           ),
         ],
         const SizedBox(height: 6),
-        _metadataRow(context, item),
+        if (hideTitleAndLogo) ...[
+          RatingsRow(
+            ratings: _vm.ratings,
+            communityRating: item.communityRating,
+            criticRating: item.criticRating,
+            enableAdditionalRatings:
+                widget.prefs.get(UserPreferences.enableAdditionalRatings),
+            enabledRatings: widget.prefs.get(UserPreferences.enabledRatings),
+            showLabels: widget.prefs.get(UserPreferences.showRatingLabels),
+            showBadges: widget.prefs.get(UserPreferences.showRatingBadges),
+          ),
+        ] else ...[
+          _metadataRow(context, item),
+        ],
         const SizedBox(height: 6),
         if (!_landscape || _vm.nextUp == null) ...[
           RatingsRow(
@@ -1479,12 +1718,15 @@ class _ModernDetailContentState extends State<ModernDetailContent> {
           canRequestFocus: false,
           skipTraversal: true,
           onFocusChange: (focused) {
-            if (focused && _scrollController.hasClients) {
-              _scrollController.animateTo(
-                0.0,
-                duration: const Duration(milliseconds: 250),
-                curve: Curves.easeInOut,
-              );
+            if (focused) {
+              widget.onToggleNavbar?.call(true);
+              if (_scrollController.hasClients) {
+                _scrollController.animateTo(
+                  0.0,
+                  duration: const Duration(milliseconds: 250),
+                  curve: Curves.easeInOut,
+                );
+              }
             }
           },
           child: DetailActionButtons(
@@ -1836,10 +2078,19 @@ class _ModernDetailContentState extends State<ModernDetailContent> {
       selectedIndex: _selectedTab,
       onSelect: _selectTab,
       focusNodeFor: _tabNode,
-      onExitLeft: () => widget.initialFocusNode?.requestFocus(),
-      onNavigateDown: (_selectedTab >= 0 && _selectedTab < tabs.length && tabs[_selectedTab].label == l10n.details)
-          ? _onTabBarNavigateDown
-          : null,
+      onExitLeft: () {
+        final navbarPosition = widget.prefs.get(UserPreferences.navbarPosition);
+        if (navbarPosition == NavbarPosition.left) {
+          final focusNavbar = NavigationLayout.focusNavbarNotifier.value;
+          if (focusNavbar != null) {
+            focusNavbar();
+            return;
+          }
+        }
+        widget.initialFocusNode?.requestFocus();
+      },
+      onExitUp: () => widget.initialFocusNode?.requestFocus(),
+      onNavigateDown: _onTabBarNavigateDown,
     );
 
     final hero = _buildHero(context, item);
@@ -1863,24 +2114,15 @@ class _ModernDetailContentState extends State<ModernDetailContent> {
                   maxHeight: 90,
                   maxWidth: 360,
                 ),
-                const SizedBox(height: 12),
+                const SizedBox(height: 6),
               ] else ...[
                 Text(
                   item.name,
                   style: textTheme.displaySmall?.copyWith(fontWeight: FontWeight.w700),
                 ),
-                const SizedBox(height: 8),
+                const SizedBox(height: 6),
               ],
-              RatingsRow(
-                ratings: _vm.ratings,
-                communityRating: item.communityRating,
-                criticRating: item.criticRating,
-                enableAdditionalRatings:
-                    widget.prefs.get(UserPreferences.enableAdditionalRatings),
-                enabledRatings: widget.prefs.get(UserPreferences.enabledRatings),
-                showLabels: widget.prefs.get(UserPreferences.showRatingLabels),
-                showBadges: widget.prefs.get(UserPreferences.showRatingBadges),
-              ),
+              _metadataRow(context, item),
             ],
           )
         : null;
@@ -1918,12 +2160,16 @@ class _DetailsContainer extends StatefulWidget {
   final bool isScrollable;
   final bool canRequestFocus;
   final FocusNode? focusNode;
+  final VoidCallback? onNavigateUp;
+  final VoidCallback? onSelect;
 
   const _DetailsContainer({
     required this.child,
     required this.isScrollable,
     required this.canRequestFocus,
     this.focusNode,
+    this.onNavigateUp,
+    this.onSelect,
   });
 
   @override
@@ -1960,44 +2206,61 @@ class _DetailsContainerState extends State<_DetailsContainer> with FocusStateMix
                 context,
                 duration: const Duration(milliseconds: 250),
                 curve: Curves.easeInOut,
-                alignment: 0.5,
+                alignment: 0.0,
               );
             }
           });
         }
       },
-      onKeyEvent: widget.isScrollable
-          ? (node, event) {
-              if (event is KeyDownEvent || event is KeyRepeatEvent) {
-                if (event.logicalKey == LogicalKeyboardKey.arrowDown) {
-                  final maxScroll = _scrollController.position.maxScrollExtent;
-                  final currentScroll = _scrollController.offset;
-                  if (currentScroll < maxScroll) {
-                    _scrollController.animateTo(
-                      (currentScroll + 60.0).clamp(0.0, maxScroll),
-                      duration: const Duration(milliseconds: 100),
-                      curve: Curves.easeOut,
-                    );
-                    return KeyEventResult.handled;
-                  }
-                } else if (event.logicalKey == LogicalKeyboardKey.arrowUp) {
-                  final currentScroll = _scrollController.offset;
-                  if (currentScroll > 0.0) {
-                    _scrollController.animateTo(
-                      (currentScroll - 60.0).clamp(0.0, double.infinity),
-                      duration: const Duration(milliseconds: 100),
-                      curve: Curves.easeOut,
-                    );
-                    return KeyEventResult.handled;
-                  }
-                }
-              }
-              return KeyEventResult.ignored;
+      onKeyEvent: (node, event) {
+        if (event is KeyDownEvent) {
+          if (event.logicalKey == LogicalKeyboardKey.enter ||
+              event.logicalKey == LogicalKeyboardKey.select) {
+            if (widget.onSelect != null) {
+              widget.onSelect!();
+              return KeyEventResult.handled;
             }
-          : null,
+          }
+        }
+        if (widget.isScrollable) {
+          if (event is KeyDownEvent || event is KeyRepeatEvent) {
+            if (event.logicalKey == LogicalKeyboardKey.arrowDown) {
+              final maxScroll = _scrollController.position.maxScrollExtent;
+              final currentScroll = _scrollController.offset;
+              if (currentScroll < maxScroll) {
+                _scrollController.animateTo(
+                  (currentScroll + 60.0).clamp(0.0, maxScroll),
+                  duration: const Duration(milliseconds: 100),
+                  curve: Curves.easeOut,
+                );
+                return KeyEventResult.handled;
+              }
+            } else if (event.logicalKey == LogicalKeyboardKey.arrowUp) {
+              final currentScroll = _scrollController.offset;
+              if (currentScroll > 0.0) {
+                _scrollController.animateTo(
+                  (currentScroll - 60.0).clamp(0.0, double.infinity),
+                  duration: const Duration(milliseconds: 100),
+                  curve: Curves.easeOut,
+                );
+                return KeyEventResult.handled;
+              } else {
+                widget.onNavigateUp?.call();
+                return KeyEventResult.handled;
+              }
+            }
+          }
+        } else {
+          if (event is KeyDownEvent && event.logicalKey == LogicalKeyboardKey.arrowUp) {
+            widget.onNavigateUp?.call();
+            return KeyEventResult.handled;
+          }
+        }
+        return KeyEventResult.ignored;
+      },
       child: AnimatedContainer(
         duration: const Duration(milliseconds: 150),
-        height: widget.isScrollable ? 320 : null,
+        height: 460,
         decoration: BoxDecoration(
           borderRadius: BorderRadius.circular(12),
           border: Border.all(
