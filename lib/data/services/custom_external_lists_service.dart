@@ -64,9 +64,7 @@ class CustomExternalListsService {
     receiveTimeout: const Duration(seconds: 15),
   ));
 
-  final UserPreferences _prefs;
-
-  CustomExternalListsService(this._prefs);
+  CustomExternalListsService();
 
   String constructSourceUrl(String source, String type, Map<String, dynamic> params) {
     switch (source) {
