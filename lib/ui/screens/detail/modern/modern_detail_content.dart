@@ -21,7 +21,7 @@ import '../item_detail_screen.dart'
     show
         DetailActionButtons,
         DetailCastRow,
-        DetailMetadataSection,
+        DetailChaptersRow,
         DetailFeaturesRow,
         DetailEpisodeCard,
         DetailTrackList,
@@ -47,6 +47,7 @@ class ModernDetailContent extends StatefulWidget {
   final ValueChanged<String?> onSelectedMediaSourceChanged;
   final FocusNode? initialFocusNode;
   final bool autoPlay;
+  final void Function(Duration position)? onPlayFromChapter;
 
   const ModernDetailContent({
     super.key,
@@ -57,6 +58,7 @@ class ModernDetailContent extends StatefulWidget {
     required this.onSelectedMediaSourceChanged,
     this.initialFocusNode,
     this.autoPlay = false,
+    this.onPlayFromChapter,
   });
 
   @override
@@ -194,6 +196,7 @@ class _ModernDetailContentState extends State<ModernDetailContent> {
     final cast = _ModernTab(l10n.cast, _castTab);
     final crew = _ModernTab(l10n.crewSection, _crewTab);
     final studios = _ModernTab(l10n.studios, _studiosTab);
+    final chapters = _ModernTab(l10n.chapters, _chaptersTab);
     final details = _ModernTab(l10n.details, _detailsTab);
     final similar = _ModernTab(l10n.similar, (_, _) => _itemGrid(_vm.similar));
 
@@ -205,6 +208,7 @@ class _ModernDetailContentState extends State<ModernDetailContent> {
           if (hasCast) cast,
           if (hasCrew) crew,
           if (hasStudios) studios,
+          if (item.chapters.isNotEmpty) chapters,
           details,
           if (hasSimilar) similar,
         ];
@@ -215,6 +219,7 @@ class _ModernDetailContentState extends State<ModernDetailContent> {
           if (hasCast) cast,
           if (hasCrew) crew,
           if (hasStudios) studios,
+          if (item.chapters.isNotEmpty) chapters,
           details,
         ];
       case 'Episode':
@@ -224,6 +229,7 @@ class _ModernDetailContentState extends State<ModernDetailContent> {
           if (hasCast) cast,
           if (hasCrew) crew,
           if (hasStudios) studios,
+          if (item.chapters.isNotEmpty) chapters,
           details,
           if (hasSimilar) similar,
         ];
@@ -255,6 +261,7 @@ class _ModernDetailContentState extends State<ModernDetailContent> {
           if (hasCast) cast,
           if (hasCrew) crew,
           if (hasStudios) studios,
+          if (item.chapters.isNotEmpty) chapters,
           details,
         ];
       default:
@@ -262,6 +269,7 @@ class _ModernDetailContentState extends State<ModernDetailContent> {
           if (hasCast) cast,
           if (hasCrew) crew,
           if (hasStudios) studios,
+          if (item.chapters.isNotEmpty) chapters,
           details,
           if (hasFeatures) _ModernTab(l10n.extras, _extrasTab),
           if (hasSimilar) similar,
@@ -402,15 +410,35 @@ class _ModernDetailContentState extends State<ModernDetailContent> {
 
   Widget _crewTab(BuildContext context, AggregatedItem item) {
     final l10n = AppLocalizations.of(context);
-    final directors = _vm.directors.map((d) => {
-      ...d,
-      'Role': d['Role'] ?? l10n.director,
+    final Map<String, Map<String, dynamic>> merged = {};
+    for (final d in _vm.directors) {
+      final id = d['Id']?.toString() ?? d['Name']?.toString() ?? '';
+      if (id.isEmpty) continue;
+      merged[id] = {
+        ...d,
+        'Roles': <String>{d['Role'] as String? ?? l10n.director},
+      };
+    }
+    for (final w in _vm.writers) {
+      final id = w['Id']?.toString() ?? w['Name']?.toString() ?? '';
+      if (id.isEmpty) continue;
+      if (merged.containsKey(id)) {
+        final roles = merged[id]!['Roles'] as Set<String>;
+        roles.add(w['Role'] as String? ?? l10n.writer);
+      } else {
+        merged[id] = {
+          ...w,
+          'Roles': <String>{w['Role'] as String? ?? l10n.writer},
+        };
+      }
+    }
+    final crew = merged.values.map((person) {
+      final roles = person['Roles'] as Set<String>;
+      return {
+        ...person,
+        'Role': roles.join(', '),
+      };
     }).toList();
-    final writers = _vm.writers.map((w) => {
-      ...w,
-      'Role': w['Role'] ?? l10n.writer,
-    }).toList();
-    final crew = [...directors, ...writers];
 
     return SizedBox(
       height: 200,
@@ -418,6 +446,40 @@ class _ModernDetailContentState extends State<ModernDetailContent> {
         people: crew,
         imageApi: _vm.imageApi,
         serverId: item.serverId,
+      ),
+    );
+  }
+
+  Widget _buildStudioFallback(BuildContext context, String name) {
+    return Container(
+      decoration: BoxDecoration(
+        gradient: LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: [
+            Theme.of(context).colorScheme.primary.withValues(alpha: 0.25),
+            Theme.of(context).colorScheme.secondary.withValues(alpha: 0.05),
+            Colors.transparent,
+          ],
+          stops: const [0.0, 0.5, 1.0],
+        ),
+      ),
+      child: Center(
+        child: Padding(
+          padding: const EdgeInsets.all(8.0),
+          child: Text(
+            name.toUpperCase(),
+            textAlign: TextAlign.center,
+            maxLines: 2,
+            overflow: TextOverflow.ellipsis,
+            style: TextStyle(
+              fontSize: 12,
+              fontWeight: FontWeight.bold,
+              letterSpacing: 1.5,
+              color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.6),
+            ),
+          ),
+        ),
       ),
     );
   }
@@ -462,7 +524,6 @@ class _ModernDetailContentState extends State<ModernDetailContent> {
               height: cardHeight,
               decoration: BoxDecoration(
                 borderRadius: BorderRadius.circular(12),
-                color: Colors.white.withValues(alpha: 0.05),
                 border: Border.all(
                   color: Colors.white.withValues(alpha: 0.15),
                   width: 1,
@@ -470,51 +531,30 @@ class _ModernDetailContentState extends State<ModernDetailContent> {
               ),
               child: ClipRRect(
                 borderRadius: BorderRadius.circular(12),
-                child: Center(
-                  child: imageUrl != null
-                      ? CachedNetworkImage(
-                          imageUrl: imageUrl,
-                          fit: BoxFit.contain,
-                          placeholder: (context, url) => Padding(
-                            padding: const EdgeInsets.all(8.0),
-                            child: Text(
-                              name,
-                              textAlign: TextAlign.center,
-                              style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                                    fontWeight: FontWeight.w600,
-                                    color: Colors.white70,
-                                  ),
-                            ),
-                          ),
-                          errorWidget: (context, url, error) => Padding(
-                            padding: const EdgeInsets.all(8.0),
-                            child: Text(
-                              name,
-                              textAlign: TextAlign.center,
-                              style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                                    fontWeight: FontWeight.w600,
-                                    color: Colors.white70,
-                                  ),
-                            ),
-                          ),
-                        )
-                      : Padding(
-                          padding: const EdgeInsets.all(8.0),
-                          child: Text(
-                            name,
-                            textAlign: TextAlign.center,
-                            style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                                  fontWeight: FontWeight.w600,
-                                  color: Colors.white70,
-                                ),
-                          ),
-                        ),
-                ),
+                child: imageUrl != null
+                    ? CachedNetworkImage(
+                        imageUrl: imageUrl,
+                        fit: BoxFit.contain,
+                        placeholder: (context, url) => _buildStudioFallback(context, name),
+                        errorWidget: (context, url, error) => _buildStudioFallback(context, name),
+                      )
+                    : _buildStudioFallback(context, name),
               ),
             ),
           );
         },
       ),
+    );
+  }
+
+  Widget _chaptersTab(BuildContext context, AggregatedItem item) {
+    if (item.chapters.isEmpty) {
+      return const SizedBox.shrink();
+    }
+    return DetailChaptersRow(
+      item: item,
+      imageApi: _vm.imageApi,
+      onPlayFromChapter: widget.onPlayFromChapter ?? (_) {},
     );
   }
 
@@ -534,11 +574,8 @@ class _ModernDetailContentState extends State<ModernDetailContent> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        if (isPlayable && mediaSource != null) ...[
+        if (isPlayable && mediaSource != null)
           _buildFileInformation(context, item, mediaSource),
-          const Divider(color: Colors.white10, height: 40, thickness: 1),
-        ],
-        DetailMetadataSection(viewModel: _vm),
       ],
     );
   }
@@ -911,15 +948,17 @@ class _ModernDetailContentState extends State<ModernDetailContent> {
   /// circular button is ~62 wide.
   int? _actionButtonCap(BuildContext context, AggregatedItem item) {
     if (!_landscape) return null;
-    final heroWidth =
-        (MediaQuery.sizeOf(context).width * 0.45).clamp(360.0, 620.0);
+    final hasUpNext = _buildUpNext(context, item) != null;
+    final heroWidth = hasUpNext
+        ? (MediaQuery.sizeOf(context).width * 0.45).clamp(360.0, 620.0)
+        : (MediaQuery.sizeOf(context).width * 0.75).clamp(450.0, 960.0);
     final pillWidth = switch (item.type) {
       'Series' || 'Season' || 'Episode' => 300.0,
       'MusicAlbum' || 'Playlist' || 'AudioBook' || 'MusicArtist' => 160.0,
       _ => 220.0,
     };
     final circles = ((heroWidth - pillWidth - 62) / 62).floor();
-    return (circles + 2).clamp(2, 8);
+    return (circles + 2).clamp(2, 12);
   }
 
   Widget _buildHero(BuildContext context, AggregatedItem item) {
@@ -967,6 +1006,8 @@ class _ModernDetailContentState extends State<ModernDetailContent> {
           enableAdditionalRatings:
               widget.prefs.get(UserPreferences.enableAdditionalRatings),
           enabledRatings: widget.prefs.get(UserPreferences.enabledRatings),
+          showLabels: widget.prefs.get(UserPreferences.showRatingLabels),
+          showBadges: widget.prefs.get(UserPreferences.showRatingBadges),
         ),
         if (item.tagline != null && item.tagline!.trim().isNotEmpty) ...[
           const SizedBox(height: 14),

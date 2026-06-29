@@ -361,6 +361,38 @@ class _ItemDetailScreenState extends State<ItemDetailScreen>
     );
   }
 
+  Future<void> _playFromChapter(
+    BuildContext context,
+    AggregatedItem item,
+    Duration startPosition,
+    String? mediaSourceId,
+  ) async {
+    final manager = GetIt.instance<PlaybackManager>();
+    final forceTranscode = await _shouldForceTranscodeForDolbyVisionQueue(
+      context,
+      [item],
+      mediaSourceId: mediaSourceId,
+    );
+    if (!context.mounted) return;
+    final started = await _runWithDolbyVisionStartupFallbackPrompt(
+      context,
+      manager,
+      () => manager.playItems(
+        [item],
+        startPosition: startPosition,
+        mediaSourceId: mediaSourceId,
+        enableDirectPlay: !forceTranscode,
+        enableDirectStream: !forceTranscode,
+      ),
+    );
+    if (!started || !context.mounted) return;
+
+    final destination = manager.playbackDeferredToExternalPlayer
+        ? Destinations.externalPlayer
+        : Destinations.videoPlayer;
+    unawaited(context.push(destination));
+  }
+
   Widget _buildBody(BuildContext context) {
     return switch (_viewModel.state) {
       ItemDetailState.loading => const Center(
@@ -401,6 +433,9 @@ class _ItemDetailScreenState extends State<ItemDetailScreen>
                 onSelectedMediaSourceChanged: (id) =>
                     setState(() => _selectedMediaSourceId = id),
                 autoPlay: widget.autoPlay,
+                onPlayFromChapter: (position) => unawaited(
+                  _playFromChapter(context, _viewModel.item!, position, _selectedMediaSourceId),
+                ),
               )
             : _DetailContent(
                 viewModel: _viewModel,
@@ -5625,37 +5660,52 @@ class DetailActionButtonsState extends State<DetailActionButtons> {
         onArrowRight: widget.onArrowRightAtEnd ?? () {},
         onPressed: () => setState(() => _expanded = !_expanded),
       );
-      final wrapAlignment =
-          widget.modernStyle ? WrapAlignment.start : WrapAlignment.center;
-      rowContent = Align(
-        alignment:
-            widget.modernStyle ? Alignment.centerLeft : Alignment.center,
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: widget.modernStyle
-              ? CrossAxisAlignment.start
-              : CrossAxisAlignment.center,
-          children: [
-            Wrap(
-              spacing: buttonSpacing,
-              runSpacing: buttonRunSpacing,
-              crossAxisAlignment: WrapCrossAlignment.center,
-              alignment: wrapAlignment,
-              children: [...normalizedPrimaryButtons, moreButton],
-            ),
-            if (_expanded) ...[
-              SizedBox(height: buttonRunSpacing),
+      if (widget.modernStyle) {
+        rowContent = Align(
+          alignment: Alignment.centerLeft,
+          child: Wrap(
+            spacing: buttonSpacing,
+            runSpacing: buttonRunSpacing,
+            crossAxisAlignment: WrapCrossAlignment.center,
+            alignment: WrapAlignment.start,
+            children: _expanded
+                ? [...normalizedPrimaryButtons, ...normalizedExtraButtons, moreButton]
+                : [...normalizedPrimaryButtons, moreButton],
+          ),
+        );
+      } else {
+        final wrapAlignment =
+            widget.modernStyle ? WrapAlignment.start : WrapAlignment.center;
+        rowContent = Align(
+          alignment:
+              widget.modernStyle ? Alignment.centerLeft : Alignment.center,
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: widget.modernStyle
+                ? CrossAxisAlignment.start
+                : CrossAxisAlignment.center,
+            children: [
               Wrap(
                 spacing: buttonSpacing,
                 runSpacing: buttonRunSpacing,
                 crossAxisAlignment: WrapCrossAlignment.center,
                 alignment: wrapAlignment,
-                children: normalizedExtraButtons,
+                children: [...normalizedPrimaryButtons, moreButton],
               ),
+              if (_expanded) ...[
+                SizedBox(height: buttonRunSpacing),
+                Wrap(
+                  spacing: buttonSpacing,
+                  runSpacing: buttonRunSpacing,
+                  crossAxisAlignment: WrapCrossAlignment.center,
+                  alignment: wrapAlignment,
+                  children: normalizedExtraButtons,
+                ),
+              ],
             ],
-          ],
-        ),
-      );
+          ),
+        );
+      }
     }
 
     return Focus(

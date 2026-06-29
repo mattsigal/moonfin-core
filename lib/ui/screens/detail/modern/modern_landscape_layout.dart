@@ -25,7 +25,10 @@ class ModernLandscapeLayout extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final size = MediaQuery.sizeOf(context);
-    final heroWidth = (size.width * 0.45).clamp(360.0, 620.0);
+    final hasUpNext = upNext != null;
+    final heroWidth = hasUpNext
+        ? (size.width * 0.45).clamp(360.0, 620.0)
+        : (size.width * 0.75).clamp(450.0, 960.0);
     return Stack(
       fit: StackFit.expand,
       children: [
