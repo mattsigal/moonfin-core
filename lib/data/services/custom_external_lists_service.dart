@@ -163,7 +163,7 @@ class CustomExternalListsService {
       );
 
       if (response.statusCode != 200) {
-        throw Exception('Custom rows controller returned status ${response?.statusCode}');
+        throw Exception('Custom rows controller returned status ${response.statusCode}');
       }
 
       final data = response.data;
