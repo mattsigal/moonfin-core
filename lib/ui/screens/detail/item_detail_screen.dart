@@ -6696,18 +6696,55 @@ class DetailActionButtonsState extends State<DetailActionButtons> {
 
           case 'AudioBook':
             final client = _clientForItem(item);
+            const audioChildFields =
+                'BasicSyncInfo,PrimaryImageAspectRatio,RunTimeTicks,MediaSources,MediaSourceCount,MediaType,IndexNumber,ParentIndexNumber,Artists,AlbumArtist,Genres,Chapters';
+            bool isAudioChild(dynamic e) {
+              final childType = e is Map ? e['Type']?.toString() : null;
+              return childType == 'Audio' || childType == 'AudioBook';
+            }
+
             final data = await client.itemsApi.getItems(
               parentId: item.id,
               includeItemTypes: const ['Audio', 'AudioBook'],
               sortBy: 'ParentIndexNumber,IndexNumber,SortName',
-              fields: 'PrimaryImageAspectRatio,BasicSyncInfo',
+              fields: audioChildFields,
             );
-            final tracks = _mapRawItemsForServer(data['Items'], item.serverId);
-            if (tracks.isEmpty) {
-              continue defaultCase;
+            // A container audiobook lists its chapters as child items. A
+            // single-file audiobook is a leaf: Jellyfin answers a ParentId query
+            // against a leaf by ignoring the filter and returning the top-level
+            // libraries (CollectionFolder/UserView), so keep only real tracks.
+            final rawChildren = (data['Items'] as List?) ?? const [];
+            final childItems = rawChildren.where(isAudioChild).toList();
+            if (childItems.isNotEmpty) {
+              await manager.playItems(
+                _mapRawItemsForServer(childItems, item.serverId),
+              );
+              break;
             }
-            await manager.playItems(tracks);
-            break;
+
+            // Leaf audiobook: enqueue the sibling chapters from the parent
+            // folder so the book plays through, starting at this file.
+            final parentId = item.rawData['ParentId']?.toString();
+            if (parentId != null && parentId.isNotEmpty) {
+              final siblingData = await client.itemsApi.getItems(
+                parentId: parentId,
+                includeItemTypes: const ['Audio', 'AudioBook'],
+                sortBy: 'ParentIndexNumber,IndexNumber,SortName',
+                fields: audioChildFields,
+              );
+              final siblingsRaw = (siblingData['Items'] as List?) ?? const [];
+              final siblings = _mapRawItemsForServer(
+                siblingsRaw.where(isAudioChild).toList(),
+                item.serverId,
+              );
+              final startIndex = siblings.indexWhere((t) => t.id == item.id);
+              if (siblings.isNotEmpty && startIndex >= 0) {
+                await manager.playItems(siblings, startIndex: startIndex);
+                break;
+              }
+            }
+
+            continue defaultCase;
 
           defaultCase:
           default:
