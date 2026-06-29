@@ -20,7 +20,6 @@ import '../utils/playlist_utils.dart';
 import 'package:flutter/foundation.dart';
 import '../repositories/seerr_repository.dart';
 import '../../preference/seerr_preferences.dart';
-import '../services/seerr/seerr_api_models.dart';
 import '../viewmodels/seerr_discover_view_model.dart';
 import 'custom_external_lists_service.dart';
 
