@@ -1,10 +1,12 @@
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:get_it/get_it.dart';
 import 'package:go_router/go_router.dart';
 import 'package:moonfin_design/moonfin_design.dart';
 import 'package:playback_core/playback_core.dart';
 import 'package:server_core/server_core.dart';
+import '../../../mixins/focus_state_mixin.dart';
 
 import '../../../../data/models/aggregated_item.dart';
 import '../../../../data/viewmodels/item_detail_view_model.dart';
@@ -414,21 +416,25 @@ class _ModernDetailContentState extends State<ModernDetailContent> {
     for (final d in _vm.directors) {
       final id = d['Id']?.toString() ?? d['Name']?.toString() ?? '';
       if (id.isEmpty) continue;
+      final roleStr = d['Role']?.toString().trim();
+      final role = (roleStr != null && roleStr.isNotEmpty) ? roleStr : l10n.director;
       merged[id] = {
         ...d,
-        'Roles': <String>{d['Role'] as String? ?? l10n.director},
+        'Roles': <String>{role},
       };
     }
     for (final w in _vm.writers) {
       final id = w['Id']?.toString() ?? w['Name']?.toString() ?? '';
       if (id.isEmpty) continue;
+      final roleStr = w['Role']?.toString().trim();
+      final role = (roleStr != null && roleStr.isNotEmpty) ? roleStr : l10n.writer;
       if (merged.containsKey(id)) {
         final roles = merged[id]!['Roles'] as Set<String>;
-        roles.add(w['Role'] as String? ?? l10n.writer);
+        roles.add(role);
       } else {
         merged[id] = {
           ...w,
-          'Roles': <String>{w['Role'] as String? ?? l10n.writer},
+          'Roles': <String>{role},
         };
       }
     }
@@ -519,6 +525,7 @@ class _ModernDetailContentState extends State<ModernDetailContent> {
                 ? () => context.push(Destinations.searchWith('studio:$name'))
                 : null,
             borderRadius: 12,
+            suppressFocusGlow: true,
             child: Container(
               width: cardWidth,
               height: cardHeight,
@@ -571,13 +578,12 @@ class _ModernDetailContentState extends State<ModernDetailContent> {
     final mediaSource = selectedMediaSourceForItem(item, widget.selectedMediaSourceId);
     final isPlayable = item.type != 'Series' && item.type != 'Season' && item.type != 'Person';
 
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        if (isPlayable && mediaSource != null)
-          _buildFileInformation(context, item, mediaSource),
-      ],
-    );
+    if (isPlayable && mediaSource != null) {
+      return _FocusableScrollableArea(
+        child: _buildFileInformation(context, item, mediaSource),
+      );
+    }
+    return const SizedBox.shrink();
   }
 
   Widget _buildFileInformation(
@@ -996,9 +1002,9 @@ class _ModernDetailContentState extends State<ModernDetailContent> {
                     : textTheme.headlineMedium)
                 ?.copyWith(fontWeight: FontWeight.w700),
           ),
-        const SizedBox(height: 12),
+        const SizedBox(height: 6),
         _metadataRow(context, item),
-        const SizedBox(height: 12),
+        const SizedBox(height: 6),
         RatingsRow(
           ratings: _vm.ratings,
           communityRating: item.communityRating,
@@ -1010,7 +1016,7 @@ class _ModernDetailContentState extends State<ModernDetailContent> {
           showBadges: widget.prefs.get(UserPreferences.showRatingBadges),
         ),
         if (item.tagline != null && item.tagline!.trim().isNotEmpty) ...[
-          const SizedBox(height: 14),
+          const SizedBox(height: 8),
           Text(
             item.tagline!.trim(),
             style: textTheme.titleSmall?.copyWith(
@@ -1020,7 +1026,7 @@ class _ModernDetailContentState extends State<ModernDetailContent> {
           ),
         ],
         if (overview != null && overview.isNotEmpty) ...[
-          const SizedBox(height: 14),
+          const SizedBox(height: 8),
           Text(
             overview,
             maxLines: _landscape ? 4 : 6,
@@ -1031,7 +1037,7 @@ class _ModernDetailContentState extends State<ModernDetailContent> {
             ),
           ),
         ],
-        const SizedBox(height: 18),
+        const SizedBox(height: 10),
         DetailActionButtons(
           viewModel: _vm,
           itemId: item.id,
@@ -1328,4 +1334,89 @@ class _ModernTab {
   final String label;
   final Widget Function(BuildContext, AggregatedItem) builder;
   const _ModernTab(this.label, this.builder);
+}
+
+class _FocusableScrollableArea extends StatefulWidget {
+  final Widget child;
+
+  const _FocusableScrollableArea({
+    required this.child,
+  });
+
+  @override
+  State<_FocusableScrollableArea> createState() => _FocusableScrollableAreaState();
+}
+
+class _FocusableScrollableAreaState extends State<_FocusableScrollableArea> with FocusStateMixin {
+  final ScrollController _scrollController = ScrollController();
+
+  @override
+  void dispose() {
+    _scrollController.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final focusColor = Color(
+      GetIt.instance<UserPreferences>()
+          .get(UserPreferences.focusColor)
+          .colorValue,
+    );
+    final isNeon = ThemeRegistry.active.id == ThemeRegistry.neonPulseId;
+
+    return Focus(
+      onFocusChange: (focused) => setFocused(focused),
+      onKeyEvent: (node, event) {
+        if (event is KeyDownEvent || event is KeyRepeatEvent) {
+          if (event.logicalKey == LogicalKeyboardKey.arrowDown) {
+            final maxScroll = _scrollController.position.maxScrollExtent;
+            final currentScroll = _scrollController.offset;
+            if (currentScroll < maxScroll) {
+              _scrollController.animateTo(
+                (currentScroll + 60.0).clamp(0.0, maxScroll),
+                duration: const Duration(milliseconds: 100),
+                curve: Curves.easeOut,
+              );
+              return KeyEventResult.handled;
+            }
+          } else if (event.logicalKey == LogicalKeyboardKey.arrowUp) {
+            final currentScroll = _scrollController.offset;
+            if (currentScroll > 0.0) {
+              _scrollController.animateTo(
+                (currentScroll - 60.0).clamp(0.0, double.infinity),
+                duration: const Duration(milliseconds: 100),
+                curve: Curves.easeOut,
+              );
+              return KeyEventResult.handled;
+            }
+          }
+        }
+        return KeyEventResult.ignored;
+      },
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 150),
+        height: 250,
+        decoration: BoxDecoration(
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(
+            color: showFocusBorder
+                ? (isNeon ? AppColorScheme.accent : focusColor)
+                : Colors.white.withValues(alpha: 0.08),
+            width: showFocusBorder ? 1.5 : 1.0,
+          ),
+          color: Colors.white.withValues(alpha: 0.02),
+        ),
+        padding: const EdgeInsets.all(16),
+        child: Scrollbar(
+          controller: _scrollController,
+          thumbVisibility: showFocusBorder,
+          child: SingleChildScrollView(
+            controller: _scrollController,
+            child: widget.child,
+          ),
+        ),
+      ),
+    );
+  }
 }

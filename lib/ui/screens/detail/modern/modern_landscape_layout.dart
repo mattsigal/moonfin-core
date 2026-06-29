@@ -35,12 +35,12 @@ class ModernLandscapeLayout extends StatelessWidget {
         backdrop,
         SafeArea(
           child: SingleChildScrollView(
-            padding: EdgeInsets.only(top: topInset),
+            padding: EdgeInsets.only(top: topInset - 12),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Padding(
-                  padding: const EdgeInsets.fromLTRB(40, 24, 40, 0),
+                  padding: const EdgeInsets.fromLTRB(40, 8, 40, 0),
                   child: Row(
                     crossAxisAlignment: CrossAxisAlignment.center,
                     children: [
@@ -61,11 +61,11 @@ class ModernLandscapeLayout extends StatelessWidget {
                   ),
                 ),
                 Padding(
-                  padding: const EdgeInsets.fromLTRB(40, 24, 40, 8),
+                  padding: const EdgeInsets.fromLTRB(40, 10, 40, 4),
                   child: tabBar,
                 ),
                 Padding(
-                  padding: const EdgeInsets.fromLTRB(40, 0, 40, 40),
+                  padding: const EdgeInsets.fromLTRB(40, 0, 40, 16),
                   child: tabContent,
                 ),
               ],
