@@ -11,6 +11,7 @@ import '../../util/platform_detection.dart';
 
 class ImdbExternalListItem {
   final String imdbId;
+  final String tmdbId;
   final String title;
   final String? posterUrl;
   final String? backdropUrl;
