@@ -1137,11 +1137,11 @@ class _CustomListsScreenState extends State<_CustomListsScreen> {
         }
         return 'List from URL';
       case 'user_diary':
-        return source == 'letterboxd' ? 'User Diary' : 'Diary';
+        return 'Diary';
       case 'watchlist':
-        return source == 'letterboxd' ? 'User Watchlist' : 'Watchlist';
+        return 'Watchlist';
       case 'films':
-        return source == 'letterboxd' ? 'User Complete Films' : 'Complete Films';
+        return 'Complete Films';
       case 'awards_events':
         return 'Awards/Events';
       case 'movie_collection':
@@ -1291,14 +1291,12 @@ class _AddEditCustomRowDialogState extends State<_AddEditCustomRowDialog> {
 
   final _nameController = TextEditingController();
   final _letterboxdUsernameController = TextEditingController();
-  final _letterboxdListNameController = TextEditingController();
   final _tmdbIdController = TextEditingController();
   final _mdblistUsernameController = TextEditingController();
   final _mdblistListNameController = TextEditingController();
 
   final _nameFocusNode = FocusNode(debugLabel: 'custom_row_name_field');
   final _letterboxdUsernameFocusNode = FocusNode(debugLabel: 'letterboxd_user_field');
-  final _letterboxdListNameFocusNode = FocusNode(debugLabel: 'letterboxd_list_field');
   final _tmdbIdFocusNode = FocusNode(debugLabel: 'tmdb_id_field');
   final _mdblistUsernameFocusNode = FocusNode(debugLabel: 'mdblist_user_field');
   final _mdblistListNameFocusNode = FocusNode(debugLabel: 'mdblist_list_field');
@@ -1329,11 +1327,7 @@ class _AddEditCustomRowDialogState extends State<_AddEditCustomRowDialog> {
       }
 
       if (_source == 'letterboxd') {
-        if (_type == 'user_list') {
-          _letterboxdListNameController.text = params['url'] as String? ?? '';
-        } else {
-          _letterboxdUsernameController.text = params['user'] as String? ?? '';
-        }
+        _letterboxdUsernameController.text = params['user'] as String? ?? '';
       } else if (_source == 'tmdb') {
         _tmdbIdController.text = params['id'] as String? ?? '';
       } else if (_source == 'mdblist') {
@@ -1362,14 +1356,12 @@ class _AddEditCustomRowDialogState extends State<_AddEditCustomRowDialog> {
   void dispose() {
     _nameController.dispose();
     _letterboxdUsernameController.dispose();
-    _letterboxdListNameController.dispose();
     _tmdbIdController.dispose();
     _mdblistUsernameController.dispose();
     _mdblistListNameController.dispose();
 
     _nameFocusNode.dispose();
     _letterboxdUsernameFocusNode.dispose();
-    _letterboxdListNameFocusNode.dispose();
     _tmdbIdFocusNode.dispose();
     _mdblistUsernameFocusNode.dispose();
     _mdblistListNameFocusNode.dispose();
@@ -1384,7 +1376,7 @@ class _AddEditCustomRowDialogState extends State<_AddEditCustomRowDialog> {
       case 'tmdb':
         return ['user_list', 'movie_collection'];
       case 'letterboxd':
-        return ['user_list', 'user_diary', 'watchlist', 'films'];
+        return ['user_diary'];
       case 'mdblist':
         return ['list_url', 'user_list'];
       default:
@@ -1481,11 +1473,7 @@ class _AddEditCustomRowDialogState extends State<_AddEditCustomRowDialog> {
 
     final params = <String, dynamic>{};
     if (_source == 'letterboxd') {
-      if (_type == 'user_list') {
-        params['url'] = _letterboxdListNameController.text.trim();
-      } else {
-        params['user'] = _letterboxdUsernameController.text.trim().toLowerCase();
-      }
+      params['user'] = _letterboxdUsernameController.text.trim().toLowerCase();
     } else if (_source == 'tmdb') {
       var rawId = _tmdbIdController.text.trim();
       if (rawId.contains('/') || rawId.startsWith('http')) {
@@ -1700,54 +1688,46 @@ class _AddEditCustomRowDialogState extends State<_AddEditCustomRowDialog> {
                       },
                     ),
                   ),
-                    const SizedBox(height: 16),
-                    const Text('Type', style: TextStyle(color: Colors.grey, fontSize: 12)),
-                    const SizedBox(height: 4),
-                    Theme(
-                      data: Theme.of(context).copyWith(canvasColor: Colors.grey[900]),
-                      child: DropdownButtonFormField<String>(
-                        value: _type,
-                        dropdownColor: Colors.grey[900],
-                        style: const TextStyle(color: Colors.white, fontSize: 14),
-                        decoration: InputDecoration(
-                          filled: true,
-                          fillColor: Colors.black26,
-                          border: OutlineInputBorder(borderRadius: BorderRadius.circular(8), borderSide: BorderSide.none),
+                    if (typeOptions.length > 1) ...[
+                      const SizedBox(height: 16),
+                      const Text('Type', style: TextStyle(color: Colors.grey, fontSize: 12)),
+                      const SizedBox(height: 4),
+                      Theme(
+                        data: Theme.of(context).copyWith(canvasColor: Colors.grey[900]),
+                        child: DropdownButtonFormField<String>(
+                          value: _type,
+                          dropdownColor: Colors.grey[900],
+                          style: const TextStyle(color: Colors.white, fontSize: 14),
+                          decoration: InputDecoration(
+                            filled: true,
+                            fillColor: Colors.black26,
+                            border: OutlineInputBorder(borderRadius: BorderRadius.circular(8), borderSide: BorderSide.none),
+                          ),
+                          items: typeOptions.map((t) {
+                            return DropdownMenuItem(value: t, child: Text(_getTypeLabel(t)));
+                          }).toList(),
+                          onChanged: (val) {
+                            if (val != null) {
+                              setState(() {
+                                _type = val;
+                              });
+                            }
+                          },
                         ),
-                        items: typeOptions.map((t) {
-                          return DropdownMenuItem(value: t, child: Text(_getTypeLabel(t)));
-                        }).toList(),
-                        onChanged: (val) {
-                          if (val != null) {
-                            setState(() {
-                              _type = val;
-                            });
-                          }
-                        },
                       ),
-                    ),
+                    ],
                   const SizedBox(height: 16),
 
                   // Source + Type specific parameters
 
                   if (_source == 'letterboxd') ...[
-                    if (_type == 'user_list') ...[
-                      const Text('Letterboxd List URL or Path', style: TextStyle(color: Colors.grey, fontSize: 12)),
-                      const SizedBox(height: 4),
-                      _SettingsTextField(
-                        controller: _letterboxdListNameController,
-                        hint: 'https://letterboxd.com/official/list/letterboxds-top-500-films/',
-                        focusNode: _letterboxdListNameFocusNode,
-                      ),
-                    ] else ...[
-                      const Text('Letterboxd Username', style: TextStyle(color: Colors.grey, fontSize: 12)),
-                      const SizedBox(height: 4),
-                      _SettingsTextField(
-                        controller: _letterboxdUsernameController,
-                        hint: 'Username',
-                        focusNode: _letterboxdUsernameFocusNode,
-                      ),
-                    ],
+                    const Text('Letterboxd Username', style: TextStyle(color: Colors.grey, fontSize: 12)),
+                    const SizedBox(height: 4),
+                    _SettingsTextField(
+                      controller: _letterboxdUsernameController,
+                      hint: 'Username',
+                      focusNode: _letterboxdUsernameFocusNode,
+                    ),
                     if (tmdbApiKey.isEmpty) ...[
                       const SizedBox(height: 12),
                       const Text(
@@ -1895,7 +1875,7 @@ class _AddEditCustomRowDialogState extends State<_AddEditCustomRowDialog> {
                   ],
 
                   (() {
-                    final isUserRatingRelevant = (_source == 'letterboxd' && _type == 'user_diary');
+                    final isUserRatingRelevant = _source == 'letterboxd';
                     if (isUserRatingRelevant) {
                       return Column(
                         mainAxisSize: MainAxisSize.min,

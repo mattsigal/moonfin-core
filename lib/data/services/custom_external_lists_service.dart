@@ -88,17 +88,8 @@ class CustomExternalListsService {
           return 'https://www.themoviedb.org/list/$id';
         }
       case 'letterboxd':
-        if (type == 'user_list') {
-          return params['url'] as String? ?? 'https://letterboxd.com/';
-        }
         final username = params['user'] as String? ?? '';
-        if (type == 'watchlist') {
-          return 'https://letterboxd.com/$username/watchlist/';
-        } else if (type == 'films') {
-          return 'https://letterboxd.com/$username/films/';
-        } else {
-          return 'https://letterboxd.com/$username/rss/';
-        }
+        return 'https://letterboxd.com/$username/';
       case 'mdblist':
         final username = params['username'] as String? ?? '';
         final listname = params['listname'] as String? ?? '';
