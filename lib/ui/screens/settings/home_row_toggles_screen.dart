@@ -6,6 +6,7 @@ import 'package:moonfin_design/moonfin_design.dart';
 import '../../../data/services/plugin_sync_service.dart';
 import '../home/home_view_model.dart';
 import '../../../l10n/app_localizations.dart';
+import '../../../preference/home_section_config.dart';
 import '../../../preference/preference_constants.dart';
 import '../../../preference/user_preferences.dart';
 import '../../widgets/adaptive/adaptive_list_section.dart';
@@ -68,7 +69,7 @@ class _HomeRowTogglesScreenState extends State<HomeRowTogglesScreen> {
 
   void _reloadHomeRows() {
     if (!GetIt.instance.isRegistered<HomeViewModel>()) return;
-    GetIt.instance<HomeViewModel>().load(preserveExisting: true);
+    GetIt.instance<HomeViewModel>().load(preserveExisting: false);
   }
 
   void _onFavoritesRowsToggleChanged() {
@@ -131,6 +132,110 @@ class _HomeRowTogglesScreenState extends State<HomeRowTogglesScreen> {
     _reloadHomeRows();
   }
 
+  bool _getSinceYouWatchedLocalPrefEnabled(HomeSectionType type) {
+    return switch (type) {
+      HomeSectionType.sinceYouWatched1 => _prefs.get(UserPreferences.sinceYouWatched1Enabled),
+      HomeSectionType.sinceYouWatched2 => _prefs.get(UserPreferences.sinceYouWatched2Enabled),
+      HomeSectionType.sinceYouWatched3 => _prefs.get(UserPreferences.sinceYouWatched3Enabled),
+      HomeSectionType.sinceYouWatched4 => _prefs.get(UserPreferences.sinceYouWatched4Enabled),
+      HomeSectionType.sinceYouWatched5 => _prefs.get(UserPreferences.sinceYouWatched5Enabled),
+      _ => false,
+    };
+  }
+
+  void _updateSinceYouWatchedPrefs() {
+    final showSinceYouWatched = _prefs.get(UserPreferences.displaySinceYouWatchedRows);
+    final sinceYouWatchedNum = _prefs.get(UserPreferences.sinceYouWatchedNumRows).value;
+
+    _prefs.set(UserPreferences.sinceYouWatched1Enabled, showSinceYouWatched && sinceYouWatchedNum >= 1);
+    _prefs.set(UserPreferences.sinceYouWatched2Enabled, showSinceYouWatched && sinceYouWatchedNum >= 2);
+    _prefs.set(UserPreferences.sinceYouWatched3Enabled, showSinceYouWatched && sinceYouWatchedNum >= 3);
+    _prefs.set(UserPreferences.sinceYouWatched4Enabled, showSinceYouWatched && sinceYouWatchedNum >= 4);
+    _prefs.set(UserPreferences.sinceYouWatched5Enabled, showSinceYouWatched && sinceYouWatchedNum >= 5);
+  }
+
+  void _onSinceYouWatchedRowsToggleChanged() {
+    _updateSinceYouWatchedPrefs();
+    final configs = List<HomeSectionConfig>.from(_prefs.homeSectionsConfig);
+    var changed = false;
+    final types = {
+      HomeSectionType.sinceYouWatched1,
+      HomeSectionType.sinceYouWatched2,
+      HomeSectionType.sinceYouWatched3,
+      HomeSectionType.sinceYouWatched4,
+      HomeSectionType.sinceYouWatched5,
+    };
+    for (var i = 0; i < configs.length; i++) {
+      if (types.contains(configs[i].type)) {
+        final isEnabled = _getSinceYouWatchedLocalPrefEnabled(configs[i].type);
+        if (configs[i].enabled != isEnabled) {
+          configs[i] = configs[i].copyWith(enabled: isEnabled);
+          changed = true;
+        }
+      }
+    }
+    if (changed) {
+      _prefs.setHomeSectionsConfig(configs);
+    }
+    _pushPersonalizationSync();
+    _reloadHomeRows();
+    if (!mounted) return;
+    setState(() {});
+  }
+
+  void _onSinceYouWatchedConfigChanged() {
+    _updateSinceYouWatchedPrefs();
+    final configs = List<HomeSectionConfig>.from(_prefs.homeSectionsConfig);
+    var changed = false;
+    final types = {
+      HomeSectionType.sinceYouWatched1,
+      HomeSectionType.sinceYouWatched2,
+      HomeSectionType.sinceYouWatched3,
+      HomeSectionType.sinceYouWatched4,
+      HomeSectionType.sinceYouWatched5,
+    };
+    for (var i = 0; i < configs.length; i++) {
+      if (types.contains(configs[i].type)) {
+        final isEnabled = _getSinceYouWatchedLocalPrefEnabled(configs[i].type);
+        if (configs[i].enabled != isEnabled) {
+          configs[i] = configs[i].copyWith(enabled: isEnabled);
+          changed = true;
+        }
+      }
+    }
+    if (changed) {
+      _prefs.setHomeSectionsConfig(configs);
+    }
+    _pushPersonalizationSync();
+    _reloadHomeRows();
+  }
+
+  void _onRewatchRowToggleChanged() {
+    final enabled = _prefs.get(UserPreferences.displayRewatchRow);
+    final configs = List<HomeSectionConfig>.from(_prefs.homeSectionsConfig);
+    var changed = false;
+    for (var i = 0; i < configs.length; i++) {
+      if (configs[i].type == HomeSectionType.rewatch) {
+        if (configs[i].enabled != enabled) {
+          configs[i] = configs[i].copyWith(enabled: enabled);
+          changed = true;
+        }
+      }
+    }
+    if (changed) {
+      _prefs.setHomeSectionsConfig(configs);
+    }
+    _pushPersonalizationSync();
+    _reloadHomeRows();
+    if (!mounted) return;
+    setState(() {});
+  }
+
+  void _onRewatchConfigChanged() {
+    _pushPersonalizationSync();
+    _reloadHomeRows();
+  }
+
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
@@ -144,6 +249,9 @@ class _HomeRowTogglesScreenState extends State<HomeRowTogglesScreen> {
     final showGenresRows = _prefs.get(UserPreferences.displayGenresRows);
     final showPlaylistsRows = _prefs.get(UserPreferences.displayPlaylistsRows);
     final showAudioRows = _prefs.get(UserPreferences.displayAudioRows);
+    final showSinceYouWatchedRows = _prefs.get(UserPreferences.displaySinceYouWatchedRows);
+    final sinceYouWatchedSource = _prefs.get(UserPreferences.sinceYouWatchedSource);
+    final showRewatchRow = _prefs.get(UserPreferences.displayRewatchRow);
 
     final borderTokens = ThemeRegistry.active.borders;
     final baseBorder = borderTokens.cardBorder.color;
@@ -269,6 +377,65 @@ class _HomeRowTogglesScreenState extends State<HomeRowTogglesScreen> {
                 ],
               ),
 
+              _SectionHeader('SINCE YOU WATCHED'),
+              adaptiveListSection(
+                children: [
+                  SwitchPreferenceTile(
+                    preference: UserPreferences.displaySinceYouWatchedRows,
+                    title: 'Display Since You Watched Rows',
+                    subtitle: 'Show and customize Since You Watched rows in Home Sections.',
+                    icon: Icons.recommend,
+                    onChanged: _onSinceYouWatchedRowsToggleChanged,
+                  ),
+                  if (showSinceYouWatchedRows) ...[
+                    EnumPreferenceTile<SinceYouWatchedSource>(
+                      preference: UserPreferences.sinceYouWatchedSource,
+                      title: 'Source',
+                      description: "Choose recommendation source (the local-content-only Moonfin special or TMDB's similarity metric. Note: Online recommendations require Seerr integration).",
+                      icon: Icons.source,
+                      values: SinceYouWatchedSource.values,
+                      labelOf: (v) => v.displayName,
+                      onChanged: _onSinceYouWatchedConfigChanged,
+                    ),
+                    EnumPreferenceTile<SinceYouWatchedSourceType>(
+                      preference: UserPreferences.sinceYouWatchedSourceType,
+                      title: 'Source Type',
+                      description: 'Choose type of items to recommend',
+                      icon: Icons.merge_type,
+                      values: SinceYouWatchedSourceType.values,
+                      labelOf: (v) => v.displayName,
+                      onChanged: _onSinceYouWatchedConfigChanged,
+                    ),
+                    EnumPreferenceTile<SinceYouWatchedSourceItem>(
+                      preference: UserPreferences.sinceYouWatchedSourceItem,
+                      title: 'Source Item',
+                      description: 'Choose which source item to base recommendations on',
+                      icon: Icons.play_circle_filled,
+                      values: SinceYouWatchedSourceItem.values,
+                      labelOf: (v) => v.displayName,
+                      onChanged: _onSinceYouWatchedConfigChanged,
+                    ),
+                    EnumPreferenceTile<SinceYouWatchedNumRows>(
+                      preference: UserPreferences.sinceYouWatchedNumRows,
+                      title: 'Number of Rows to Add',
+                      description: 'Choose how many Since You Watched rows to display (1-5)',
+                      icon: Icons.format_list_numbered,
+                      values: SinceYouWatchedNumRows.values,
+                      labelOf: (v) => v.displayName,
+                      onChanged: _onSinceYouWatchedConfigChanged,
+                    ),
+                    if (sinceYouWatchedSource != SinceYouWatchedSource.online)
+                      SwitchPreferenceTile(
+                        preference: UserPreferences.sinceYouWatchedIncludeWatched,
+                        title: 'Include Previously Watched',
+                        subtitle: 'Include watched items in recommendations',
+                        icon: Icons.history,
+                        onChanged: _onSinceYouWatchedConfigChanged,
+                      ),
+                  ],
+                ],
+              ),
+
               _SectionHeader(l10n.collections),
               adaptiveListSection(
                 children: [
@@ -363,6 +530,50 @@ class _HomeRowTogglesScreenState extends State<HomeRowTogglesScreen> {
                       labelOf: (v) => v.displayName,
                       onChanged: _onPlaylistsSortChanged,
                     ),
+                ],
+              ),
+              _SectionHeader('REWATCH'),
+              adaptiveListSection(
+                children: [
+                  SwitchPreferenceTile(
+                    preference: UserPreferences.displayRewatchRow,
+                    title: 'Display Rewatch Row',
+                    subtitle: 'Show Rewatch row in Home Sections',
+                    icon: Icons.replay,
+                    onChanged: _onRewatchRowToggleChanged,
+                  ),
+                  if (showRewatchRow) ...[
+                    EnumPreferenceTile<RewatchSortBy>(
+                      preference: UserPreferences.rewatchSortBy,
+                      title: 'Sort By',
+                      description: 'Choose sorting method for completed items',
+                      icon: Icons.sort,
+                      values: RewatchSortBy.values,
+                      labelOf: (v) => v.displayName,
+                      onChanged: _onRewatchConfigChanged,
+                    ),
+                    SwitchPreferenceTile(
+                      preference: UserPreferences.rewatchIncludeMovies,
+                      title: 'Include Movies',
+                      subtitle: 'Show watched movies in the rewatch row',
+                      icon: Icons.movie,
+                      onChanged: _onRewatchConfigChanged,
+                    ),
+                    SwitchPreferenceTile(
+                      preference: UserPreferences.rewatchIncludeShows,
+                      title: 'Include Shows',
+                      subtitle: 'Show watched TV shows in the rewatch row',
+                      icon: Icons.tv,
+                      onChanged: _onRewatchConfigChanged,
+                    ),
+                    SwitchPreferenceTile(
+                      preference: UserPreferences.rewatchIncludeCollections,
+                      title: 'Include Collections',
+                      subtitle: 'Show watched collections in the rewatch row',
+                      icon: Icons.collections,
+                      onChanged: _onRewatchConfigChanged,
+                    ),
+                  ],
                 ],
               ),
               const SizedBox(height: 32),

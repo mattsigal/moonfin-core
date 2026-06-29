@@ -51,8 +51,7 @@ class AggregatedItem {
   Duration? get runtime =>
       runTimeTicks != null ? Duration(microseconds: runTimeTicks! ~/ 10) : null;
 
-  List<String> get genres =>
-      (rawData['Genres'] as List?)?.cast<String>() ?? const [];
+  List<String> get genres => _toListOfStrings(rawData['Genres']);
 
   String? get primaryImageTag =>
       (rawData['ImageTags'] as Map?)?['Primary'] as String?;
@@ -64,14 +63,13 @@ class AggregatedItem {
 
   String? get primaryImageItemId => rawData['PrimaryImageItemId']?.toString();
 
-  List<String> get backdropImageTags =>
-      (rawData['BackdropImageTags'] as List?)?.cast<String>() ?? const [];
+  List<String> get backdropImageTags => _toListOfStrings(rawData['BackdropImageTags']);
 
   String? get parentBackdropItemId =>
       rawData['ParentBackdropItemId']?.toString();
 
   List<String> get parentBackdropImageTags =>
-      (rawData['ParentBackdropImageTags'] as List?)?.cast<String>() ?? const [];
+      _toListOfStrings(rawData['ParentBackdropImageTags']);
 
   String? get logoImageTag =>
       (rawData['ImageTags'] as Map?)?['Logo'] as String?;
@@ -181,49 +179,48 @@ class AggregatedItem {
   }
 
   List<String> get productionLocations =>
-      (rawData['ProductionLocations'] as List?)?.cast<String>() ?? const [];
+      _toListOfStrings(rawData['ProductionLocations']);
 
   String? get albumArtist => rawData['AlbumArtist'] as String?;
   String? get album => rawData['Album'] as String?;
   String? get albumId => rawData['AlbumId']?.toString();
   String? get albumPrimaryImageTag =>
       rawData['AlbumPrimaryImageTag'] as String?;
-  List<String> get artists =>
-      (rawData['Artists'] as List?)?.cast<String>() ?? const [];
+  List<String> get artists => _toListOfStrings(rawData['Artists']);
   String? get parentId => rawData['ParentId']?.toString();
   int? get recursiveItemCount => _toInt(rawData['RecursiveItemCount']);
   List<Map<String, dynamic>> get albumArtists =>
-      (rawData['AlbumArtists'] as List?)?.cast<Map<String, dynamic>>() ??
-      const [];
+      _toListOfMaps(rawData['AlbumArtists']);
 
   Map<String, String> get providerIds {
     final ids = rawData['ProviderIds'] as Map?;
-    return ids?.cast<String, String>() ?? const {};
+    if (ids == null) return const {};
+    final result = <String, String>{};
+    ids.forEach((k, v) {
+      if (k != null && v != null) {
+        result[k.toString()] = v.toString();
+      }
+    });
+    return result;
   }
 
   String? get tmdbId => providerIds['Tmdb'];
   String? get imdbId => providerIds['Imdb'];
 
-  List<Map<String, dynamic>> get people =>
-      (rawData['People'] as List?)?.cast<Map<String, dynamic>>() ?? const [];
+  List<Map<String, dynamic>> get people => _toListOfMaps(rawData['People']);
 
-  List<Map<String, dynamic>> get studios =>
-      (rawData['Studios'] as List?)?.cast<Map<String, dynamic>>() ?? const [];
+  List<Map<String, dynamic>> get studios => _toListOfMaps(rawData['Studios']);
 
   List<Map<String, dynamic>> get mediaSources =>
-      (rawData['MediaSources'] as List?)?.cast<Map<String, dynamic>>() ??
-      const [];
+      _toListOfMaps(rawData['MediaSources']);
 
   List<Map<String, dynamic>> get mediaStreams =>
-      (rawData['MediaStreams'] as List?)?.cast<Map<String, dynamic>>() ??
-      const [];
+      _toListOfMaps(rawData['MediaStreams']);
 
   List<Map<String, dynamic>> get remoteTrailers =>
-      (rawData['RemoteTrailers'] as List?)?.cast<Map<String, dynamic>>() ??
-      const [];
+      _toListOfMaps(rawData['RemoteTrailers']);
 
-  List<Map<String, dynamic>> get chapters =>
-      (rawData['Chapters'] as List?)?.cast<Map<String, dynamic>>() ?? const [];
+  List<Map<String, dynamic>> get chapters => _toListOfMaps(rawData['Chapters']);
 
   String? get videoResolution {
     for (final stream in mediaStreams) {
@@ -348,5 +345,21 @@ class AggregatedItem {
       }
     }
     return name;
+  }
+
+  static List<Map<String, dynamic>> _toListOfMaps(dynamic value) {
+    if (value is! List) return const [];
+    return value
+        .map((e) {
+          if (e is Map) return Map<String, dynamic>.from(e);
+          return null;
+        })
+        .whereType<Map<String, dynamic>>()
+        .toList();
+  }
+
+  static List<String> _toListOfStrings(dynamic value) {
+    if (value is! List) return const [];
+    return value.map((e) => e?.toString()).whereType<String>().toList();
   }
 }

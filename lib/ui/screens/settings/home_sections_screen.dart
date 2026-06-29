@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:get_it/get_it.dart';
 import 'package:moonfin_design/moonfin_design.dart';
+import 'package:jellyfin_preference/jellyfin_preference.dart';
 import 'package:server_core/server_core.dart';
 
 import '../../../data/models/aggregated_item.dart';
@@ -41,6 +42,8 @@ const EdgeInsets _kHomeSectionTileOuterPadding = EdgeInsets.fromLTRB(
 BoxDecoration _homeSectionTileDecoration(
   BuildContext context, {
   required bool focused,
+  HomeSectionType? type,
+  bool mergeEnabled = false,
 }) {
   final colorScheme = Theme.of(context).colorScheme;
   final borderTokens = ThemeRegistry.active.borders;
@@ -48,6 +51,35 @@ BoxDecoration _homeSectionTileDecoration(
   final unfocusedBorderColor = baseBorder.a == 0
       ? AppColorScheme.onSurface.withValues(alpha: 0.16)
       : baseBorder.withValues(alpha: 0.55);
+
+  final isMergedResume = mergeEnabled && type == HomeSectionType.resume;
+  final isMergedNextUp = mergeEnabled && type == HomeSectionType.nextUp;
+
+  if (isMergedResume || isMergedNextUp) {
+    final borderColor = focused
+        ? AppColorScheme.accent.withValues(alpha: 0.72)
+        : const Color(0xFF00F0FF); // Neon cyan border for merged rows
+    final borderWidth = focused ? 2.0 : 1.5;
+
+    return BoxDecoration(
+      color: focused
+          ? AppColorScheme.onSurface
+          : colorScheme.surfaceContainerLow.withValues(alpha: 0.82),
+      borderRadius: isMergedResume
+          ? const BorderRadius.vertical(top: Radius.circular(_kHomeSectionTileRadius))
+          : const BorderRadius.vertical(bottom: Radius.circular(_kHomeSectionTileRadius)),
+      border: Border(
+        top: isMergedResume
+            ? BorderSide(color: borderColor, width: borderWidth)
+            : BorderSide.none,
+        bottom: isMergedNextUp
+            ? BorderSide(color: borderColor, width: borderWidth)
+            : BorderSide.none,
+        left: BorderSide(color: borderColor, width: borderWidth),
+        right: BorderSide(color: borderColor, width: borderWidth),
+      ),
+    );
+  }
 
   return BoxDecoration(
     color: focused
@@ -393,6 +425,25 @@ class _HomeSectionsScreenState extends State<HomeSectionsScreen> {
         type == HomeSectionType.audioPlaylists;
   }
 
+  bool _isSinceYouWatchedSectionType(HomeSectionType type) {
+    return type == HomeSectionType.sinceYouWatched1 ||
+        type == HomeSectionType.sinceYouWatched2 ||
+        type == HomeSectionType.sinceYouWatched3 ||
+        type == HomeSectionType.sinceYouWatched4 ||
+        type == HomeSectionType.sinceYouWatched5;
+  }
+
+  int _getSinceYouWatchedIndex(HomeSectionType type) {
+    switch (type) {
+      case HomeSectionType.sinceYouWatched1: return 1;
+      case HomeSectionType.sinceYouWatched2: return 2;
+      case HomeSectionType.sinceYouWatched3: return 3;
+      case HomeSectionType.sinceYouWatched4: return 4;
+      case HomeSectionType.sinceYouWatched5: return 5;
+      default: return 0;
+    }
+  }
+
   bool _isCollectionsSectionType(HomeSectionType type) {
     return type == HomeSectionType.collections;
   }
@@ -622,6 +673,16 @@ class _HomeSectionsScreenState extends State<HomeSectionsScreen> {
 
     final showAudioRows = _prefs.get(UserPreferences.displayAudioRows);
     final hiddenByAudio = !showAudioRows && _isAudioSectionType(section.type);
+
+    final showSinceYouWatched = _prefs.get(UserPreferences.displaySinceYouWatchedRows);
+    final sinceYouWatchedNum = _prefs.get(UserPreferences.sinceYouWatchedNumRows).value;
+    final showRewatch = _prefs.get(UserPreferences.displayRewatchRow);
+
+    final hiddenBySinceYouWatched = _isSinceYouWatchedSectionType(section.type) &&
+        (!showSinceYouWatched || _getSinceYouWatchedIndex(section.type) > sinceYouWatchedNum);
+
+    final hiddenByRewatch = section.type == HomeSectionType.rewatch && !showRewatch;
+
     return hiddenByFavorites ||
         hiddenByCollections ||
         hiddenByGenres ||
@@ -629,13 +690,19 @@ class _HomeSectionsScreenState extends State<HomeSectionsScreen> {
         hiddenBySeerr ||
         hiddenByImdb ||
         hiddenByTmdb ||
-        hiddenByAudio;
+        hiddenByAudio ||
+        hiddenBySinceYouWatched ||
+        hiddenByRewatch;
   }
 
   List<int> _visibleSectionIndices() {
     final visible = <int>[];
+    final mergeEnabled = _prefs.get(UserPreferences.mergeContinueWatchingNextUp);
     for (var i = 0; i < _sections.length; i++) {
       if (_isHiddenByRowVisibilityGates(_sections[i])) continue;
+      if (mergeEnabled && _sections[i].type == HomeSectionType.nextUp) {
+        continue;
+      }
       visible.add(i);
     }
     return visible;
@@ -651,6 +718,7 @@ class _HomeSectionsScreenState extends State<HomeSectionsScreen> {
     _sections = all.where((s) => s.type != HomeSectionType.mediaBar).toList();
     final addedBuiltins = _ensureBuiltinSectionsPresent();
     _mergeDiscoveredPluginSections();
+    _enforceMergeAdjacency();
     _rebuildFocusNodes();
     if (addedBuiltins) {
       _persistSections(pushSync: false);
@@ -1220,7 +1288,7 @@ class _HomeSectionsScreenState extends State<HomeSectionsScreen> {
   }
 
   void _syncIndividualPreferences() {
-    Preference<bool>? mapToExternalPref(HomeSectionType type) {
+    Preference<bool>? mapToPref(HomeSectionType type) {
       return switch (type) {
         HomeSectionType.tmdbPopularMovies => UserPreferences.tmdbPopularMoviesEnabled,
         HomeSectionType.tmdbTopRatedMovies => UserPreferences.tmdbTopRatedMoviesEnabled,
@@ -1235,12 +1303,18 @@ class _HomeSectionsScreenState extends State<HomeSectionsScreen> {
         HomeSectionType.tmdbTrendingTvDaily => UserPreferences.tmdbTrendingTvDailyEnabled,
         HomeSectionType.tmdbTrendingTvWeekly => UserPreferences.tmdbTrendingTvWeeklyEnabled,
         HomeSectionType.tmdbTrendingAllWeekly => UserPreferences.tmdbTrendingAllWeeklyEnabled,
+        HomeSectionType.rewatch => UserPreferences.displayRewatchRow,
+        HomeSectionType.sinceYouWatched1 => UserPreferences.sinceYouWatched1Enabled,
+        HomeSectionType.sinceYouWatched2 => UserPreferences.sinceYouWatched2Enabled,
+        HomeSectionType.sinceYouWatched3 => UserPreferences.sinceYouWatched3Enabled,
+        HomeSectionType.sinceYouWatched4 => UserPreferences.sinceYouWatched4Enabled,
+        HomeSectionType.sinceYouWatched5 => UserPreferences.sinceYouWatched5Enabled,
         _ => null,
       };
     }
 
     for (final section in _sections) {
-      final prefKey = mapToExternalPref(section.type);
+      final prefKey = mapToPref(section.type);
       if (prefKey != null && _prefs.get(prefKey) != section.enabled) {
         _prefs.set(prefKey, section.enabled);
       }
@@ -1277,20 +1351,90 @@ class _HomeSectionsScreenState extends State<HomeSectionsScreen> {
     });
   }
 
-  void _moveSectionByActualIndex(int fromIndex, int toIndex) {
-    if (fromIndex < 0 || fromIndex >= _sections.length) return;
-    if (toIndex < 0 || toIndex >= _sections.length) return;
-    if (fromIndex == toIndex) return;
+  void _enforceMergeAdjacency() {
+    final merge = _prefs.get(UserPreferences.mergeContinueWatchingNextUp);
+    if (!merge) return;
+    final resumeIdx = _sections.indexWhere((s) => s.type == HomeSectionType.resume);
+    final nextUpIdx = _sections.indexWhere((s) => s.type == HomeSectionType.nextUp);
+    if (resumeIdx < 0 || nextUpIdx < 0) return;
+    if ((resumeIdx - nextUpIdx).abs() == 1) return;
+
     setState(() {
-      final item = _sections.removeAt(fromIndex);
-      _sections.insert(toIndex, item);
-      final node = _focusNodes.removeAt(fromIndex);
-      _focusNodes.insert(toIndex, node);
+      final nextUpItem = _sections.removeAt(nextUpIdx);
+      final nextUpNode = _focusNodes.removeAt(nextUpIdx);
+
+      final newResumeIdx = _sections.indexWhere((s) => s.type == HomeSectionType.resume);
+      _sections.insert(newResumeIdx + 1, nextUpItem);
+      _focusNodes.insert(newResumeIdx + 1, nextUpNode);
     });
     _save();
+  }
+
+  void _moveSection(int fromIndex, int toIndex) {
+    if (fromIndex < 0 || fromIndex >= _sections.length) return;
+    if (toIndex < 0 || toIndex > _sections.length) return;
+    if (fromIndex == toIndex) return;
+
+    final merge = _prefs.get(UserPreferences.mergeContinueWatchingNextUp);
+    final resumeIdx = _sections.indexWhere((s) => s.type == HomeSectionType.resume);
+    final nextUpIdx = _sections.indexWhere((s) => s.type == HomeSectionType.nextUp);
+
+    final isMergeActive = merge && resumeIdx >= 0 && nextUpIdx >= 0 && (resumeIdx - nextUpIdx).abs() == 1;
+
+    setState(() {
+      if (isMergeActive && (fromIndex == resumeIdx || fromIndex == nextUpIdx)) {
+        final first = resumeIdx < nextUpIdx ? resumeIdx : nextUpIdx;
+        final item1 = _sections.removeAt(first);
+        final node1 = _focusNodes.removeAt(first);
+        final item2 = _sections.removeAt(first);
+        final node2 = _focusNodes.removeAt(first);
+
+        var targetIndex = toIndex;
+        if (targetIndex > first) {
+          if (targetIndex <= first + 2) {
+            targetIndex = first;
+          } else {
+            targetIndex -= 2;
+          }
+        }
+
+        _sections.insert(targetIndex, item1);
+        _focusNodes.insert(targetIndex, node1);
+        _sections.insert(targetIndex + 1, item2);
+        _focusNodes.insert(targetIndex + 1, node2);
+      } else {
+        var targetIndex = toIndex;
+        if (isMergeActive) {
+          final first = resumeIdx < nextUpIdx ? resumeIdx : nextUpIdx;
+          if (targetIndex == first + 1) {
+            targetIndex = first + 2;
+          }
+        }
+
+        final item = _sections.removeAt(fromIndex);
+        final node = _focusNodes.removeAt(fromIndex);
+        _sections.insert(targetIndex, item);
+        _focusNodes.insert(targetIndex, node);
+      }
+    });
+    _save();
+
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (toIndex < _focusNodes.length) {
-        _focusSectionAndEnsureVisible(toIndex);
+      var focusIndex = toIndex;
+      if (isMergeActive && (fromIndex == resumeIdx || fromIndex == nextUpIdx)) {
+        final first = resumeIdx < nextUpIdx ? resumeIdx : nextUpIdx;
+        var targetIndex = toIndex;
+        if (targetIndex > first) {
+          if (targetIndex <= first + 2) {
+            targetIndex = first;
+          } else {
+            targetIndex -= 2;
+          }
+        }
+        focusIndex = targetIndex;
+      }
+      if (focusIndex < _focusNodes.length) {
+        _focusSectionAndEnsureVisible(focusIndex);
       }
     });
   }
@@ -1375,6 +1519,12 @@ class _HomeSectionsScreenState extends State<HomeSectionsScreen> {
         HomeSectionType.tmdbTrendingTvDaily => 'Trending TV (Daily)',
         HomeSectionType.tmdbTrendingTvWeekly => 'Trending TV (Weekly)',
         HomeSectionType.tmdbTrendingAllWeekly => 'Trending All (Weekly)',
+        HomeSectionType.sinceYouWatched1 => 'Since You Watched Row 1',
+        HomeSectionType.sinceYouWatched2 => 'Since You Watched Row 2',
+        HomeSectionType.sinceYouWatched3 => 'Since You Watched Row 3',
+        HomeSectionType.sinceYouWatched4 => 'Since You Watched Row 4',
+        HomeSectionType.sinceYouWatched5 => 'Since You Watched Row 5',
+        HomeSectionType.rewatch => 'Rewatch',
         HomeSectionType.none => l10n.none,
       };
 
@@ -1504,6 +1654,9 @@ class _HomeSectionsScreenState extends State<HomeSectionsScreen> {
           value: _prefs.get(UserPreferences.mergeContinueWatchingNextUp),
           onChanged: (value) {
             _setMergeContinueWatchingNextUp(value);
+            if (value) {
+              _enforceMergeAdjacency();
+            }
             setState(() {});
           },
         ),
@@ -1534,18 +1687,140 @@ class _HomeSectionsScreenState extends State<HomeSectionsScreen> {
 
         if (toActual == fromActual) return;
 
-        setState(() {
-          final item = _sections.removeAt(fromActual);
-          _sections.insert(toActual, item);
-          final node = _focusNodes.removeAt(fromActual);
-          _focusNodes.insert(toActual, node);
-        });
-        _save();
+        _moveSection(fromActual, toActual);
       },
       itemBuilder: (context, index) {
         final sectionIndex = visibleIndices[index];
         final section = _sections[sectionIndex];
         final isEmpty = _emptySectionIds.contains(section.stableId);
+
+        final mergeEnabled = _prefs.get(UserPreferences.mergeContinueWatchingNextUp);
+        final isMergedResume = mergeEnabled && section.type == HomeSectionType.resume;
+
+        if (isMergedResume) {
+          final nextUpIndex = _sections.indexWhere((s) => s.type == HomeSectionType.nextUp);
+          if (nextUpIndex >= 0) {
+            final nextUpSection = _sections[nextUpIndex];
+            final isNextUpEmpty = _emptySectionIds.contains(nextUpSection.stableId);
+
+            return Padding(
+              key: const ValueKey('merged_resume_nextup'),
+              padding: _kHomeSectionTileOuterPadding,
+              child: Container(
+                decoration: BoxDecoration(
+                  color: Theme.of(context).colorScheme.surfaceContainerLow.withValues(alpha: 0.82),
+                  borderRadius: BorderRadius.circular(_kHomeSectionTileRadius),
+                  border: Border.all(
+                    color: const Color(0xFF00F0FF), // Neon cyan border
+                    width: 1.5,
+                  ),
+                ),
+                child: Row(
+                  children: [
+                    Expanded(
+                      child: Column(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          // 1. Continue Watching Tile
+                          Opacity(
+                            opacity: isEmpty ? 0.45 : 1.0,
+                            child: ListTile(
+                              focusColor: Colors.transparent,
+                              hoverColor: Colors.transparent,
+                              contentPadding: const EdgeInsets.only(left: 16, right: 8, top: 4, bottom: 4),
+                              minLeadingWidth: 44,
+                              horizontalTitleGap: 14,
+                              leading: buildSettingsLeadingIconShell(
+                                context,
+                                icon: Icon(
+                                  (section.enabled && !isEmpty)
+                                      ? Icons.check_box
+                                      : Icons.check_box_outline_blank,
+                                ),
+                                focused: false,
+                                iconColor: AppColorScheme.onSurface.withValues(alpha: 0.78),
+                              ),
+                              title: Text(
+                                _labelFor(section, l10n),
+                                style: const TextStyle(
+                                  fontSize: 14,
+                                  fontWeight: FontWeight.w600,
+                                  fontFamily: kCleanSettingsFontFamily,
+                                ),
+                              ),
+                              onTap: isEmpty
+                                  ? null
+                                  : () {
+                                      setState(() {
+                                        _sections[sectionIndex] = section.copyWith(
+                                          enabled: !section.enabled,
+                                        );
+                                      });
+                                      _save();
+                                    },
+                            ),
+                          ),
+                          const Divider(height: 1, color: Color(0xFF00F0FF), indent: 16, endIndent: 16),
+                          // 2. Next Up Tile
+                          Opacity(
+                            opacity: isNextUpEmpty ? 0.45 : 1.0,
+                            child: ListTile(
+                              focusColor: Colors.transparent,
+                              hoverColor: Colors.transparent,
+                              contentPadding: const EdgeInsets.only(left: 16, right: 8, top: 4, bottom: 4),
+                              minLeadingWidth: 44,
+                              horizontalTitleGap: 14,
+                              leading: buildSettingsLeadingIconShell(
+                                context,
+                                icon: Icon(
+                                  (nextUpSection.enabled && !isNextUpEmpty)
+                                      ? Icons.check_box
+                                      : Icons.check_box_outline_blank,
+                                ),
+                                focused: false,
+                                iconColor: AppColorScheme.onSurface.withValues(alpha: 0.78),
+                              ),
+                              title: Text(
+                                _labelFor(nextUpSection, l10n),
+                                style: const TextStyle(
+                                  fontSize: 14,
+                                  fontWeight: FontWeight.w600,
+                                  fontFamily: kCleanSettingsFontFamily,
+                                ),
+                              ),
+                              onTap: isNextUpEmpty
+                                  ? null
+                                  : () {
+                                      setState(() {
+                                        _sections[nextUpIndex] = nextUpSection.copyWith(
+                                          enabled: !nextUpSection.enabled,
+                                        );
+                                      });
+                                      _save();
+                                    },
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    // Centered unified drag handle
+                    Padding(
+                      padding: const EdgeInsets.only(right: 16),
+                      child: ReorderableDragStartListener(
+                        index: index,
+                        child: const Icon(
+                          Icons.drag_handle,
+                          color: Color(0xFF00F0FF), // Neon cyan handle
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            );
+          }
+        }
+
         return Padding(
           key: ValueKey(section.stableId),
           padding: _kHomeSectionTileOuterPadding,
@@ -1706,6 +1981,7 @@ class _HomeSectionsScreenState extends State<HomeSectionsScreen> {
         return _HomeSectionTile(
           key: ValueKey(section.stableId),
           focusNode: _focusNodes[sectionIndex],
+          type: section.type,
           autofocus: visibleIndex == 0,
           label: _labelFor(section, l10n),
           subtitle: section.isPluginDynamic
@@ -1731,14 +2007,14 @@ class _HomeSectionsScreenState extends State<HomeSectionsScreen> {
           },
           onMoveUp: () {
             if (visibleIndex == 0) return;
-            _moveSectionByActualIndex(
+            _moveSection(
               sectionIndex,
               visibleIndices[visibleIndex - 1],
             );
           },
           onMoveDown: () {
             if (visibleIndex >= visibleIndices.length - 1) return;
-            _moveSectionByActualIndex(
+            _moveSection(
               sectionIndex,
               visibleIndices[visibleIndex + 1],
             );
@@ -1805,6 +2081,7 @@ class _DiscoveredPlaylistRow {
 
 class _HomeSectionTile extends StatefulWidget {
   final FocusNode focusNode;
+  final HomeSectionType type;
   final String label;
   final String? subtitle;
   final bool enabled;
@@ -1819,6 +2096,7 @@ class _HomeSectionTile extends StatefulWidget {
   const _HomeSectionTile({
     super.key,
     required this.focusNode,
+    required this.type,
     required this.label,
     this.subtitle,
     required this.enabled,
@@ -1905,7 +2183,14 @@ class _HomeSectionTileState extends State<_HomeSectionTile> {
           child: AnimatedContainer(
             duration: const Duration(milliseconds: 90),
             curve: Curves.easeOut,
-            decoration: _homeSectionTileDecoration(context, focused: _focused),
+            decoration: _homeSectionTileDecoration(
+              context,
+              focused: _focused,
+              type: widget.type,
+              mergeEnabled: GetIt.instance<UserPreferences>().get(
+                UserPreferences.mergeContinueWatchingNextUp,
+              ),
+            ),
             child: ListTile(
               focusColor: Colors.transparent,
               hoverColor: Colors.transparent,

@@ -688,6 +688,90 @@ class UserPreferences extends ChangeNotifier {
     defaultValue: false,
   );
 
+  static final displaySinceYouWatchedRows = Preference(
+    key: 'pref_display_since_you_watched_rows',
+    defaultValue: false,
+  );
+
+  static final sinceYouWatched1Enabled = Preference(
+    key: 'since_you_watched_1_enabled',
+    defaultValue: false,
+  );
+
+  static final sinceYouWatched2Enabled = Preference(
+    key: 'since_you_watched_2_enabled',
+    defaultValue: false,
+  );
+
+  static final sinceYouWatched3Enabled = Preference(
+    key: 'since_you_watched_3_enabled',
+    defaultValue: false,
+  );
+
+  static final sinceYouWatched4Enabled = Preference(
+    key: 'since_you_watched_4_enabled',
+    defaultValue: false,
+  );
+
+  static final sinceYouWatched5Enabled = Preference(
+    key: 'since_you_watched_5_enabled',
+    defaultValue: false,
+  );
+
+  static final sinceYouWatchedSource = EnumPreference(
+    key: 'pref_since_you_watched_source',
+    defaultValue: SinceYouWatchedSource.local,
+    values: SinceYouWatchedSource.values,
+  );
+
+  static final sinceYouWatchedSourceType = EnumPreference(
+    key: 'pref_since_you_watched_source_type',
+    defaultValue: SinceYouWatchedSourceType.movies,
+    values: SinceYouWatchedSourceType.values,
+  );
+
+  static final sinceYouWatchedSourceItem = EnumPreference(
+    key: 'pref_since_you_watched_source_item',
+    defaultValue: SinceYouWatchedSourceItem.recentlyWatched,
+    values: SinceYouWatchedSourceItem.values,
+  );
+
+  static final sinceYouWatchedNumRows = EnumPreference(
+    key: 'pref_since_you_watched_num_rows',
+    defaultValue: SinceYouWatchedNumRows.one,
+    values: SinceYouWatchedNumRows.values,
+  );
+
+  static final sinceYouWatchedIncludeWatched = Preference(
+    key: 'pref_since_you_watched_include_watched',
+    defaultValue: false,
+  );
+
+  static final displayRewatchRow = Preference(
+    key: 'pref_display_rewatch_row',
+    defaultValue: false,
+  );
+
+  static final rewatchSortBy = EnumPreference(
+    key: 'pref_rewatch_sort_by',
+    defaultValue: RewatchSortBy.recentlyWatched,
+    values: RewatchSortBy.values,
+  );
+
+  static final rewatchIncludeMovies = Preference(
+    key: 'pref_rewatch_include_movies',
+    defaultValue: true,
+  );
+
+  static final rewatchIncludeShows = Preference(
+    key: 'pref_rewatch_include_shows',
+    defaultValue: true,
+  );
+
+  static final rewatchIncludeCollections = Preference(
+    key: 'pref_rewatch_include_collections',
+    defaultValue: true,
+  );
   static final favoritesRowSortBy = EnumPreference(
     key: 'pref_favorites_row_sort_by',
     defaultValue: LibrarySortBy.name,

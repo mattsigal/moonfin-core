@@ -286,6 +286,12 @@ enum HomeSectionType {
   tmdbTrendingAllWeekly('tmdb_trending_all_weekly'),
   radarrCalendar('radarr_calendar'),
   sonarrCalendar('sonarr_calendar'),
+  sinceYouWatched1('sinceyouwatched1'),
+  sinceYouWatched2('sinceyouwatched2'),
+  sinceYouWatched3('sinceyouwatched3'),
+  sinceYouWatched4('sinceyouwatched4'),
+  sinceYouWatched5('sinceyouwatched5'),
+  rewatch('rewatch'),
   none('none');
 
   const HomeSectionType(this.serializedName);
@@ -444,3 +450,59 @@ enum ScreensaverTimeout {
   const ScreensaverTimeout(this.minutes);
   final int minutes;
 }
+
+enum SinceYouWatchedSource {
+  local,
+  online;
+
+  String get displayName => this == local ? 'Local' : 'Online';
+}
+
+enum SinceYouWatchedSourceType {
+  movies,
+  shows,
+  both;
+
+  String get displayName {
+    switch (this) {
+      case movies: return 'Movies';
+      case shows: return 'Shows';
+      case both: return 'Both';
+    }
+  }
+}
+
+enum SinceYouWatchedSourceItem {
+  recentlyWatched,
+  favorites,
+  random;
+
+  String get displayName {
+    switch (this) {
+      case recentlyWatched: return 'Recently Watched';
+      case favorites: return 'Favorites';
+      case random: return 'Random';
+    }
+  }
+}
+
+enum SinceYouWatchedNumRows {
+  one(1),
+  two(2),
+  three(3),
+  four(4),
+  five(5);
+
+  const SinceYouWatchedNumRows(this.value);
+  final int value;
+
+  String get displayName => value.toString();
+}
+
+enum RewatchSortBy {
+  recentlyWatched,
+  random;
+
+  String get displayName => this == recentlyWatched ? 'Recently Watched' : 'Random';
+}
+

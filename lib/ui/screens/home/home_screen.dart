@@ -346,7 +346,11 @@ class _HomeShellState extends State<_HomeShell>
       _themeMusicService.fadeOutAndStop();
       return;
     }
-    _viewModel.refresh(preserveExisting: true);
+    Future.delayed(const Duration(milliseconds: 300), () {
+      if (mounted) {
+        _viewModel.refresh(preserveExisting: true);
+      }
+    });
     _maybeRegisterThemeMusic();
     if (_selectedItem != null) {
       _maybePlayThemeMusic(_selectedItem);
@@ -1971,10 +1975,21 @@ class _ContentRowsState extends State<_ContentRows>
     final desktopScale = _desktopUiScaleFactor();
     final metadataScale = desktopScale;
     final isRowsV2 = prefs.get(UserPreferences.homeRowsStyle) == HomeRowsStyle.v2 && !_isSeerrFilterRow(row);
+    final platformScale = PlatformDetection.isTV ? 0.8 * desktopScale : desktopScale;
 
     double childHeight = 0.0;
     if (row.isLoading) {
-      childHeight = 220.0 * metadataScale;
+      if (row.rowType == HomeRowType.liveTv ||
+          row.rowType == HomeRowType.libraryTilesSmall) {
+        final squarePosterSide = _squarePosterSide(posterSize);
+        childHeight = squarePosterSide + (56 * metadataScale);
+      } else if (isRowsV2) {
+        final imageHeight = posterSize.portraitHeight.toDouble() * platformScale * 2;
+        childHeight = imageHeight + (_v2MetadataHeightBudget(prefs) * metadataScale) + (10 * metadataScale);
+      } else {
+        final imageHeight = posterSize.portraitHeight.toDouble() * platformScale;
+        childHeight = imageHeight + (46 * metadataScale) + (10 * metadataScale);
+      }
     } else if (row.rowType == HomeRowType.liveTv ||
         row.rowType == HomeRowType.libraryTilesSmall) {
       final squarePosterSide = _squarePosterSide(posterSize);
@@ -1984,7 +1999,6 @@ class _ContentRowsState extends State<_ContentRows>
       final rowImageType = isSeerrRowOverride
           ? ImageType.thumb
           : (isRowsV2 ? ImageType.poster : _homeRowImageTypeForRow(row, prefs));
-      final platformScale = PlatformDetection.isTV ? 0.8 * desktopScale : desktopScale;
       var maxCardHeight = 220.0 * metadataScale;
       if (isRowsV2) {
         final imageHeight = posterSize.portraitHeight.toDouble() * platformScale * 2;

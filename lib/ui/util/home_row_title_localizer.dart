@@ -64,6 +64,8 @@ String localizeHomeRowTitle({
       return l10n.seriesGenres;
     case 'seerr_networks':
       return l10n.networks;
+    case 'rewatch':
+      return 'Rewatch';
   }
 
   if (row.id.startsWith('resume_')) return l10n.continueWatching;

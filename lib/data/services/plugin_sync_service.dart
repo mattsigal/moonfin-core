@@ -1363,8 +1363,28 @@ class PluginSyncService extends ChangeNotifier {
       if (type == prefs.HomeSectionType.none || present.contains(type)) {
         continue;
       }
+      
+      var isEnabled = false;
+      if (type == prefs.HomeSectionType.rewatch) {
+        isEnabled = _prefs.get(UserPreferences.displayRewatchRow);
+      } else if (type == prefs.HomeSectionType.sinceYouWatched1 ||
+          type == prefs.HomeSectionType.sinceYouWatched2 ||
+          type == prefs.HomeSectionType.sinceYouWatched3 ||
+          type == prefs.HomeSectionType.sinceYouWatched4 ||
+          type == prefs.HomeSectionType.sinceYouWatched5) {
+        final localPref = switch (type) {
+          prefs.HomeSectionType.sinceYouWatched1 => UserPreferences.sinceYouWatched1Enabled,
+          prefs.HomeSectionType.sinceYouWatched2 => UserPreferences.sinceYouWatched2Enabled,
+          prefs.HomeSectionType.sinceYouWatched3 => UserPreferences.sinceYouWatched3Enabled,
+          prefs.HomeSectionType.sinceYouWatched4 => UserPreferences.sinceYouWatched4Enabled,
+          prefs.HomeSectionType.sinceYouWatched5 => UserPreferences.sinceYouWatched5Enabled,
+          _ => throw StateError('Invalid type'),
+        };
+        isEnabled = _prefs.get(localPref);
+      }
+      
       sections.add(
-        HomeSectionConfig(type: type, enabled: false, order: order++),
+        HomeSectionConfig(type: type, enabled: isEnabled, order: order++),
       );
     }
     return order;

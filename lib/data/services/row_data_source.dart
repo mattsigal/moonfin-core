@@ -18,6 +18,10 @@ import '../utils/genre_browse_utils.dart';
 import '../utils/next_up_enrichment.dart';
 import '../utils/playlist_utils.dart';
 import 'package:flutter/foundation.dart';
+import '../repositories/seerr_repository.dart';
+import '../../preference/seerr_preferences.dart';
+import '../services/seerr/seerr_api_models.dart';
+import '../viewmodels/seerr_discover_view_model.dart';
 import 'custom_external_lists_service.dart';
 
 class RowDataSource {
@@ -45,6 +49,9 @@ class RowDataSource {
   static const _minimalFields =
       'Type,UserData,RunTimeTicks,ProductionYear,ImageTags,BackdropImageTags,'
       'ParentBackdropItemId,ParentBackdropImageTags,SeriesId';
+
+  // Cache for local recommendations to make them practically instantaneous
+  static final Map<String, List<Map<String, dynamic>>> _recommendationCache = {};
 
   // Cap image tags to one per type (server returns all by default)
   static const _imageTypes = 'Primary,Backdrop,Thumb';
@@ -1751,6 +1758,769 @@ class RowDataSource {
       return ('DateCreated', 'Descending');
     }
     return ('SortName', 'Ascending');
+  }
+
+  int? _extractYear(String? dateString) {
+    if (dateString == null || dateString.isEmpty) return null;
+    final parsed = DateTime.tryParse(dateString);
+    return parsed?.year;
+  }
+
+  int _getRatingLevel(String? rating) {
+    if (rating == null || rating.isEmpty) return 100;
+    final clean = rating.trim().toUpperCase();
+
+    // Movies (US/Global)
+    if (clean == 'G') return 1;
+    if (clean == 'PG') return 2;
+    if (clean == 'PG-13') return 3;
+    if (clean == 'R') return 4;
+    if (clean == 'NC-17') return 5;
+
+    // TV Shows (US/Global)
+    if (clean == 'TV-Y' || clean == 'TV-Y7') return 1;
+    if (clean == 'TV-G') return 1;
+    if (clean == 'TV-PG') return 2;
+    if (clean == 'TV-14') return 3;
+    if (clean == 'TV-MA') return 4;
+
+    // UK Ratings
+    if (clean == 'U' || clean == 'UC') return 1;
+    if (clean == 'PG') return 2;
+    if (clean == '12' || clean == '12A') return 3;
+    if (clean == '15') return 4;
+    if (clean == '18') return 5;
+
+    // Fallback: parse numbers if found (e.g. "12", "16", "18")
+    final match = RegExp(r'\d+').firstMatch(clean);
+    if (match != null) {
+      final age = int.tryParse(match.group(0)!);
+      if (age != null) {
+        if (age <= 7) return 1;
+        if (age <= 12) return 2;
+        if (age <= 15) return 3;
+        if (age <= 17) return 4;
+        return 5;
+      }
+    }
+
+    return 3; // Default intermediate severity level
+  }
+
+  Future<HomeRow> loadSinceYouWatchedRow(String serverId, int rowIndex) async {
+    final prefs = GetIt.instance<UserPreferences>();
+    final sourceType = prefs.get(UserPreferences.sinceYouWatchedSourceType);
+    final sourceItemType = prefs.get(UserPreferences.sinceYouWatchedSourceItem);
+    final isLocal = prefs.get(UserPreferences.sinceYouWatchedSource) == SinceYouWatchedSource.local;
+
+    final List<String> queryItemTypes;
+    if (sourceItemType == SinceYouWatchedSourceItem.recentlyWatched) {
+      if (sourceType == SinceYouWatchedSourceType.movies) {
+        queryItemTypes = const ['Movie'];
+      } else if (sourceType == SinceYouWatchedSourceType.shows) {
+        queryItemTypes = const ['Episode'];
+      } else {
+        queryItemTypes = const ['Movie', 'Episode'];
+      }
+    } else {
+      if (sourceType == SinceYouWatchedSourceType.movies) {
+        queryItemTypes = const ['Movie'];
+      } else if (sourceType == SinceYouWatchedSourceType.shows) {
+        queryItemTypes = const ['Series'];
+      } else {
+        queryItemTypes = const ['Movie', 'Series'];
+      }
+    }
+
+    final List<String> candidateItemTypes = switch (sourceType) {
+      SinceYouWatchedSourceType.movies => const ['Movie'],
+      SinceYouWatchedSourceType.shows => const ['Series'],
+      SinceYouWatchedSourceType.both => const ['Movie', 'Series'],
+    };
+
+    // Fetch the list of possible base items (specifying Tags and People fields to avoid subsequent detail calls)
+    List<AggregatedItem> baseItems = [];
+    if (sourceItemType == SinceYouWatchedSourceItem.recentlyWatched) {
+      final res = await _getItemsWithFallback(
+        sortBy: 'DatePlayed',
+        sortOrder: 'Descending',
+        filters: const ['IsPlayed'],
+        recursive: true,
+        includeItemTypes: queryItemTypes,
+        limit: 30, // Query more items to ensure we get enough unique shows
+        fields: '$_fields,Tags,People,SeriesId',
+      );
+      final rawBaseItems = _parseItems(res, serverId);
+      
+      // Resolve Episode items to their parent Series (Show) items
+      final resolvedBaseItems = <AggregatedItem>[];
+      final seenSeriesIds = <String>{};
+      final episodeToSeriesMap = <String, String>{}; // Episode ID -> Series ID
+      final seriesIdsToFetch = <String>[];
+      
+      for (final item in rawBaseItems) {
+        if (item.type == 'Movie') {
+          resolvedBaseItems.add(item);
+        } else if (item.type == 'Episode') {
+          final sId = item.rawData['SeriesId']?.toString();
+          if (sId != null && sId.isNotEmpty) {
+            episodeToSeriesMap[item.id] = sId;
+            if (!seenSeriesIds.contains(sId)) {
+              seenSeriesIds.add(sId);
+              seriesIdsToFetch.add(sId);
+            }
+          }
+        } else if (item.type == 'Series') {
+          resolvedBaseItems.add(item);
+        }
+      }
+      
+      if (seriesIdsToFetch.isNotEmpty) {
+        try {
+          final seriesRes = await _client.itemsApi.getItems(
+            ids: seriesIdsToFetch,
+            fields: '$_fields,Tags,People',
+          );
+          final fetchedSeries = _parseItems(seriesRes, serverId);
+          final seriesMap = {for (final s in fetchedSeries) s.id: s};
+          
+          final finalItems = <AggregatedItem>[];
+          final addedSeriesIds = <String>{};
+          
+          for (final item in rawBaseItems) {
+            if (item.type == 'Movie') {
+              finalItems.add(item);
+            } else if (item.type == 'Episode') {
+              final sId = episodeToSeriesMap[item.id];
+              if (sId != null) {
+                final seriesItem = seriesMap[sId];
+                if (seriesItem != null && !addedSeriesIds.contains(sId)) {
+                  addedSeriesIds.add(sId);
+                  finalItems.add(seriesItem);
+                }
+              }
+            } else if (item.type == 'Series') {
+              if (!addedSeriesIds.contains(item.id)) {
+                addedSeriesIds.add(item.id);
+                finalItems.add(item);
+              }
+            }
+          }
+          baseItems = finalItems;
+        } catch (_) {
+          baseItems = rawBaseItems;
+        }
+      } else {
+        baseItems = resolvedBaseItems;
+      }
+    } else if (sourceItemType == SinceYouWatchedSourceItem.favorites) {
+      final res = await _getItemsWithFallback(
+        isFavorite: true,
+        filters: const ['IsPlayed'],
+        recursive: true,
+        includeItemTypes: queryItemTypes,
+        limit: 30,
+        fields: '$_fields,Tags,People',
+      );
+      baseItems = _parseItems(res, serverId);
+    } else {
+      // Random
+      final res = await _getItemsWithFallback(
+        sortBy: 'Random',
+        filters: const ['IsPlayed'],
+        recursive: true,
+        includeItemTypes: queryItemTypes,
+        limit: 30,
+        fields: '$_fields,Tags,People',
+      );
+      baseItems = _parseItems(res, serverId);
+    }
+
+    final sourceIdx = rowIndex - 1;
+    if (sourceIdx >= baseItems.length) {
+      return HomeRow(
+        id: 'sinceYouWatched$rowIndex',
+        title: 'Since you watched',
+        rowType: HomeRowType.latestMedia,
+        items: const [],
+      );
+    }
+
+    final baseItem = baseItems[sourceIdx];
+    final itemDetail = baseItem.rawData;
+    final baseItemName = baseItem.name;
+
+    List<AggregatedItem> recommendedItems = [];
+
+    if (isLocal) {
+      final genres = (itemDetail['Genres'] as List?)?.map((e) => e?.toString()).whereType<String>().toList() ?? const <String>[];
+      final tags = (itemDetail['Tags'] as List?)?.map((e) => e?.toString()).whereType<String>().toList() ?? const <String>[];
+      final people = (itemDetail['People'] as List?)?.map((e) => e is Map ? Map<String, dynamic>.from(e) : null).whereType<Map<String, dynamic>>().toList() ?? const <Map<String, dynamic>>[];
+
+      final actorNames = people
+          .where((p) => p['Type'] == 'Actor')
+          .map((p) => p['Name']?.toString())
+          .whereType<String>()
+          .toList();
+      final directorNames = people
+          .where((p) => p['Type'] == 'Director')
+          .map((p) => p['Name']?.toString())
+          .whereType<String>()
+          .toList();
+      final writerNames = people
+          .where((p) => p['Type'] == 'Writer')
+          .map((p) => p['Name']?.toString())
+          .whereType<String>()
+          .toList();
+
+      final actorIds = people
+          .where((p) => p['Type'] == 'Actor')
+          .map((p) => p['Id']?.toString())
+          .whereType<String>()
+          .toList();
+      final directorIds = people
+          .where((p) => p['Type'] == 'Director')
+          .map((p) => p['Id']?.toString())
+          .whereType<String>()
+          .toList();
+      final writerIds = people
+          .where((p) => p['Type'] == 'Writer')
+          .map((p) => p['Id']?.toString())
+          .whereType<String>()
+          .toList();
+
+      final candidatesMap = <String, Map<String, dynamic>>{};
+      final futures = <Future<void>>[];
+
+      // Fetch candidates matching genres in parallel
+      if (genres.isNotEmpty) {
+        futures.add(() async {
+          try {
+            final cacheKey = 'genres:${candidateItemTypes.join(",")}:${genres.join(",")}';
+            if (_recommendationCache.containsKey(cacheKey)) {
+              final cached = _recommendationCache[cacheKey]!;
+              for (final item in cached) {
+                final id = item['Id']?.toString() ?? '';
+                if (id.isNotEmpty) candidatesMap[id] = item;
+              }
+              return;
+            }
+            final res = await _client.itemsApi.getItems(
+              includeItemTypes: candidateItemTypes,
+              genres: genres,
+              recursive: true,
+              limit: 80,
+              fields: 'Genres,Tags,People,UserData,OfficialRating',
+            );
+            final items = (res['Items'] as List? ?? [])
+                .map((e) => e is Map ? Map<String, dynamic>.from(e) : null)
+                .whereType<Map<String, dynamic>>()
+                .toList();
+            _recommendationCache[cacheKey] = items;
+            for (final item in items) {
+              final id = item['Id']?.toString() ?? '';
+              if (id.isNotEmpty) candidatesMap[id] = item;
+            }
+          } catch (_) {}
+        }());
+      }
+
+      // Fetch candidates matching tags in parallel
+      if (tags.isNotEmpty) {
+        futures.add(() async {
+          try {
+            final cacheKey = 'tags:${candidateItemTypes.join(",")}:${tags.join(",")}';
+            if (_recommendationCache.containsKey(cacheKey)) {
+              final cached = _recommendationCache[cacheKey]!;
+              for (final item in cached) {
+                final id = item['Id']?.toString() ?? '';
+                if (id.isNotEmpty) candidatesMap[id] = item;
+              }
+              return;
+            }
+            final res = await _client.itemsApi.getItems(
+              includeItemTypes: candidateItemTypes,
+              tags: tags,
+              recursive: true,
+              limit: 80,
+              fields: 'Genres,Tags,People,UserData,OfficialRating',
+            );
+            final items = (res['Items'] as List? ?? [])
+                .map((e) => e is Map ? Map<String, dynamic>.from(e) : null)
+                .whereType<Map<String, dynamic>>()
+                .toList();
+            _recommendationCache[cacheKey] = items;
+            for (final item in items) {
+              final id = item['Id']?.toString() ?? '';
+              if (id.isNotEmpty) candidatesMap[id] = item;
+            }
+          } catch (_) {}
+        }());
+      }
+
+      // Fetch candidates matching any directors, writers, or actors in parallel using a single combined query
+      final allPersonIds = [
+        ...directorIds.take(2),
+        ...writerIds.take(2),
+        ...actorIds.take(3),
+      ];
+      if (allPersonIds.isNotEmpty) {
+        futures.add(() async {
+          try {
+            final cacheKey = 'people:${candidateItemTypes.join(",")}:${allPersonIds.join(",")}';
+            if (_recommendationCache.containsKey(cacheKey)) {
+              final cached = _recommendationCache[cacheKey]!;
+              for (final item in cached) {
+                final id = item['Id']?.toString() ?? '';
+                if (id.isNotEmpty) candidatesMap[id] = item;
+              }
+              return;
+            }
+            final res = await _client.itemsApi.getItems(
+              includeItemTypes: candidateItemTypes,
+              personIds: allPersonIds,
+              recursive: true,
+              limit: 80,
+              fields: 'Genres,Tags,People,UserData,OfficialRating',
+            );
+            final items = (res['Items'] as List? ?? [])
+                .map((e) => e is Map ? Map<String, dynamic>.from(e) : null)
+                .whereType<Map<String, dynamic>>()
+                .toList();
+            _recommendationCache[cacheKey] = items;
+            for (final item in items) {
+              final id = item['Id']?.toString() ?? '';
+              if (id.isNotEmpty) candidatesMap[id] = item;
+            }
+          } catch (_) {}
+        }());
+      }
+
+      await Future.wait(futures);
+
+      final includeWatched = prefs.get(UserPreferences.sinceYouWatchedIncludeWatched);
+      final sourceRating = baseItem.officialRating;
+      final sourceRatingLevel = _getRatingLevel(sourceRating);
+
+      final scoredCandidates = <MapEntry<Map<String, dynamic>, double>>[];
+
+      for (final candidate in candidatesMap.values) {
+        final id = candidate['Id']?.toString() ?? '';
+        if (id.isEmpty || id == baseItem.id) continue;
+
+        // Played check
+        final userData = candidate['UserData'] as Map?;
+        final isPlayed = userData?['Played'] as bool? ?? false;
+        if (!includeWatched && isPlayed) continue;
+
+        // Parental rating constraint upper bound
+        final candRating = candidate['OfficialRating'] as String?;
+        if (_getRatingLevel(candRating) > sourceRatingLevel) continue;
+
+        double score = 0.0;
+
+        // Score genres (+2.0 each)
+        final cGenres = (candidate['Genres'] as List?)?.map((e) => e?.toString()).whereType<String>().toList() ?? const <String>[];
+        for (final g in genres) {
+          if (cGenres.contains(g)) score += 2.0;
+        }
+
+        // Score tags (+1.0 each)
+        final cTags = (candidate['Tags'] as List?)?.map((e) => e?.toString()).whereType<String>().toList() ?? const <String>[];
+        for (final t in tags) {
+          if (cTags.contains(t)) score += 1.0;
+        }
+
+        // Score people
+        final cPeople = (candidate['People'] as List?)?.map((e) => e is Map ? Map<String, dynamic>.from(e) : null).whereType<Map<String, dynamic>>().toList() ?? const <Map<String, dynamic>>[];
+        final cActors = cPeople.where((p) => p['Type'] == 'Actor').map((p) => p['Name']?.toString()).whereType<String>().toSet();
+        final cDirectors = cPeople.where((p) => p['Type'] == 'Director').map((p) => p['Name']?.toString()).whereType<String>().toSet();
+        final cWriters = cPeople.where((p) => p['Type'] == 'Writer').map((p) => p['Name']?.toString()).whereType<String>().toSet();
+
+        for (final a in actorNames) {
+          if (cActors.contains(a)) score += 3.0;
+        }
+        for (final d in directorNames) {
+          if (cDirectors.contains(d)) score += 4.0;
+        }
+        for (final w in writerNames) {
+          if (cWriters.contains(w)) score += 4.0;
+        }
+
+        if (score >= 1.0) {
+          scoredCandidates.add(MapEntry(candidate, score));
+        }
+      }
+
+      // Sort by score desc, then by premiere date desc
+      scoredCandidates.sort((a, b) {
+        final scoreCompare = b.value.compareTo(a.value);
+        if (scoreCompare != 0) return scoreCompare;
+        final dateA = a.key['PremiereDate'] as String? ?? '';
+        final dateB = b.key['PremiereDate'] as String? ?? '';
+        return dateB.compareTo(dateA);
+      });
+
+      recommendedItems = scoredCandidates
+          .take(15)
+          .map((e) => AggregatedItem(
+                id: e.key['Id']?.toString() ?? '',
+                serverId: serverId,
+                rawData: e.key,
+              ))
+          .toList();
+    } else {
+      // Online
+      var tmdbId = baseItem.tmdbId;
+      if (tmdbId == null || tmdbId.isEmpty) {
+        try {
+          final details = await _client.itemsApi.getItem(baseItem.id);
+          final pIds = details['ProviderIds'] as Map?;
+          tmdbId = pIds?['Tmdb']?.toString();
+          if (tmdbId == null || tmdbId.isEmpty) {
+            final imdbId = pIds?['Imdb']?.toString();
+            if (imdbId != null && imdbId.isNotEmpty) {
+              try {
+                final repo = await GetIt.instance.getAsync<SeerrRepository>();
+                await repo.ensureInitialized();
+                if (repo.isAvailable) {
+                  final searchPage = await repo.search(imdbId);
+                  if (searchPage.results.isNotEmpty) {
+                    tmdbId = searchPage.results.first.id.toString();
+                  }
+                }
+              } catch (_) {}
+            }
+          }
+        } catch (e) {
+          print('[RowDataSource] Failed to resolve TMDB ID for online recommendations: $e');
+        }
+      }
+
+      if (tmdbId != null && tmdbId.isNotEmpty) {
+        final tmdbIdInt = int.tryParse(tmdbId);
+        if (tmdbIdInt != null) {
+          final apiKey = prefs.get(UserPreferences.tmdbApiKey);
+          if (apiKey.isNotEmpty) {
+            try {
+              final dio = Dio(BaseOptions(
+                connectTimeout: const Duration(seconds: 10),
+                receiveTimeout: const Duration(seconds: 10),
+              ));
+              final isTv = baseItem.type == 'Series';
+              final path = isTv
+                  ? 'tv/$tmdbIdInt/recommendations'
+                  : 'movie/$tmdbIdInt/recommendations';
+              final url = 'https://api.themoviedb.org/3/$path';
+              final response = await dio.get(
+                url,
+                queryParameters: {
+                  'api_key': apiKey,
+                  'language': 'en-US',
+                  'page': 1,
+                },
+              );
+              if (response.statusCode == 200 && response.data != null) {
+                final results = response.data['results'] as List? ?? [];
+                recommendedItems = results.map((res) {
+                  final idVal = res['id'];
+                  final id = idVal?.toString() ?? '';
+                  final title = (res['title'] as String?) ?? (res['name'] as String?) ?? 'Unknown';
+                  final posterPath = res['poster_path'] as String? ?? '';
+                  final backdropPath = res['backdrop_path'] as String? ?? '';
+                  
+                  final dateStr = (res['release_date'] as String?) ?? (res['first_air_date'] as String?);
+                  int? year;
+                  if (dateStr != null && dateStr.length >= 4) {
+                    year = int.tryParse(dateStr.substring(0, 4));
+                  }
+                  
+                  final mediaTypeRaw = res['media_type'] as String?;
+                  final String type;
+                  if (mediaTypeRaw != null) {
+                    type = mediaTypeRaw == 'tv' ? 'Series' : 'Movie';
+                  } else {
+                    type = isTv ? 'Series' : 'Movie';
+                  }
+                  
+                  return AggregatedItem(
+                    id: id,
+                    serverId: 'seerr',
+                    rawData: {
+                      'Name': title,
+                      'Type': type,
+                      'Overview': res['overview'] as String? ?? '',
+                      'PosterPath': posterPath,
+                      'BackdropPath': backdropPath,
+                      'ProductionYear': year,
+                      'SeerrMediaType': type == 'Series' ? 'tv' : 'movie',
+                    },
+                  );
+                }).take(15).toList();
+              }
+            } catch (e) {
+              print('[RowDataSource] Direct TMDB recommendation query failed: $e');
+            }
+          }
+
+          if (recommendedItems.isEmpty) {
+            try {
+              final repo = await GetIt.instance.getAsync<SeerrRepository>();
+              await repo.ensureInitialized();
+              if (repo.isAvailable) {
+                final isTv = baseItem.type == 'Series';
+                final page = isTv
+                    ? await repo.getTvRecommendations(tmdbIdInt)
+                    : await repo.getMovieRecommendations(tmdbIdInt);
+
+                final blockNsfw = GetIt.instance<SeerrPreferences>().blockNsfw;
+
+                final filtered = page.results.where((item) {
+                  if (item.isBlacklisted) return false;
+                  if (blockNsfw) {
+                    if (item.adult) return false;
+                    final text = '${item.displayTitle} ${item.overview ?? ''}';
+                    if (SeerrDiscoverViewModel.nsfwPatterns.any((p) => p.hasMatch(text))) {
+                      return false;
+                    }
+                  }
+                  return true;
+                }).toList();
+
+                recommendedItems = filtered.map((item) {
+                  return AggregatedItem(
+                    id: item.id.toString(),
+                    serverId: 'seerr',
+                    rawData: {
+                      'Name': item.displayTitle,
+                      'Type': item.mediaType == 'tv' ? 'Series' : 'Movie',
+                      'Overview': item.overview ?? '',
+                      'PosterPath': item.posterPath ?? '',
+                      'BackdropPath': item.backdropPath ?? '',
+                      'ProductionYear': _extractYear(item.releaseDate ?? item.firstAirDate),
+                      'SeerrMediaType': item.mediaType,
+                    },
+                  );
+                }).take(15).toList();
+              }
+            } catch (_) {}
+          }
+        }
+      }
+    }
+
+    return HomeRow(
+      id: 'sinceYouWatched$rowIndex',
+      title: 'Since you watched "$baseItemName"',
+      rowType: HomeRowType.latestMedia,
+      items: recommendedItems,
+    );
+  }
+
+  Future<HomeRow> loadRewatchRow(String serverId) async {
+    final prefs = GetIt.instance<UserPreferences>();
+    final includeMovies = prefs.get(UserPreferences.rewatchIncludeMovies);
+    final includeShows = prefs.get(UserPreferences.rewatchIncludeShows);
+    final includeCollections = prefs.get(UserPreferences.rewatchIncludeCollections);
+    final sortBy = prefs.get(UserPreferences.rewatchSortBy);
+
+    final watchedItems = <AggregatedItem>[];
+    final seriesLastPlayedDates = <String, String>{};
+
+    // 1. Movies
+    if (includeMovies) {
+      try {
+        final res = await _getItemsWithFallback(
+          includeItemTypes: const ['Movie'],
+          filters: const ['IsPlayed'],
+          sortBy: 'DatePlayed',
+          sortOrder: 'Descending',
+          recursive: true,
+          limit: 50,
+          fields: '$_fields,UserData',
+        );
+        watchedItems.addAll(_parseItems(res, serverId));
+      } catch (_) {}
+    }
+
+    // 2. Shows
+    if (includeShows) {
+      try {
+        final res = await _getItemsWithFallback(
+          includeItemTypes: const ['Episode'],
+          filters: const ['IsPlayed'],
+          sortBy: 'DatePlayed',
+          sortOrder: 'Descending',
+          recursive: true,
+          limit: 100,
+          fields: 'SeriesId,UserData',
+        );
+        final episodes = _parseItems(res, serverId);
+        final seriesIds = <String>[];
+        
+        for (final ep in episodes) {
+          final sId = ep.rawData['SeriesId']?.toString();
+          if (sId != null && sId.isNotEmpty) {
+            final lpDate = ep.rawData['UserData']?['LastPlayedDate']?.toString() ?? '';
+            if (lpDate.isNotEmpty) {
+              final existing = seriesLastPlayedDates[sId] ?? '';
+              if (lpDate.compareTo(existing) > 0) {
+                seriesLastPlayedDates[sId] = lpDate;
+              }
+            }
+            if (!seriesIds.contains(sId)) {
+              seriesIds.add(sId);
+            }
+          }
+        }
+            
+        if (seriesIds.isNotEmpty) {
+          final seriesRes = await _client.itemsApi.getItems(
+            ids: seriesIds,
+            fields: '$_fields,UserData',
+          );
+          final parsedSeries = _parseItems(seriesRes, serverId);
+          
+          final checkFutures = parsedSeries.map((s) async {
+            final userData = s.rawData['UserData'] as Map?;
+            final isPlayed = userData?['Played'] as bool? ?? false;
+            final unplayedCount = s.rawData['UnplayedItemCount'] as int? ?? userData?['UnplayedItemCount'] as int? ?? 0;
+            
+            if (!isPlayed || unplayedCount > 0) return null;
+            
+            try {
+              final episodesRes = await _client.itemsApi.getItems(
+                parentId: s.id,
+                includeItemTypes: const ['Episode'],
+                recursive: true,
+                filters: const ['IsUnplayed'],
+                limit: 1,
+              );
+              final itemsCount = episodesRes['TotalRecordCount'] as int? ?? (episodesRes['Items'] as List?)?.length ?? 0;
+              if (itemsCount == 0) {
+                return s;
+              }
+            } catch (_) {
+              return s;
+            }
+            return null;
+          }).toList();
+          
+          final checkedResults = await Future.wait(checkFutures);
+          final filteredSeries = checkedResults.whereType<AggregatedItem>().toList();
+          watchedItems.addAll(filteredSeries);
+        }
+      } catch (_) {}
+    }
+
+    // 3. Collections
+    final collectionLastPlayedDates = <String, String>{};
+    if (includeCollections) {
+      try {
+        final res = await _getItemsWithFallback(
+          includeItemTypes: const ['BoxSet'],
+          recursive: true,
+          limit: 50,
+          fields: '$_fields',
+        );
+        final collections = _parseItems(res, serverId);
+        
+        final collectionFutures = collections.map((col) async {
+          try {
+            final childrenRes = await _client.itemsApi.getItems(
+              parentId: col.id,
+              recursive: true,
+              fields: 'UserData',
+            );
+            final children = childrenRes['Items'] as List? ?? [];
+            if (children.isNotEmpty && children.every((c) => (c['UserData']?['Played'] as bool?) == true)) {
+              // Find max LastPlayedDate of children to assign to the collection
+              String maxLp = '';
+              for (final c in children) {
+                final lp = c['UserData']?['LastPlayedDate']?.toString() ?? '';
+                if (lp.compareTo(maxLp) > 0) maxLp = lp;
+              }
+              return {
+                'col': col,
+                'isPlayed': true,
+                'lastPlayed': maxLp,
+              };
+            }
+          } catch (_) {}
+          return {
+            'col': col,
+            'isPlayed': false,
+            'lastPlayed': '',
+          };
+        }).toList();
+
+        final collectionInfos = await Future.wait(collectionFutures);
+        for (final info in collectionInfos) {
+          if (info['isPlayed'] as bool) {
+            watchedItems.add(info['col'] as AggregatedItem);
+            collectionLastPlayedDates[(info['col'] as AggregatedItem).id] = info['lastPlayed'] as String;
+          }
+        }
+      } catch (_) {}
+    }
+
+    // Sort the watchedItems
+    if (sortBy == RewatchSortBy.recentlyWatched) {
+      watchedItems.sort((a, b) {
+        String lpA = a.rawData['UserData']?['LastPlayedDate']?.toString() ?? '';
+        if (a.type == 'BoxSet' && collectionLastPlayedDates.containsKey(a.id)) {
+          lpA = collectionLastPlayedDates[a.id]!;
+        } else if (a.type == 'Series' && seriesLastPlayedDates.containsKey(a.id)) {
+          lpA = seriesLastPlayedDates[a.id]!;
+        }
+        
+        String lpB = b.rawData['UserData']?['LastPlayedDate']?.toString() ?? '';
+        if (b.type == 'BoxSet' && collectionLastPlayedDates.containsKey(b.id)) {
+          lpB = collectionLastPlayedDates[b.id]!;
+        } else if (b.type == 'Series' && seriesLastPlayedDates.containsKey(b.id)) {
+          lpB = seriesLastPlayedDates[b.id]!;
+        }
+        return lpB.compareTo(lpA);
+      });
+    } else {
+      watchedItems.shuffle();
+    }
+
+    // Take top 15 and resolve rewatch entries in parallel
+    final resolveFutures = watchedItems.take(15).map((item) async {
+      if (item.type == 'Movie') {
+        return item;
+      } else if (item.type == 'BoxSet') {
+        return item;
+      } else if (item.type == 'Series') {
+        // Fetch first episode of this series
+        try {
+          final epRes = await _getItemsWithFallback(
+            parentId: item.id,
+            includeItemTypes: const ['Episode'],
+            recursive: true,
+            sortBy: 'SortName,ProductionYear',
+            sortOrder: 'Ascending',
+            limit: 1,
+          );
+          final eps = _parseItems(epRes, serverId);
+          if (eps.isNotEmpty) {
+            return eps.first;
+          }
+        } catch (_) {}
+        return item;
+      }
+      return item;
+    }).toList();
+
+    final resolvedItems = await Future.wait(resolveFutures);
+
+    return HomeRow(
+      id: 'rewatch',
+      title: 'Rewatch',
+      rowType: HomeRowType.latestMedia,
+      items: resolvedItems,
+    );
   }
 }
 

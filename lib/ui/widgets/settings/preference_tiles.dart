@@ -374,6 +374,7 @@ class _SwitchPreferenceTileState extends State<SwitchPreferenceTile> {
             subtitle: widget.subtitle != null
                 ? Text(widget.subtitle!, style: _kSettingsSubtitleTextStyle)
                 : null,
+            contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
             value: widget.inverted ? !value : value,
             onChanged: widget.enabled
                 ? (v) {
@@ -468,7 +469,8 @@ class _EnumPreferenceTileState<T extends Enum>
                     style: _kSettingsDescriptionTextStyle,
                   )
                 : null,
-            isThreeLine: widget.description != null,
+            isThreeLine: false,
+            contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
             onTap: () => _showPicker(context, current),
           );
         },

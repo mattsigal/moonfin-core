@@ -224,6 +224,24 @@ class HomeViewModel extends ChangeNotifier {
         _prefs.get(UserPreferences.tmdbTrendingAllWeeklyEnabled);
   }
 
+  static bool _isSinceYouWatchedSectionType(HomeSectionType type) {
+    return type == HomeSectionType.sinceYouWatched1 ||
+        type == HomeSectionType.sinceYouWatched2 ||
+        type == HomeSectionType.sinceYouWatched3 ||
+        type == HomeSectionType.sinceYouWatched4 ||
+        type == HomeSectionType.sinceYouWatched5;
+  }
+
+  static int _getSinceYouWatchedIndex(HomeSectionType type) {
+    switch (type) {
+      case HomeSectionType.sinceYouWatched1: return 1;
+      case HomeSectionType.sinceYouWatched2: return 2;
+      case HomeSectionType.sinceYouWatched3: return 3;
+      case HomeSectionType.sinceYouWatched4: return 4;
+      case HomeSectionType.sinceYouWatched5: return 5;
+      default: return 0;
+    }
+  }
   ImageApi imageApiForServer(String serverId) {
     if (!_multiServerEnabled) return _dataSource.imageApi;
     return _multiServerRepo.getImageApiForServer(serverId);
@@ -304,6 +322,9 @@ class HomeViewModel extends ChangeNotifier {
           GetIt.instance<PluginSyncService>().seerrAvailable;
       final showImdbRows = _isAnyImdbSectionEnabled();
       final showTmdbRows = _isAnyTmdbSectionEnabled();
+      final showSinceYouWatched = _prefs.get(UserPreferences.displaySinceYouWatchedRows);
+      final sinceYouWatchedNum = _prefs.get(UserPreferences.sinceYouWatchedNumRows).value;
+      final showRewatch = _prefs.get(UserPreferences.displayRewatchRow);
 
       // Plugin-dynamic sections only make sense on the active server.
       final visibleConfigsRaw = configs
@@ -333,7 +354,9 @@ class HomeViewModel extends ChangeNotifier {
                 (!_isImdbSectionType(c.type) || (showImdbRows && _isImdbSectionEnabled(c.type))) &&
                 (!_isTmdbSectionType(c.type) || (showTmdbRows && _isTmdbSectionEnabled(c.type))) &&
                 (c.type != HomeSectionType.radarrCalendar || _prefs.get(UserPreferences.enableRadarrCalendar)) &&
-                (c.type != HomeSectionType.sonarrCalendar || _prefs.get(UserPreferences.enableSonarrCalendar)),
+                (c.type != HomeSectionType.sonarrCalendar || _prefs.get(UserPreferences.enableSonarrCalendar)) &&
+                (!_isSinceYouWatchedSectionType(c.type) || (showSinceYouWatched && _getSinceYouWatchedIndex(c.type) <= sinceYouWatchedNum)) &&
+                (c.type != HomeSectionType.rewatch || showRewatch),
           )
           .toList(growable: false);
 
@@ -420,6 +443,9 @@ class HomeViewModel extends ChangeNotifier {
             debugPrint('[Home] Failed to load section $cfg: $e');
             sectionRows = const <HomeRow>[];
           }
+          final currentConfigs = _prefs.activeHomeSectionConfigs;
+          final isStillActive = currentConfigs.any((c) => c.stableId == cfg.stableId);
+          if (!isStillActive) return;
           // Cleanup runs even when the load failed, so the section's loading
           // placeholder is cleared instead of spinning forever.
           final loadedRows = sectionRows
@@ -556,7 +582,9 @@ class HomeViewModel extends ChangeNotifier {
         // Plugin-dynamic rows (per-collection, per-playlist, etc.) have IDs
         // starting with 'pluginDynamic:' and must NOT be claimed here.
         return row.rowType == HomeRowType.latestMedia &&
-            !row.id.startsWith('pluginDynamic:');
+            !row.id.startsWith('pluginDynamic:') &&
+            !row.id.startsWith('sinceYouWatched') &&
+            row.id != 'rewatch';
       case HomeSectionType.favoriteMovies:
       case HomeSectionType.favoriteSeries:
       case HomeSectionType.favoriteEpisodes:
@@ -661,6 +689,15 @@ class HomeViewModel extends ChangeNotifier {
       case HomeSectionType.mediaBar:
       case HomeSectionType.recentlyReleased:
         return row.rowType == HomeRowType.recentlyReleased;
+      case HomeSectionType.sinceYouWatched1:
+      case HomeSectionType.sinceYouWatched2:
+      case HomeSectionType.sinceYouWatched3:
+      case HomeSectionType.sinceYouWatched4:
+      case HomeSectionType.sinceYouWatched5:
+        final idx = _getSinceYouWatchedIndex(cfg.type);
+        return row.rowType == HomeRowType.latestMedia && row.id == 'sinceYouWatched$idx';
+      case HomeSectionType.rewatch:
+        return row.rowType == HomeRowType.latestMedia && row.id == 'rewatch';
       case HomeSectionType.resumeBook:
       case HomeSectionType.none:
         return false;
@@ -931,6 +968,18 @@ class HomeViewModel extends ChangeNotifier {
         return const {'radarrCalendar'};
       case HomeSectionType.sonarrCalendar:
         return const {'sonarrCalendar'};
+      case HomeSectionType.sinceYouWatched1:
+        return const {'sinceYouWatched1'};
+      case HomeSectionType.sinceYouWatched2:
+        return const {'sinceYouWatched2'};
+      case HomeSectionType.sinceYouWatched3:
+        return const {'sinceYouWatched3'};
+      case HomeSectionType.sinceYouWatched4:
+        return const {'sinceYouWatched4'};
+      case HomeSectionType.sinceYouWatched5:
+        return const {'sinceYouWatched5'};
+      case HomeSectionType.rewatch:
+        return const {'rewatch'};
       case HomeSectionType.mediaBar:
       case HomeSectionType.none:
         return const <String>{};
@@ -1292,6 +1341,17 @@ class HomeViewModel extends ChangeNotifier {
         return _loadTmdbChartRow(HomeSectionType.tmdbTrendingAllWeekly, 'Trending All (Weekly)', 'tmdb_trending_all_weekly');
       case HomeSectionType.recentlyReleased:
         return _loadRecentlyReleasedRow();
+      case HomeSectionType.sinceYouWatched1:
+      case HomeSectionType.sinceYouWatched2:
+      case HomeSectionType.sinceYouWatched3:
+      case HomeSectionType.sinceYouWatched4:
+      case HomeSectionType.sinceYouWatched5:
+        final rowIndex = _getSinceYouWatchedIndex(section);
+        final row = await _dataSource.loadSinceYouWatchedRow(_serverId, rowIndex);
+        return [row];
+      case HomeSectionType.rewatch:
+        final row = await _dataSource.loadRewatchRow(_serverId);
+        return [row];
       case HomeSectionType.resumeBook:
       case HomeSectionType.none:
         return [];
@@ -1722,6 +1782,25 @@ class HomeViewModel extends ChangeNotifier {
           id: 'recentlyReleased',
           title: l10n.recentlyReleased,
           rowType: HomeRowType.recentlyReleased,
+          isLoading: true,
+        );
+      case HomeSectionType.sinceYouWatched1:
+      case HomeSectionType.sinceYouWatched2:
+      case HomeSectionType.sinceYouWatched3:
+      case HomeSectionType.sinceYouWatched4:
+      case HomeSectionType.sinceYouWatched5:
+        final index = _getSinceYouWatchedIndex(section);
+        return HomeRow(
+          id: 'sinceYouWatched$index',
+          title: 'Since you watched',
+          rowType: HomeRowType.latestMedia,
+          isLoading: true,
+        );
+      case HomeSectionType.rewatch:
+        return HomeRow(
+          id: 'rewatch',
+          title: 'Rewatch',
+          rowType: HomeRowType.latestMedia,
           isLoading: true,
         );
       case HomeSectionType.resumeBook:
