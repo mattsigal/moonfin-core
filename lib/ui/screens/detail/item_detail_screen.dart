@@ -158,6 +158,8 @@ class _ItemDetailScreenState extends State<ItemDetailScreen>
   StreamSubscription<String?>? _backgroundSub;
   bool _themeMusicStarted = false;
   String? _selectedMediaSourceId;
+  bool _showNavbar = true;
+  bool _actionsExpanded = false;
   Timer? _focusedBackdropDebounce;
   String? _lastFocusedBackdropItemId;
   String? _lastDetailBackdropItemId;
@@ -326,7 +328,7 @@ class _ItemDetailScreenState extends State<ItemDetailScreen>
     final node = useTargetNode ? _ensureInitialFocusNode() : null;
     final isAlbumOrPlaylist = type == 'MusicAlbum' || type == 'Playlist';
     final showNavigationChrome =
-        _viewModel.state == ItemDetailState.ready && !isAlbumOrPlaylist;
+        _viewModel.state == ItemDetailState.ready && !isAlbumOrPlaylist && _showNavbar;
     Widget body = NavigationLayout(
       showBackButton: true,
       showNavigationChrome: showNavigationChrome,
@@ -436,6 +438,9 @@ class _ItemDetailScreenState extends State<ItemDetailScreen>
                 onPlayFromChapter: (position) => unawaited(
                   _playFromChapter(context, _viewModel.item!, position, _selectedMediaSourceId),
                 ),
+                onToggleNavbar: (show) => setState(() => _showNavbar = show),
+                actionsExpanded: _actionsExpanded,
+                onActionsExpandedChanged: (val) => setState(() => _actionsExpanded = val),
               )
             : _DetailContent(
                 viewModel: _viewModel,
@@ -4137,6 +4142,10 @@ class DetailActionButtons extends StatefulWidget {
   /// When false the pill is content-width and sits inline with the secondary
   /// circular buttons (landscape).
   final bool fullWidthPrimary;
+  final FocusNode? actionRowRightFocusNode;
+  final ValueChanged<bool>? onFocusExtra;
+  final bool? actionsExpanded;
+  final ValueChanged<bool>? onActionsExpandedChanged;
 
   const DetailActionButtons({
     required this.viewModel,
@@ -4152,6 +4161,10 @@ class DetailActionButtons extends StatefulWidget {
     this.onArrowRightAtEnd,
     this.modernStyle = false,
     this.fullWidthPrimary = false,
+    this.actionRowRightFocusNode,
+    this.onFocusExtra,
+    this.actionsExpanded,
+    this.onActionsExpandedChanged,
   });
 
   @override
@@ -4890,7 +4903,15 @@ class DetailActionButtonsState extends State<DetailActionButtons> {
   set _selectedSubtitleIndex(int? value) =>
       viewModel.selectedSubtitleIndex = value;
 
-  bool _expanded = false;
+  bool _localExpanded = false;
+  bool get _expanded => widget.actionsExpanded ?? _localExpanded;
+  set _expanded(bool val) {
+    if (widget.onActionsExpandedChanged != null) {
+      widget.onActionsExpandedChanged!(val);
+    } else {
+      setState(() => _localExpanded = val);
+    }
+  }
   bool _playLaunchInFlight = false;
   bool _autoPlayTriggered = false;
   DownloadedItem? _offlineRow;
@@ -5204,6 +5225,20 @@ class DetailActionButtonsState extends State<DetailActionButtons> {
   })
   _computeWatchState(AggregatedItem item) {
     final isSeries = item.type == 'Series';
+    final isContainer = item.type == 'Series' ||
+                        item.type == 'Season' ||
+                        item.type == 'BoxSet' ||
+                        item.type == 'MusicAlbum';
+    if (!isContainer) {
+      final hasProgress = (item.playedPercentage ?? 0) > 0 ||
+                          (item.playbackPosition?.inMilliseconds ?? 0) > 0;
+      return (
+        isFullyWatched: item.isPlayed,
+        isFullyUnwatched: !item.isPlayed && !hasProgress,
+        isPartiallyWatched: hasProgress,
+        hasProgress: hasProgress,
+      );
+    }
     final totalEpisodes = isSeries
         ? (item.recursiveItemCount ?? 0)
         : (item.childCount ?? item.recursiveItemCount ?? 0);
@@ -5265,6 +5300,14 @@ class DetailActionButtonsState extends State<DetailActionButtons> {
         .where((s) => s['Type'] == 'Audio')
         .toList();
     _showSubtitleSelector(context, item, subtitleStreams, audioStreams);
+  }
+
+  bool _isManagementButton(_DetailActionButton button) {
+    return button.icon == Icons.check_circle ||
+           button.icon == Icons.check_circle_outline ||
+           button.icon == Icons.favorite ||
+           button.icon == Icons.playlist_add ||
+           button.icon == Icons.delete_outline;
   }
 
   @override
@@ -5349,7 +5392,7 @@ class DetailActionButtonsState extends State<DetailActionButtons> {
             } else if (_isCompact(context)) {
               playButtonLabel = 'S${s}E$e';
             } else {
-              playButtonLabel = 'Resume from S$s:E$e';
+              playButtonLabel = 'Resume from\nS$s:E$e';
             }
           } else {
             playButtonLabel = 'Resume';
@@ -5363,9 +5406,7 @@ class DetailActionButtonsState extends State<DetailActionButtons> {
           ? l10n.play
           : l10n.resume;
     } else if (hasProgress) {
-      playButtonLabel = l10n.resumeFrom(
-        _formatResumePosition(item.playbackPosition),
-      );
+      playButtonLabel = 'Resume from\n${_formatResumePosition(item.playbackPosition)}';
     } else {
       playButtonLabel = l10n.play;
     }
@@ -5572,11 +5613,40 @@ class DetailActionButtonsState extends State<DetailActionButtons> {
     final buttonSpacing = compact ? 8.0 : 10.0 * desktopScale;
     final buttonRunSpacing = compact ? 12.0 : 14.0 * desktopScale;
     final maxVisible = _calculateMaxVisibleButtons(context);
-    final needsOverflow =
-        (compact ||
-            PlatformDetection.isTV ||
-            widget.maxVisibleButtonsOverride != null) &&
-        allButtons.length > maxVisible;
+
+    final List<Widget> primaryButtons;
+    final List<Widget> extraButtons;
+    final bool needsOverflow;
+
+    final bool isTwoColumnLayout = widget.modernStyle && widget.maxVisibleButtonsOverride != null;
+
+    if (isTwoColumnLayout) {
+      final List<Widget> prim = [];
+      final List<Widget> ext = [];
+      for (final btn in allButtons) {
+        if (btn is _DetailActionButton && _isManagementButton(btn)) {
+          ext.add(btn);
+        } else {
+          prim.add(btn);
+        }
+      }
+      primaryButtons = prim;
+      extraButtons = ext;
+      needsOverflow = extraButtons.isNotEmpty;
+    } else {
+      needsOverflow =
+          (compact ||
+              PlatformDetection.isTV ||
+              widget.maxVisibleButtonsOverride != null) &&
+          allButtons.length > maxVisible;
+      if (needsOverflow) {
+        primaryButtons = allButtons.take(maxVisible - 1).toList();
+        extraButtons = allButtons.skip(maxVisible - 1).toList();
+      } else {
+        primaryButtons = allButtons;
+        extraButtons = const [];
+      }
+    }
 
     final Widget rowContent;
     if (!needsOverflow) {
@@ -5586,6 +5656,9 @@ class DetailActionButtonsState extends State<DetailActionButtons> {
         if (button is! _DetailActionButton) return button;
         return _copyActionButton(
           button,
+          focusNode: index == allButtons.length - 1
+              ? (widget.actionRowRightFocusNode ?? button.focusNode)
+              : button.focusNode,
           onArrowUp:
               button.onArrowUp ??
               (widget.upTarget != null ? _focusUpTarget : null),
@@ -5610,8 +5683,6 @@ class DetailActionButtonsState extends State<DetailActionButtons> {
         ),
       );
     } else {
-      final primaryButtons = allButtons.take(maxVisible - 1).toList();
-      final extraButtons = allButtons.skip(maxVisible - 1).toList();
       final normalizedPrimaryButtons = primaryButtons.asMap().entries.map((
         entry,
       ) {
@@ -5620,6 +5691,7 @@ class DetailActionButtonsState extends State<DetailActionButtons> {
         if (button is! _DetailActionButton) return button;
         return _copyActionButton(
           button,
+          onFocused: () => widget.onFocusExtra?.call(false),
           onArrowUp: button.onArrowUp ?? _focusUpTarget,
           onArrowLeft: index == 0 ? _focusSidebar : null,
           onArrowDown: _expanded
@@ -5634,8 +5706,11 @@ class DetailActionButtonsState extends State<DetailActionButtons> {
         return _copyActionButton(
           button,
           focusNode: index == 0 ? _overflowFirstExtraFocusNode : null,
-          onFocused: () => _ensureOverflowButtonVisible(context),
-          onArrowUp: () {
+          onFocused: () {
+            _ensureOverflowButtonVisible(context);
+            widget.onFocusExtra?.call(true);
+          },
+          onArrowUp: widget.modernStyle ? null : () {
             if (_overflowMoreFocusNode.context != null &&
                 _overflowMoreFocusNode.canRequestFocus) {
               _overflowMoreFocusNode.requestFocus();
@@ -5652,7 +5727,8 @@ class DetailActionButtonsState extends State<DetailActionButtons> {
       final moreButton = _DetailActionButton(
         label: _expanded ? l10n.less : l10n.more,
         icon: _expanded ? Icons.expand_less : Icons.expand_more,
-        focusNode: _overflowMoreFocusNode,
+        focusNode: widget.actionRowRightFocusNode ?? _overflowMoreFocusNode,
+        onFocused: () => widget.onFocusExtra?.call(false),
         onArrowUp: _focusUpTarget,
         onArrowDown: _expanded
             ? () => _focusFirstExpandedOverflowButton(context)
@@ -5661,18 +5737,44 @@ class DetailActionButtonsState extends State<DetailActionButtons> {
         onPressed: () => setState(() => _expanded = !_expanded),
       );
       if (widget.modernStyle) {
-        rowContent = Align(
-          alignment: Alignment.centerLeft,
-          child: Wrap(
-            spacing: buttonSpacing,
-            runSpacing: buttonRunSpacing,
-            crossAxisAlignment: WrapCrossAlignment.center,
-            alignment: WrapAlignment.start,
-            children: _expanded
-                ? [...normalizedPrimaryButtons, ...normalizedExtraButtons, moreButton]
-                : [...normalizedPrimaryButtons, moreButton],
-          ),
-        );
+        if (_expanded) {
+          rowContent = Align(
+            alignment: Alignment.centerLeft,
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Wrap(
+                  spacing: buttonSpacing,
+                  runSpacing: buttonRunSpacing,
+                  crossAxisAlignment: WrapCrossAlignment.center,
+                  alignment: WrapAlignment.start,
+                  children: [...normalizedPrimaryButtons, moreButton],
+                ),
+                Padding(
+                  padding: EdgeInsets.only(top: buttonRunSpacing),
+                  child: Wrap(
+                    spacing: buttonSpacing,
+                    runSpacing: buttonRunSpacing,
+                    crossAxisAlignment: WrapCrossAlignment.center,
+                    alignment: WrapAlignment.start,
+                    children: normalizedExtraButtons,
+                  ),
+                ),
+              ],
+            ),
+          );
+        } else {
+          rowContent = Align(
+            alignment: Alignment.centerLeft,
+            child: Wrap(
+              spacing: buttonSpacing,
+              runSpacing: buttonRunSpacing,
+              crossAxisAlignment: WrapCrossAlignment.center,
+              alignment: WrapAlignment.start,
+              children: [...normalizedPrimaryButtons, moreButton],
+            ),
+          );
+        }
       } else {
         final wrapAlignment =
             widget.modernStyle ? WrapAlignment.start : WrapAlignment.center;
@@ -8544,7 +8646,10 @@ class _DetailActionButtonState extends State<_DetailActionButton>
     required Color labelColor,
   }) {
     final isExpanded = showHighlight;
-    final double height = widget.isPrimary ? (isMobile ? 50.0 : 54.0) : (isMobile ? 48.0 : 52.0);
+    final hasNewline = widget.label.contains('\n');
+    final double height = widget.isPrimary
+        ? (isMobile ? (hasNewline ? 56.0 : 50.0) : (hasNewline ? 64.0 : 54.0))
+        : (isMobile ? 48.0 : 52.0);
 
     if (widget.isPrimary) {
       const fg = Color(0xFF101417);
@@ -8559,14 +8664,14 @@ class _DetailActionButtonState extends State<_DetailActionButton>
       // the pill stretch even in landscape.
       final double width = fullWidth 
           ? double.infinity 
-          : (isExpanded ? (isMobile ? 120.0 : 140.0) : height);
+          : (isExpanded ? (isMobile ? 120.0 : 300.0) : height);
 
       final pill = AnimatedContainer(
         duration: const Duration(milliseconds: 150),
         curve: Curves.easeOut,
         height: height,
         width: fullWidth ? null : width,
-        padding: EdgeInsets.symmetric(horizontal: isExpanded || fullWidth ? 16 : 0),
+        padding: EdgeInsets.symmetric(horizontal: isExpanded || fullWidth ? 12 : 0),
         alignment: Alignment.center,
         decoration: BoxDecoration(
           color: Colors.white,
@@ -8575,26 +8680,53 @@ class _DetailActionButtonState extends State<_DetailActionButton>
               ? Border.all(color: focusColor, width: 3)
               : null,
         ),
-        child: SingleChildScrollView(
-          scrollDirection: Axis.horizontal,
-          physics: const NeverScrollableScrollPhysics(),
-          child: Row(
-            mainAxisSize: MainAxisSize.min,
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              AdaptiveIcon(widget.icon ?? Icons.play_arrow, color: fg, size: 24),
-              if (isExpanded || fullWidth) ...[
-                const SizedBox(width: 8),
-                Text(
-                  widget.label,
-                  style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                        color: fg,
-                        fontWeight: FontWeight.w600,
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            AdaptiveIcon(widget.icon ?? Icons.play_arrow, color: fg, size: 24),
+            if (isExpanded || fullWidth) ...[
+              const SizedBox(width: 8),
+              Flexible(
+                child: widget.label.contains('\n')
+                    ? Column(
+                        mainAxisSize: MainAxisSize.min,
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            widget.label.split('\n')[0],
+                            style: Theme.of(context).textTheme.titleSmall?.copyWith(
+                                  color: fg,
+                                  fontWeight: FontWeight.bold,
+                                  fontSize: 12,
+                                  height: 1.1,
+                                ),
+                          ),
+                          Text(
+                            widget.label.split('\n')[1],
+                            style: Theme.of(context).textTheme.titleSmall?.copyWith(
+                                  color: fg.withValues(alpha: 0.8),
+                                  fontWeight: FontWeight.bold,
+                                  fontSize: 11,
+                                  height: 1.1,
+                                ),
+                          ),
+                        ],
+                      )
+                    : Text(
+                        widget.label,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: Theme.of(context).textTheme.titleSmall?.copyWith(
+                              color: fg,
+                              fontWeight: FontWeight.bold,
+                              fontSize: 12,
+                              height: 1.1,
+                            ),
                       ),
-                ),
-              ],
+              ),
             ],
-          ),
+          ],
         ),
       );
       return fullWidth ? SizedBox(width: double.infinity, child: pill) : pill;
@@ -8950,6 +9082,7 @@ class DetailCastRow extends StatelessWidget {
   final ScrollController? scrollController;
   final FocusNode? firstItemFocusNode;
   final KeyEventResult Function(int index, KeyEvent event)? onItemKeyEvent;
+  final VoidCallback? onNavigateUp;
 
   const DetailCastRow({
     required this.people,
@@ -8958,6 +9091,7 @@ class DetailCastRow extends StatelessWidget {
     this.scrollController,
     this.firstItemFocusNode,
     this.onItemKeyEvent,
+    this.onNavigateUp,
   });
 
   @override
@@ -9001,6 +9135,7 @@ class DetailCastRow extends StatelessWidget {
             imageUrl: imageUrl,
             isMobile: isMobile,
             focusNode: index == 0 ? firstItemFocusNode : null,
+            onNavigateUp: onNavigateUp,
             onKeyEvent: onItemKeyEvent == null
                 ? null
                 : (event) => onItemKeyEvent!(index, event),
@@ -9026,6 +9161,7 @@ class _CastPersonCard extends StatefulWidget {
   final FocusNode? focusNode;
   final KeyEventResult Function(KeyEvent event)? onKeyEvent;
   final VoidCallback? onTap;
+  final VoidCallback? onNavigateUp;
 
   const _CastPersonCard({
     required this.cardWidth,
@@ -9037,6 +9173,7 @@ class _CastPersonCard extends StatefulWidget {
     this.focusNode,
     this.onKeyEvent,
     this.onTap,
+    this.onNavigateUp,
   });
 
   @override
@@ -9066,6 +9203,14 @@ class _CastPersonCardState extends State<_CastPersonCard> with FocusStateMixin {
         focusNode: widget.focusNode,
         onFocusChange: (focused) => setFocused(focused),
         onKeyEvent: (_, event) {
+          final isNavigationEvent =
+              event is KeyDownEvent || event is KeyRepeatEvent;
+          if (isNavigationEvent &&
+              event.logicalKey == LogicalKeyboardKey.arrowUp &&
+              widget.onNavigateUp != null) {
+            widget.onNavigateUp!();
+            return KeyEventResult.handled;
+          }
           final customResult = widget.onKeyEvent?.call(event);
           if (customResult != null && customResult != KeyEventResult.ignored) {
             return customResult;
@@ -9139,7 +9284,7 @@ class _CastPersonCardState extends State<_CastPersonCard> with FocusStateMixin {
                         fontSize: widget.isMobile ? 10 : 11,
                       ),
                       textAlign: TextAlign.center,
-                      maxLines: 1,
+                      maxLines: 3,
                       overflow: TextOverflow.ellipsis,
                     ),
                 ],

@@ -74,6 +74,9 @@ class AggregatedItem {
   String? get logoImageTag =>
       (rawData['ImageTags'] as Map?)?['Logo'] as String?;
 
+  String? get seriesLogoImageTag =>
+      rawData['SeriesLogoImageTag'] as String?;
+
   Map? get _userData => rawData['UserData'] as Map?;
 
   double? get playedPercentage =>

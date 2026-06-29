@@ -11,33 +11,42 @@ class SeasonCard extends StatelessWidget {
   final String title;
   final String subtitle;
   final String? imageUrl;
+  final bool isFallbackImage;
   final bool landscape;
   final VoidCallback onTap;
   final FocusNode? focusNode;
+
+  final VoidCallback? onNavigateUp;
 
   const SeasonCard({
     super.key,
     required this.title,
     required this.subtitle,
     required this.imageUrl,
+    required this.isFallbackImage,
     required this.landscape,
     required this.onTap,
     this.focusNode,
+    this.onNavigateUp,
   });
 
   @override
   Widget build(BuildContext context) {
     final textTheme = Theme.of(context).textTheme;
     final radius = JellyfinTokens.shapes.mediumRadius;
+    final cardWidth = landscape ? 130.0 : 90.0;
+    final cardHeight = landscape ? 195.0 : 135.0;
+
     return FocusableWrapper(
       focusNode: focusNode,
       onSelect: onTap,
       borderRadius: radius.topLeft.x,
+      onNavigateUp: onNavigateUp,
       child: GestureDetector(
         onTap: onTap,
         child: Container(
-          width: landscape ? 300 : double.infinity,
-          height: landscape ? 96 : 84,
+          width: cardWidth,
+          height: cardHeight,
           decoration: BoxDecoration(
             borderRadius: radius,
             color: AppColorScheme.surface.withValues(alpha: 0.35),
@@ -56,50 +65,52 @@ class SeasonCard extends StatelessWidget {
                   errorWidget: (context, url, error) =>
                       const SizedBox.shrink(),
                 ),
-              DecoratedBox(
-                decoration: BoxDecoration(
-                  gradient: LinearGradient(
-                    begin: Alignment.centerLeft,
-                    end: Alignment.centerRight,
-                    colors: [
-                      AppColorScheme.background.withValues(alpha: 0.92),
-                      AppColorScheme.background.withValues(alpha: 0.55),
-                    ],
+              Positioned.fill(
+                child: DecoratedBox(
+                  decoration: BoxDecoration(
+                    gradient: LinearGradient(
+                      begin: Alignment.topCenter,
+                      end: Alignment.bottomCenter,
+                      colors: [
+                        Colors.transparent,
+                        Colors.black.withValues(alpha: 0.2),
+                        Colors.black.withValues(alpha: 0.85),
+                      ],
+                      stops: const [0.0, 0.4, 1.0],
+                    ),
                   ),
                 ),
               ),
-              Padding(
-                padding: const EdgeInsets.symmetric(
-                    horizontal: 16, vertical: 12),
-                child: Row(
+              Positioned(
+                left: 8,
+                right: 8,
+                bottom: 8,
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  mainAxisSize: MainAxisSize.min,
                   children: [
-                    Expanded(
-                      child: Column(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            title,
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
-                            style: textTheme.titleMedium,
-                          ),
-                          const SizedBox(height: 4),
-                          Text(
-                            subtitle,
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
-                            style: textTheme.bodySmall?.copyWith(
-                              color:
-                                  AppColorScheme.onSurface.withValues(alpha: 0.7),
-                            ),
-                          ),
-                        ],
+                    if (isFallbackImage) ...[
+                      Text(
+                        title,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: textTheme.labelLarge?.copyWith(
+                          color: Colors.white,
+                          fontWeight: FontWeight.bold,
+                          fontSize: 11,
+                        ),
                       ),
-                    ),
-                    Icon(
-                      Icons.chevron_right,
-                      color: AppColorScheme.onSurface.withValues(alpha: 0.7),
+                      const SizedBox(height: 2),
+                    ],
+                    Text(
+                      subtitle,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: textTheme.bodySmall?.copyWith(
+                        color: Colors.white.withValues(alpha: 0.85),
+                        fontWeight: FontWeight.w500,
+                        fontSize: 9,
+                      ),
                     ),
                   ],
                 ),

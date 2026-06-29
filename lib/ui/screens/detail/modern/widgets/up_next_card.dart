@@ -48,18 +48,32 @@ class UpNextCard extends StatelessWidget {
       onNavigateLeft: onNavigateLeft,
       onNavigateDown: onNavigateDown,
       borderRadius: radius.topLeft.x,
+      suppressFocusGlow: true,
+      focusColor: const Color(0xFF00F0FF),
       child: GestureDetector(
         onTap: onTap,
         child: SizedBox(
           width: width,
-          child: adaptiveGlass(
-            cornerRadius: radius.topLeft.x,
-            blur: 18,
-            fallbackColor: AppColorScheme.surface.withValues(alpha: 0.42),
-            tint: AppColorScheme.surface.withValues(alpha: 0.22),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              mainAxisSize: MainAxisSize.min,
+          child: Container(
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(radius.topLeft.x),
+              border: Border.all(
+                color: ThemeRegistry.active.id == ThemeRegistry.neonPulseId
+                    ? const Color(0xFF00F0FF)
+                    : Colors.white.withValues(alpha: 0.12),
+                width: 1.25,
+              ),
+            ),
+            child: ClipRRect(
+              borderRadius: BorderRadius.circular(radius.topLeft.x - 1.25),
+              child: adaptiveGlass(
+                cornerRadius: radius.topLeft.x - 1.25,
+                blur: 18,
+                fallbackColor: AppColorScheme.surface.withValues(alpha: 0.42),
+                tint: AppColorScheme.surface.withValues(alpha: 0.22),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  mainAxisSize: MainAxisSize.min,
               children: [
                 Padding(
                   padding: const EdgeInsets.fromLTRB(16, 12, 16, 8),
@@ -143,8 +157,10 @@ class UpNextCard extends StatelessWidget {
           ),
         ),
       ),
-    );
-  }
+    ),
+  ),
+);
+}
 
   Widget _thumbnail() {
     return SizedBox(

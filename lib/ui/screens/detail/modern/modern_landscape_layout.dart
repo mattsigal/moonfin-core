@@ -11,6 +11,8 @@ class ModernLandscapeLayout extends StatelessWidget {
   final Widget tabBar;
   final Widget tabContent;
   final double topInset;
+  final ScrollController? scrollController;
+  final Widget? aboveHero;
 
   const ModernLandscapeLayout({
     super.key,
@@ -20,6 +22,8 @@ class ModernLandscapeLayout extends StatelessWidget {
     required this.tabContent,
     required this.topInset,
     this.upNext,
+    this.scrollController,
+    this.aboveHero,
   });
 
   @override
@@ -35,14 +39,20 @@ class ModernLandscapeLayout extends StatelessWidget {
         backdrop,
         SafeArea(
           child: SingleChildScrollView(
+            controller: scrollController,
             padding: EdgeInsets.only(top: topInset - 12),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
+                if (aboveHero != null)
+                  Padding(
+                    padding: const EdgeInsets.fromLTRB(40, 8, 40, 0),
+                    child: aboveHero!,
+                  ),
                 Padding(
                   padding: const EdgeInsets.fromLTRB(40, 8, 40, 0),
                   child: Row(
-                    crossAxisAlignment: CrossAxisAlignment.center,
+                    crossAxisAlignment: CrossAxisAlignment.end,
                     children: [
                       SizedBox(width: heroWidth, child: hero),
                       const SizedBox(width: 24),

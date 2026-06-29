@@ -12,6 +12,7 @@ class DetailsTabBar extends StatelessWidget {
   final ValueChanged<int> onSelect;
   final FocusNode Function(int index) focusNodeFor;
   final VoidCallback? onExitLeft;
+  final VoidCallback? onNavigateDown;
 
   const DetailsTabBar({
     super.key,
@@ -20,6 +21,7 @@ class DetailsTabBar extends StatelessWidget {
     required this.onSelect,
     required this.focusNodeFor,
     this.onExitLeft,
+    this.onNavigateDown,
   });
 
   @override
@@ -42,6 +44,7 @@ class DetailsTabBar extends StatelessWidget {
                 suppressFocusGlow: true,
                 borderRadius: 8,
                 onSelect: () => onSelect(i),
+                onNavigateDown: onNavigateDown,
                 onNavigateLeft: () {
                   if (i > 0) {
                     focusNodeFor(i - 1).requestFocus();
@@ -55,7 +58,7 @@ class DetailsTabBar extends StatelessWidget {
                   }
                 },
                 child: Padding(
-                  padding: const EdgeInsets.symmetric(vertical: 8),
+                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
                   child: IntrinsicWidth(
                     child: Column(
                       mainAxisSize: MainAxisSize.min,
