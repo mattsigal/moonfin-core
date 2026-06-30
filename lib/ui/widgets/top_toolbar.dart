@@ -2036,15 +2036,7 @@ class _TopMusicBarState extends State<TopMusicBar> {
             color: AppColorScheme.onSurface.withValues(alpha: 0.15),
             width: 1.0,
           );
-    final boxShadow = isNeon
-        ? const [
-            BoxShadow(
-              color: Color(0x3300F0FF), // cyan glow!
-              blurRadius: 8,
-              spreadRadius: 1,
-            )
-          ]
-        : null;
+    final boxShadow = null;
 
     if (AppColorScheme.isGlass) {
       return Container(

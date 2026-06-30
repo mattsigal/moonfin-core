@@ -2033,7 +2033,7 @@ class _ModernDetailContentState extends State<ModernDetailContent> {
         }
       },
       onKeyEvent: (node, event) {
-        if (item.type == 'Playlist') {
+        if (item.type == 'Playlist' || item.type == 'MusicAlbum') {
           return KeyEventResult.ignored;
         }
         if (event is KeyDownEvent && event.logicalKey == LogicalKeyboardKey.arrowUp) {
@@ -2042,7 +2042,7 @@ class _ModernDetailContentState extends State<ModernDetailContent> {
         }
         return KeyEventResult.ignored;
       },
-      child: item.type == 'Playlist'
+      child: (item.type == 'Playlist' || item.type == 'MusicAlbum')
           ? Align(
               alignment: Alignment.topLeft,
               child: ConstrainedBox(
@@ -2232,7 +2232,8 @@ class _ModernDetailContentState extends State<ModernDetailContent> {
       );
     }
 
-    if (item.type == 'Playlist') {
+    final isMusicAlbumOrPlaylist = item.type == 'Playlist' || item.type == 'MusicAlbum';
+    if (isMusicAlbumOrPlaylist) {
       final l10n = AppLocalizations.of(context);
       final coverUrl = _imageUrl(item);
       final coverImage = Container(
@@ -2261,14 +2262,16 @@ class _ModernDetailContentState extends State<ModernDetailContent> {
                 )
               : Container(
                   color: Colors.white.withValues(alpha: 0.05),
-                  child: const Icon(
-                    Icons.playlist_play,
+                  child: Icon(
+                    item.type == 'MusicAlbum' ? Icons.album : Icons.playlist_play,
                     color: Colors.white24,
                     size: 64,
                   ),
                 ),
         ),
       );
+
+      final artistName = item.albumArtist;
 
       final playlistInfo = Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -2289,13 +2292,51 @@ class _ModernDetailContentState extends State<ModernDetailContent> {
                   : null,
             ),
           ),
+          if (item.type == 'MusicAlbum' && artistName != null) ...[
+            const SizedBox(height: 4),
+            GestureDetector(
+              onTap: () {
+                final artistId = item.albumArtists.isNotEmpty
+                    ? item.albumArtists.first['Id']?.toString()
+                    : null;
+                if (artistId != null) {
+                  context.push(
+                    Destinations.item(artistId, serverId: item.serverId),
+                  );
+                }
+              },
+              child: Text(
+                artistName,
+                style: textTheme.titleMedium?.copyWith(
+                  color: AppColorScheme.accent,
+                  fontWeight: FontWeight.bold,
+                  shadows: ThemeRegistry.active.id == ThemeRegistry.neonPulseId
+                      ? [
+                          const Shadow(
+                            color: Color(0xFFFF2E92),
+                            blurRadius: 8,
+                          ),
+                        ]
+                      : null,
+                ),
+              ),
+            ),
+          ],
           const SizedBox(height: 8),
           Text(
             () {
               final count = _vm.tracks.length;
               final trackText = l10n.trackCount(count);
-              final genresText = item.genres.join(', ');
-              return genresText.isNotEmpty ? '$trackText • $genresText' : trackText;
+              final parts = <String>[];
+              if (item.type == 'MusicAlbum' && item.productionYear != null) {
+                parts.add(item.productionYear.toString());
+              }
+              parts.add(trackText);
+              if (item.genres.isNotEmpty) {
+                final genresList = item.type == 'Playlist' ? item.genres : item.genres.take(2);
+                parts.add(genresList.join(', '));
+              }
+              return parts.join(' • ');
             }(),
             style: textTheme.bodyMedium?.copyWith(
               color: Colors.white.withValues(alpha: 0.7),
@@ -2911,7 +2952,8 @@ class _ModernDetailContentState extends State<ModernDetailContent> {
         MediaQuery.orientationOf(context) == Orientation.landscape;
 
     final tabs = _tabsFor(item, l10n);
-    if (item.type == 'Playlist') {
+    final isMusicAlbumOrPlaylist = item.type == 'Playlist' || item.type == 'MusicAlbum';
+    if (isMusicAlbumOrPlaylist) {
       _selectedTab = 0;
     } else if (_selectedTab >= tabs.length) {
       _selectedTab = PlatformDetection.isTV ? -1 : 0;
@@ -2950,11 +2992,11 @@ class _ModernDetailContentState extends State<ModernDetailContent> {
     );
 
     final Widget tabBarWidget;
-    if (item.type == 'Playlist') {
+    if (isMusicAlbumOrPlaylist) {
       tabBarWidget = Padding(
         padding: const EdgeInsets.only(bottom: 12),
         child: Text(
-          l10n.playlist,
+          item.type == 'Playlist' ? l10n.playlist : l10n.trackList,
           style: textTheme.titleLarge?.copyWith(
             fontWeight: FontWeight.bold,
             color: Colors.white,

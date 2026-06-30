@@ -1,8 +1,6 @@
 import 'package:flutter/material.dart';
-import 'package:get_it/get_it.dart';
 import 'package:moonfin_design/moonfin_design.dart';
 
-import '../../../preference/user_preferences.dart';
 import 'focus_theme.dart';
 import '../../../util/focus/dpad_keys.dart';
 import '../../mixins/focus_state_mixin.dart';
@@ -52,12 +50,7 @@ class _FocusableToolbarButtonState extends State<FocusableToolbarButton>
     with FocusStateMixin {
   @override
   Widget build(BuildContext context) {
-    final prefFocusColor = Color(
-      GetIt.instance<UserPreferences>()
-          .get(UserPreferences.focusColor)
-          .colorValue,
-    );
-    final focusColor = widget.accentColor ?? prefFocusColor;
+    final focusColor = widget.accentColor ?? this.focusColor;
 
     Widget content = AnimatedContainer(
       duration: const Duration(milliseconds: 150),
@@ -68,6 +61,7 @@ class _FocusableToolbarButtonState extends State<FocusableToolbarButton>
         radius: 6,
         color: focusColor,
         backgroundColor: _backgroundColor(),
+        suppressFocusGlow: ThemeRegistry.active.id == ThemeRegistry.neonPulseId,
       ),
       child: Icon(
         widget.icon,

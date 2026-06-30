@@ -13108,7 +13108,7 @@ class _TrackTileState extends State<_TrackTile> with FocusStateMixin {
                   ? Border.fromBorderSide(
                       ThemeRegistry.active.borders.focusBorder.copyWith(
                         color: activeColor.withValues(alpha: 0.85),
-                        width: 1.25,
+                        width: ThemeRegistry.active.borders.focusBorder.width,
                       ),
                     )
                   : null,
