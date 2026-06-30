@@ -12,7 +12,7 @@ class DetailsTabBar extends StatelessWidget {
   final FocusNode Function(int index) focusNodeFor;
   final VoidCallback? onExitLeft;
   final VoidCallback? onExitUp;
-  final VoidCallback? onNavigateDown;
+  final void Function(int index)? onNavigateDown;
 
   const DetailsTabBar({
     key,
@@ -40,7 +40,7 @@ class DetailsTabBar extends StatelessWidget {
                 isSelected: selectedIndex == i,
                 focusNode: focusNodeFor(i),
                 onSelect: () => onSelect(i),
-                onNavigateDown: onNavigateDown,
+                onNavigateDown: onNavigateDown != null ? () => onNavigateDown!(i) : null,
                 onNavigateUp: onExitUp,
                 onNavigateLeft: () {
                   if (i > 0) {

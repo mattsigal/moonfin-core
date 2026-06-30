@@ -13,6 +13,7 @@ class SeasonCard extends StatelessWidget {
   final String? imageUrl;
   final bool isFallbackImage;
   final bool landscape;
+  final bool isNextUp;
   final VoidCallback onTap;
   final FocusNode? focusNode;
 
@@ -27,6 +28,7 @@ class SeasonCard extends StatelessWidget {
     required this.isFallbackImage,
     required this.landscape,
     required this.onTap,
+    this.isNextUp = false,
     this.focusNode,
     this.onNavigateUp,
     this.onNavigateRight,
@@ -38,6 +40,7 @@ class SeasonCard extends StatelessWidget {
     final radius = JellyfinTokens.shapes.mediumRadius;
     final cardWidth = landscape ? 130.0 : 90.0;
     final cardHeight = landscape ? 195.0 : 135.0;
+    final isNeon = ThemeRegistry.active.id == ThemeRegistry.neonPulseId;
 
     return FocusableWrapper(
       focusNode: focusNode,
@@ -53,75 +56,86 @@ class SeasonCard extends StatelessWidget {
           decoration: BoxDecoration(
             borderRadius: radius,
             color: AppColorScheme.surface.withValues(alpha: 0.35),
-            border: Border.all(
-              color: AppColorScheme.onSurface.withValues(alpha: 0.12),
-            ),
+            border: isNextUp
+                ? Border.fromBorderSide(
+                    ThemeRegistry.active.borders.focusBorder.copyWith(
+                      color: isNeon
+                          ? const Color(0xFF00FFFF)
+                          : Colors.cyan.withValues(alpha: 0.7),
+                      width: 1.5,
+                    ),
+                  )
+                : Border.all(
+                    color: AppColorScheme.onSurface.withValues(alpha: 0.12),
+                  ),
           ),
-          clipBehavior: Clip.antiAlias,
-          child: Stack(
-            fit: StackFit.expand,
-            children: [
-              if (imageUrl != null && imageUrl!.isNotEmpty)
-                CachedNetworkImage(
-                  imageUrl: imageUrl!,
-                  fit: BoxFit.cover,
-                  errorWidget: (context, url, error) =>
-                      const SizedBox.shrink(),
-                ),
-              Positioned.fill(
-                child: DecoratedBox(
-                  decoration: BoxDecoration(
-                    gradient: LinearGradient(
-                      begin: Alignment.topCenter,
-                      end: Alignment.bottomCenter,
-                      colors: [
-                        Colors.transparent,
-                        Colors.black.withValues(alpha: 0.2),
-                        Colors.black.withValues(alpha: 0.85),
-                      ],
-                      stops: const [0.0, 0.4, 1.0],
+          child: ClipRRect(
+            borderRadius: radius,
+            child: Stack(
+              fit: StackFit.expand,
+              children: [
+                if (imageUrl != null && imageUrl!.isNotEmpty)
+                  CachedNetworkImage(
+                    imageUrl: imageUrl!,
+                    fit: BoxFit.cover,
+                    errorWidget: (context, url, error) =>
+                        const SizedBox.shrink(),
+                  ),
+                Positioned.fill(
+                  child: DecoratedBox(
+                    decoration: BoxDecoration(
+                      gradient: LinearGradient(
+                        begin: Alignment.topCenter,
+                        end: Alignment.bottomCenter,
+                        colors: [
+                          Colors.transparent,
+                          Colors.black.withValues(alpha: 0.2),
+                          Colors.black.withValues(alpha: 0.85),
+                        ],
+                        stops: const [0.0, 0.4, 1.0],
+                      ),
                     ),
                   ),
                 ),
-              ),
-              Positioned(
-                left: 8,
-                right: 8,
-                bottom: 8,
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    if (isFallbackImage) ...[
-                      Text(
-                        title,
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                        style: textTheme.labelLarge?.copyWith(
-                          color: Colors.white,
-                          fontWeight: FontWeight.bold,
-                          fontSize: 11,
+                Positioned(
+                  left: 8,
+                  right: 8,
+                  bottom: 8,
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      if (isFallbackImage) ...[
+                        Text(
+                          title,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: textTheme.labelLarge?.copyWith(
+                            color: Colors.white,
+                            fontWeight: FontWeight.bold,
+                            fontSize: 11,
+                          ),
+                        ),
+                        const SizedBox(height: 2),
+                      ],
+                      Align(
+                        alignment: Alignment.centerRight,
+                        child: Text(
+                          subtitle,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: textTheme.bodySmall?.copyWith(
+                            color: Colors.white.withValues(alpha: 0.85),
+                            fontWeight: FontWeight.w500,
+                            fontSize: 9,
+                          ),
                         ),
                       ),
-                      const SizedBox(height: 2),
                     ],
-                    Align(
-                      alignment: Alignment.centerRight,
-                      child: Text(
-                        subtitle,
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                        style: textTheme.bodySmall?.copyWith(
-                          color: Colors.white.withValues(alpha: 0.85),
-                          fontWeight: FontWeight.w500,
-                          fontSize: 9,
-                        ),
-                      ),
-                    ),
-                  ],
+                  ),
                 ),
-              ),
-            ],
+              ],
+            ),
           ),
         ),
       ),

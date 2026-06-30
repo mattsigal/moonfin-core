@@ -21,6 +21,7 @@ class UpNextCard extends StatefulWidget {
   final VoidCallback? onNavigateLeft;
   final VoidCallback? onNavigateDown;
   final double width;
+  final bool minimal;
 
   const UpNextCard({
     super.key,
@@ -35,6 +36,7 @@ class UpNextCard extends StatefulWidget {
     this.onNavigateLeft,
     this.onNavigateDown,
     this.width = double.infinity,
+    this.minimal = false,
   });
 
   @override
@@ -70,6 +72,82 @@ class _UpNextCardState extends State<UpNextCard> {
     final radius = JellyfinTokens.shapes.mediumRadius;
     final muted = AppColorScheme.onSurface.withValues(alpha: 0.7);
     final hasFocus = _effectiveNode.hasFocus;
+
+    if (widget.minimal) {
+      return FocusableWrapper(
+        focusNode: _effectiveNode,
+        onSelect: widget.onTap,
+        onNavigateLeft: widget.onNavigateLeft,
+        onNavigateDown: widget.onNavigateDown,
+        borderRadius: radius.topLeft.x,
+        suppressFocusGlow: true,
+        child: GestureDetector(
+          onTap: widget.onTap,
+          child: Container(
+            width: widget.width,
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(radius.topLeft.x),
+              border: Border.all(
+                color: hasFocus
+                    ? (ThemeRegistry.active.id == ThemeRegistry.neonPulseId
+                        ? const Color(0xFFFF2E92)
+                        : AppColorScheme.accent)
+                    : (ThemeRegistry.active.id == ThemeRegistry.neonPulseId
+                        ? const Color(0xFF00F0FF)
+                        : Colors.white.withValues(alpha: 0.12)),
+                width: 1.25,
+              ),
+            ),
+            child: ClipRRect(
+              borderRadius: BorderRadius.circular(radius.topLeft.x - 1.25),
+              child: adaptiveGlass(
+                cornerRadius: radius.topLeft.x - 1.25,
+                blur: 18,
+                fallbackColor: AppColorScheme.surface.withValues(alpha: 0.42),
+                tint: AppColorScheme.surface.withValues(alpha: 0.22),
+                child: Padding(
+                  padding: const EdgeInsets.all(12.0),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Text(
+                        widget.label,
+                        style: textTheme.labelMedium?.copyWith(
+                          fontWeight: FontWeight.w700,
+                          letterSpacing: 0.4,
+                          color: AppColorScheme.accent,
+                        ),
+                      ),
+                      const SizedBox(height: 8),
+                      // Poster
+                      AspectRatio(
+                        aspectRatio: 2 / 3,
+                        child: ClipRRect(
+                          borderRadius: BorderRadius.circular(radius.topLeft.x - 4),
+                          child: _thumbnail(isMinimal: true),
+                        ),
+                      ),
+                      if (widget.title.isNotEmpty) ...[
+                        const SizedBox(height: 8),
+                        Text(
+                          widget.title,
+                          maxLines: 2,
+                          overflow: TextOverflow.ellipsis,
+                          style: textTheme.titleMedium?.copyWith(
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                      ],
+                    ],
+                  ),
+                ),
+              ),
+            ),
+          ),
+        ),
+      );
+    }
 
     return FocusableWrapper(
       focusNode: _effectiveNode,
@@ -112,6 +190,7 @@ class _UpNextCardState extends State<UpNextCard> {
                         style: textTheme.labelMedium?.copyWith(
                           fontWeight: FontWeight.w700,
                           letterSpacing: 0.4,
+                          color: AppColorScheme.accent,
                         ),
                       ),
                     ),
@@ -119,7 +198,6 @@ class _UpNextCardState extends State<UpNextCard> {
                       child: Row(
                         crossAxisAlignment: CrossAxisAlignment.stretch,
                         children: [
-                          _thumbnail(),
                           Expanded(
                             child: Padding(
                               padding: const EdgeInsets.fromLTRB(16, 0, 16, 14),
@@ -127,15 +205,8 @@ class _UpNextCardState extends State<UpNextCard> {
                                 crossAxisAlignment: CrossAxisAlignment.start,
                                 mainAxisAlignment: MainAxisAlignment.center,
                                 children: [
-                                  Text(
-                                    widget.title,
-                                    maxLines: 1,
-                                    overflow: TextOverflow.ellipsis,
-                                    style: textTheme.titleMedium,
-                                  ),
                                   if (widget.description != null &&
                                       widget.description!.isNotEmpty) ...[
-                                    const SizedBox(height: 6),
                                     Text(
                                       widget.description!,
                                       maxLines: 3,
@@ -179,6 +250,7 @@ class _UpNextCardState extends State<UpNextCard> {
                               ),
                             ),
                           ),
+                          _thumbnail(),
                         ],
                       ),
                     ),
@@ -192,9 +264,9 @@ class _UpNextCardState extends State<UpNextCard> {
     );
   }
 
-  Widget _thumbnail() {
+  Widget _thumbnail({bool isMinimal = false}) {
     return SizedBox(
-      width: 150,
+      width: isMinimal ? null : 150,
       child: Stack(
         fit: StackFit.expand,
         children: [

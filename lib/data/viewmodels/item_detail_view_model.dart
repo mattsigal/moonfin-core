@@ -10,6 +10,7 @@ import '../repositories/mdblist_repository.dart';
 import '../repositories/tmdb_repository.dart';
 import '../utils/playlist_utils.dart';
 import '../../util/episode_playability.dart';
+import '../services/plugin_sync_service.dart';
 
 enum CollectionSortOption {
   alphabetical,
@@ -138,7 +139,7 @@ class ItemDetailViewModel extends ChangeNotifier {
        _mdbListRepository = mdbListRepository,
        _tmdbRepository = tmdbRepository;
 
-  Future<void> load() async {
+  Future<void> load({String? mediaSourceId}) async {
     _state = ItemDetailState.loading;
     _collectionItems = const [];
     _parentCollectionItems = const [];
@@ -146,7 +147,7 @@ class ItemDetailViewModel extends ChangeNotifier {
     notifyListeners();
 
     try {
-      final data = await _client.itemsApi.getItem(itemId);
+      final data = await _client.itemsApi.getItem(itemId, mediaSourceId: mediaSourceId);
       _item = AggregatedItem(
         id: itemId,
         serverId: _serverId ?? _client.baseUrl,
@@ -505,6 +506,14 @@ class ItemDetailViewModel extends ChangeNotifier {
     _customPlaylistItems = reordered;
     _collectionSort = CollectionSortOption.custom;
     notifyListeners();
+
+    try {
+      final syncService = GetIt.instance<PluginSyncService>();
+      if (syncService.pluginAvailable) {
+        final itemIds = reordered.map((i) => i.id).toList();
+        await syncService.saveCustomCollectionOrder(_client, itemId, itemIds);
+      }
+    } catch (_) {}
   }
 
   Future<void> _loadCollectionItems() async {
@@ -557,6 +566,27 @@ class ItemDetailViewModel extends ChangeNotifier {
       _playlistItems = list;
       _customPlaylistItems = List<AggregatedItem>.from(list);
       _collectionSort = CollectionSortOption.releaseAscending;
+
+      try {
+        final syncService = GetIt.instance<PluginSyncService>();
+        if (syncService.pluginAvailable) {
+          final customOrder = await syncService.fetchCustomCollectionOrder(_client, itemId);
+          if (customOrder != null && customOrder.isNotEmpty) {
+            final orderMap = {for (var i = 0; i < customOrder.length; i++) customOrder[i]: i};
+            list.sort((a, b) {
+              final aIndex = orderMap[a.id];
+              final bIndex = orderMap[b.id];
+              if (aIndex == null && bIndex == null) return releaseSortAscending(a, b);
+              if (aIndex == null) return 1;
+              if (bIndex == null) return -1;
+              return aIndex.compareTo(bIndex);
+            });
+            _playlistItems = list;
+            _customPlaylistItems = List<AggregatedItem>.from(list);
+            _collectionSort = CollectionSortOption.custom;
+          }
+        }
+      } catch (_) {}
       
       // Resolve Next Up item
       if (_playlistItems.isNotEmpty) {

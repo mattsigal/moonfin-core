@@ -491,8 +491,10 @@ class _ItemDetailScreenState extends State<ItemDetailScreen>
                 backdropUrl: _backdropUrl,
                 selectedMediaSourceId: _selectedMediaSourceId,
                 initialFocusNode: _ensureInitialFocusNode(),
-                onSelectedMediaSourceChanged: (id) =>
-                    setState(() => _selectedMediaSourceId = id),
+                onSelectedMediaSourceChanged: (id) {
+                  setState(() => _selectedMediaSourceId = id);
+                  _viewModel.load(mediaSourceId: id);
+                },
                 onBackdropItemFocused: _onBackdropItemFocused,
                 autoPlay: widget.autoPlay,
                 onPlayFromChapter: (position) => unawaited(
@@ -509,8 +511,10 @@ class _ItemDetailScreenState extends State<ItemDetailScreen>
                 backdropUrl: _backdropUrl,
                 selectedMediaSourceId: _selectedMediaSourceId,
                 initialFocusNode: _ensureInitialFocusNode(),
-                onSelectedMediaSourceChanged: (id) =>
-                    setState(() => _selectedMediaSourceId = id),
+                onSelectedMediaSourceChanged: (id) {
+                  setState(() => _selectedMediaSourceId = id);
+                  _viewModel.load(mediaSourceId: id);
+                },
                 onBackdropItemFocused: _onBackdropItemFocused,
                 autoPlay: widget.autoPlay,
               ),
@@ -4212,6 +4216,7 @@ class DetailActionButtons extends StatefulWidget {
   /// circular buttons (landscape).
   final bool fullWidthPrimary;
   final FocusNode? actionRowRightFocusNode;
+  final FocusNode? extraFirstFocusNode;
   final ValueChanged<bool>? onFocusExtra;
   final bool? actionsExpanded;
   final ValueChanged<bool>? onActionsExpandedChanged;
@@ -4231,6 +4236,7 @@ class DetailActionButtons extends StatefulWidget {
     this.modernStyle = false,
     this.fullWidthPrimary = false,
     this.actionRowRightFocusNode,
+    this.extraFirstFocusNode,
     this.onFocusExtra,
     this.actionsExpanded,
     this.onActionsExpandedChanged,
@@ -5011,13 +5017,23 @@ class DetailActionButtonsState extends State<DetailActionButtons> {
     return _primaryFocusNodes[listIndex];
   }
 
+  /// Returns the focus node for extra-row button [index], matching the same
+  /// logic used when assigning focus nodes during build so index 0 always
+  /// resolves to [widget.extraFirstFocusNode] when provided.
+  FocusNode _extraFocusNode(int index) {
+    if (index == 0 && widget.extraFirstFocusNode != null) {
+      return widget.extraFirstFocusNode!;
+    }
+    while (_extraFocusNodes.length <= index) {
+      _extraFocusNodes.add(FocusNode(debugLabel: 'extra_btn_${_extraFocusNodes.length}'));
+    }
+    return _extraFocusNodes[index];
+  }
+
   void _focusSecondRowButton(int index, int extraCount) {
     if (extraCount <= 0) return;
     final targetIndex = index.clamp(0, extraCount - 1);
-    while (_extraFocusNodes.length <= targetIndex) {
-      _extraFocusNodes.add(FocusNode(debugLabel: 'extra_btn_${_extraFocusNodes.length}'));
-    }
-    _extraFocusNodes[targetIndex].requestFocus();
+    _extraFocusNode(targetIndex).requestFocus();
   }
 
   void _focusFirstRowButton(int index, int primaryCount) {
@@ -5421,7 +5437,25 @@ class DetailActionButtonsState extends State<DetailActionButtons> {
            button.icon == Icons.check_circle_outline ||
            button.icon == Icons.favorite ||
            button.icon == Icons.playlist_add ||
-           button.icon == Icons.delete_outline;
+           button.icon == Icons.delete_outline ||
+           button.icon == Icons.movie_outlined;
+  }
+
+  bool _isSeasonManagementButton(_DetailActionButton button) {
+    return button.icon == Icons.check_circle ||
+           button.icon == Icons.check_circle_outline ||
+           button.icon == Icons.favorite ||
+           button.icon == Icons.playlist_add ||
+           button.icon == Icons.settings;
+  }
+
+  bool _isSeriesManagementButton(_DetailActionButton button) {
+    return button.icon == Icons.check_circle ||
+           button.icon == Icons.check_circle_outline ||
+           button.icon == Icons.favorite ||
+           button.icon == Icons.playlist_add ||
+           button.icon == Icons.settings ||
+           button.icon == Icons.movie_outlined;
   }
 
   @override
@@ -5490,6 +5524,8 @@ class DetailActionButtonsState extends State<DetailActionButtons> {
         item.type == 'AudioBook' ||
         mediaType == 'Audio';
     final isVideo = !isPhoto && !isBook && !isAudio;
+    final isPlayableVideo = item.type == 'Movie' || item.type == 'Episode' || item.type == 'Video' || item.type == 'MusicVideo';
+    final isPlayableMedia = isPlayableVideo || item.type == 'Audio' || item.type == 'AudioBook';
     final ws = _computeWatchState(item);
     final isFullyWatched = ws.isFullyWatched;
     final isFullyUnwatched = ws.isFullyUnwatched;
@@ -5559,30 +5595,15 @@ class DetailActionButtonsState extends State<DetailActionButtons> {
       playButtonLabel = hasProgress ? l10n.resumeReading : l10n.read;
     } else if (isSeason) {
       if (seasonAllWatched) {
-        playButtonLabel = 'Replay (S${item.indexNumber}:E1)';
+        playButtonLabel = 'Replay';
       } else if (seasonAllUnwatched) {
         playButtonLabel = l10n.play;
       } else {
-        if (seasonNextUpEp != null) {
-          playButtonLabel = 'Resume (S${item.indexNumber}:E${seasonNextUpEp.indexNumber})';
-        } else {
-          playButtonLabel = l10n.resume;
-        }
+        playButtonLabel = l10n.resume;
       }
     } else if (isSeries) {
       if (isFullyWatched) {
-        final nextUp = viewModel.nextUp;
-        if (nextUp != null) {
-          final s = nextUp.parentIndexNumber;
-          final e = nextUp.indexNumber;
-          if (s != null && e != null) {
-            playButtonLabel = 'Replay S${s}E$e';
-          } else {
-            playButtonLabel = 'Replay S1E1';
-          }
-        } else {
-          playButtonLabel = 'Replay S1E1';
-        }
+        playButtonLabel = 'Replay';
       } else if (isFullyUnwatched) {
         playButtonLabel = l10n.play;
       } else {
@@ -5596,13 +5617,13 @@ class DetailActionButtonsState extends State<DetailActionButtons> {
             } else if (_isCompact(context)) {
               playButtonLabel = 'S${s}E$e';
             } else {
-              playButtonLabel = 'Resume S${s}E$e';
+              playButtonLabel = l10n.resume;
             }
           } else {
-            playButtonLabel = 'Resume';
+            playButtonLabel = l10n.resume;
           }
         } else {
-          playButtonLabel = 'Resume';
+          playButtonLabel = l10n.resume;
         }
       }
     } else if (isBoxSet) {
@@ -5656,9 +5677,9 @@ class DetailActionButtonsState extends State<DetailActionButtons> {
           icon: Icons.shuffle_rounded,
           onPressed: () => _shuffle(context, item),
         ),
-      if (isBoxSet
+      if (item.type == 'Series' || (isBoxSet
           ? !(boxSetAllWatched || boxSetAllUnwatched)
-          : (hasProgress && !isPhoto))
+          : (hasProgress && !isPhoto)))
         _DetailActionButton(
           label: isBook ? l10n.startOver : l10n.restart,
           icon: Icons.restart_alt,
@@ -5693,19 +5714,30 @@ class DetailActionButtonsState extends State<DetailActionButtons> {
           isActive: true,
           activeColor: const Color(0xFF4CAF50),
         ),
-      if (audioStreams.length > 1)
+      if (isPlayableVideo) ...[
         _DetailActionButton(
           label: l10n.audio,
           icon: Icons.audiotrack,
           onPressed: () => _openAudioSelector(context, item),
         ),
-      if (showSubtitleButton)
         _DetailActionButton(
           label: l10n.subtitles,
-          icon: subtitleButtonIcon,
-          onPressed: () => _openSubtitleSelector(context, item),
+          icon: Icons.subtitles,
+          onPressed: () {
+            if (subtitleStreams.isEmpty) {
+              ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(
+                  content: Text('No subtitles found.'),
+                  duration: Duration(seconds: 2),
+                ),
+              );
+            } else {
+              _openSubtitleSelector(context, item);
+            }
+          },
         ),
-      if (item.mediaSources.length > 1)
+      ],
+      if (isPlayableMedia && item.mediaSources.length > 1)
         _DetailActionButton(
           label: l10n.version,
           icon: Icons.video_file,
@@ -5713,13 +5745,13 @@ class DetailActionButtonsState extends State<DetailActionButtons> {
           isActive: widget.selectedMediaSourceId != null,
           activeColor: AppColorScheme.accent,
         ),
-      if (!isBook && !PlatformDetection.isTV)
+      if (!isBook)
         _DetailActionButton(
           label: l10n.cast,
           icon: Icons.cast,
           onPressed: () => _castToDevice(context, item),
         ),
-      if (_hasTrailer(item))
+      if (item.type == 'Series' || _hasTrailer(item))
         _DetailActionButton(
           label: l10n.trailer,
           icon: Icons.movie_outlined,
@@ -5770,26 +5802,14 @@ class DetailActionButtonsState extends State<DetailActionButtons> {
             Destinations.item(item.seriesId!, serverId: item.serverId),
           ),
         ),
-      if (item.type == 'BoxSet'
-          ? (GetIt.instance<UserRepository>().currentUser?.isAdministrator ??
-                false)
-          : item.canDelete)
+      if ((GetIt.instance<UserRepository>().currentUser?.isAdministrator ?? false) &&
+          GetIt.instance<MediaServerClient>().serverType == ServerType.jellyfin)
         _DetailActionButton(
-          label: l10n.delete,
-          icon: Icons.delete_outline,
-          onPressed: () => _confirmDeleteItem(context, item),
+          label: 'Admin',
+          icon: Icons.settings,
+          onPressed: () => _showAdminDialog(context, item),
           isActive: true,
           activeColor: const Color(0xFFD32F2F),
-        ),
-      if ((GetIt.instance<UserRepository>().currentUser?.isAdministrator ??
-              false) &&
-          GetIt.instance<MediaServerClient>().serverType ==
-              ServerType.jellyfin &&
-          !PlatformDetection.isTV)
-        _DetailActionButton(
-          label: l10n.editMetadata,
-          icon: Icons.edit_note,
-          onPressed: () => context.push(Destinations.adminMetadata(item.id)),
         ),
     ];
 
@@ -5825,8 +5845,8 @@ class DetailActionButtonsState extends State<DetailActionButtons> {
 
     final compact = !_useDesktopDetailLayout(context);
     final desktopScale = _desktopUiScale();
-    final buttonSpacing = compact ? 8.0 : 10.0 * desktopScale;
-    final buttonRunSpacing = compact ? 12.0 : 14.0 * desktopScale;
+    final buttonSpacing = compact ? 6.0 : 8.0 * desktopScale;
+    final buttonRunSpacing = compact ? 10.0 : 12.0 * desktopScale;
     final maxVisible = _calculateMaxVisibleButtons(context);
 
     final List<Widget> primaryButtons;
@@ -5834,14 +5854,23 @@ class DetailActionButtonsState extends State<DetailActionButtons> {
     final bool needsOverflow;
 
     final bool isTvShow = item.type == 'Series' || item.type == 'Season';
-    final bool isTwoColumnLayout = widget.modernStyle && isTvShow && widget.maxVisibleButtonsOverride != null;
+    final bool isTvSeries = item.type == 'Series';
+    final bool isTvSeason = item.type == 'Season';
+    final bool isTwoColumnLayout = (widget.modernStyle && isTvShow && widget.maxVisibleButtonsOverride != null) || isTvSeries;
 
     if (isTwoColumnLayout) {
       final List<Widget> prim = [];
       final List<Widget> ext = [];
       for (final btn in allButtons) {
-        if (btn is _DetailActionButton && _isManagementButton(btn)) {
-          ext.add(btn);
+        if (btn is _DetailActionButton) {
+          final isManagement = isTvSeries
+              ? _isSeriesManagementButton(btn)
+              : (isTvSeason ? _isSeasonManagementButton(btn) : _isManagementButton(btn));
+          if (isManagement) {
+            ext.add(btn);
+          } else {
+            prim.add(btn);
+          }
         } else {
           prim.add(btn);
         }
@@ -5851,6 +5880,7 @@ class DetailActionButtonsState extends State<DetailActionButtons> {
       needsOverflow = extraButtons.isNotEmpty;
     } else {
       needsOverflow =
+          !isBoxSet &&
           (compact ||
               PlatformDetection.isTV ||
               widget.maxVisibleButtonsOverride != null) &&
@@ -5955,10 +5985,14 @@ class DetailActionButtonsState extends State<DetailActionButtons> {
         final index = entry.key;
         final button = entry.value;
         if (button is! _DetailActionButton) return button;
-        while (_extraFocusNodes.length <= index) {
-          _extraFocusNodes.add(FocusNode(debugLabel: 'extra_btn_${_extraFocusNodes.length}'));
-        }
-        final fNode = _extraFocusNodes[index];
+        final fNode = (index == 0 && widget.extraFirstFocusNode != null)
+            ? widget.extraFirstFocusNode!
+            : (() {
+                while (_extraFocusNodes.length <= index) {
+                  _extraFocusNodes.add(FocusNode(debugLabel: 'extra_btn_${_extraFocusNodes.length}'));
+                }
+                return _extraFocusNodes[index];
+              })();
         return _copyActionButton(
           button,
           focusNode: fNode,
@@ -5967,22 +6001,26 @@ class DetailActionButtonsState extends State<DetailActionButtons> {
             widget.onFocusExtra?.call(true);
           },
           onArrowUp: isTvShow
-              ? () => _focusFirstRowButton(index, primaryButtons.length)
+              ? () {
+                  // For both Series and Season: last extra button (Admin) goes up to More button
+                  // All other extra buttons navigate up to the corresponding primary button
+                  if (index == extraButtons.length - 1) {
+                    (widget.actionRowRightFocusNode ?? _overflowMoreFocusNode).requestFocus();
+                  } else {
+                    _focusFirstRowButton(index, primaryButtons.length);
+                  }
+                }
               : (NavigationLayout.focusNavbarNotifier.value != null || widget.upTarget != null ? _focusUpTarget : null),
           onArrowDown: widget.downTarget != null ? _focusDownTarget : null,
           onArrowLeft: index == 0
               ? _focusSidebar
               : () {
-                  if (index > 0 && index - 1 < _extraFocusNodes.length) {
-                    _extraFocusNodes[index - 1].requestFocus();
-                  }
+                  _extraFocusNode(index - 1).requestFocus();
                 },
           onArrowRight: index == extraButtons.length - 1
               ? (widget.onArrowRightAtEnd ?? () {})
               : () {
-                  if (index + 1 < _extraFocusNodes.length) {
-                    _extraFocusNodes[index + 1].requestFocus();
-                  }
+                  _extraFocusNode(index + 1).requestFocus();
                 },
           suppressAutoScrollToTop: true,
         );
@@ -5994,7 +6032,11 @@ class DetailActionButtonsState extends State<DetailActionButtons> {
         focusNode: widget.actionRowRightFocusNode ?? _overflowMoreFocusNode,
         onFocused: () => widget.onFocusExtra?.call(false),
         onArrowUp: NavigationLayout.focusNavbarNotifier.value != null || widget.upTarget != null ? _focusUpTarget : null,
-        onArrowDown: widget.downTarget != null ? _focusDownTarget : null,
+        onArrowDown: isTvShow && _expanded && extraButtons.isNotEmpty
+            ? () {
+                _extraFocusNode(extraButtons.length - 1).requestFocus();
+              }
+            : (widget.downTarget != null ? _focusDownTarget : null),
         onArrowLeft: () {
           if (primaryButtons.isNotEmpty) {
             _primaryFocusNode(primaryButtons.length - 1).requestFocus();
@@ -6006,19 +6048,33 @@ class DetailActionButtonsState extends State<DetailActionButtons> {
 
       if (widget.modernStyle) {
         if (isTvShow) {
+          // Build a Row so the play pill (first button) can grow via Flexible
+          // to fill available space — avoids text truncation for long labels.
+          final pillButton = normalizedPrimaryButtons.isNotEmpty
+              ? normalizedPrimaryButtons.first
+              : null;
+          final circleButtons = normalizedPrimaryButtons.skip(1).toList();
+
+          Widget primaryRow = Row(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.center,
+            children: [
+              if (pillButton != null)
+                Flexible(fit: FlexFit.loose, child: pillButton),
+              for (final btn in circleButtons) ...[SizedBox(width: buttonSpacing), btn],
+              SizedBox(width: buttonSpacing),
+              moreButton,
+            ],
+          );
+
           if (_expanded) {
             rowContent = Align(
               alignment: Alignment.centerLeft,
               child: Column(
+                mainAxisSize: MainAxisSize.min,
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Wrap(
-                    spacing: buttonSpacing,
-                    runSpacing: buttonRunSpacing,
-                    crossAxisAlignment: WrapCrossAlignment.center,
-                    alignment: WrapAlignment.start,
-                    children: [...normalizedPrimaryButtons, moreButton],
-                  ),
+                  primaryRow,
                   Padding(
                     padding: EdgeInsets.only(top: buttonRunSpacing),
                     child: Wrap(
@@ -6035,13 +6091,7 @@ class DetailActionButtonsState extends State<DetailActionButtons> {
           } else {
             rowContent = Align(
               alignment: Alignment.centerLeft,
-              child: Wrap(
-                spacing: buttonSpacing,
-                runSpacing: buttonRunSpacing,
-                crossAxisAlignment: WrapCrossAlignment.center,
-                alignment: WrapAlignment.start,
-                children: [...normalizedPrimaryButtons, moreButton],
-              ),
+              child: primaryRow,
             );
           }
         } else {
@@ -6124,6 +6174,139 @@ class DetailActionButtonsState extends State<DetailActionButtons> {
     final m = position.inMinutes.remainder(60);
     if (h > 0) return '${h}h ${m}m';
     return '${m}m';
+  }
+
+  void _showAdminDialog(BuildContext context, AggregatedItem item) {
+    showDialog(
+      context: context,
+      builder: (context) {
+        return AlertDialog(
+          backgroundColor: const Color(0xFF1E1E24),
+          title: const Text(
+            'Admin Controls',
+            style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+          ),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Focus(
+                onKeyEvent: (_, event) {
+                  if (isActivateKey(event)) {
+                    Navigator.of(context).pop();
+                    ChangeArtworkDialog.show(context, item: item).then((changed) {
+                      if (changed == true) {
+                        viewModel.load();
+                      }
+                    });
+                    return KeyEventResult.handled;
+                  }
+                  return KeyEventResult.ignored;
+                },
+                child: Builder(
+                  builder: (context) {
+                    final hasFocus = Focus.of(context).hasFocus;
+                    return InkWell(
+                      onTap: () async {
+                        Navigator.of(context).pop();
+                        final changed = await ChangeArtworkDialog.show(context, item: item);
+                        if (changed == true) {
+                          viewModel.load();
+                        }
+                      },
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 16),
+                        decoration: BoxDecoration(
+                          color: hasFocus ? Colors.white12 : Colors.transparent,
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                        child: const Row(
+                          children: [
+                            Icon(Icons.image, color: Colors.white70),
+                            SizedBox(width: 12),
+                            Text('Change Artwork', style: TextStyle(color: Colors.white)),
+                          ],
+                        ),
+                      ),
+                    );
+                  },
+                ),
+              ),
+              if (!PlatformDetection.isTV)
+                Focus(
+                  onKeyEvent: (_, event) {
+                    if (isActivateKey(event)) {
+                      Navigator.of(context).pop();
+                      context.push(Destinations.adminMetadata(item.id));
+                      return KeyEventResult.handled;
+                    }
+                    return KeyEventResult.ignored;
+                  },
+                  child: Builder(
+                    builder: (context) {
+                      final hasFocus = Focus.of(context).hasFocus;
+                      return InkWell(
+                        onTap: () {
+                          Navigator.of(context).pop();
+                          context.push(Destinations.adminMetadata(item.id));
+                        },
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 16),
+                          decoration: BoxDecoration(
+                            color: hasFocus ? Colors.white12 : Colors.transparent,
+                            borderRadius: BorderRadius.circular(8),
+                          ),
+                          child: const Row(
+                            children: [
+                              Icon(Icons.edit_note, color: Colors.white70),
+                              SizedBox(width: 12),
+                              Text('Edit Metadata', style: TextStyle(color: Colors.white)),
+                            ],
+                          ),
+                        ),
+                      );
+                    },
+                  ),
+                ),
+              Focus(
+                onKeyEvent: (_, event) {
+                  if (isActivateKey(event)) {
+                    Navigator.of(context).pop();
+                    _confirmDeleteItem(context, item);
+                    return KeyEventResult.handled;
+                  }
+                  return KeyEventResult.ignored;
+                },
+                child: Builder(
+                  builder: (context) {
+                    final hasFocus = Focus.of(context).hasFocus;
+                    return InkWell(
+                      onTap: () {
+                        Navigator.of(context).pop();
+                        _confirmDeleteItem(context, item);
+                      },
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 16),
+                        decoration: BoxDecoration(
+                          color: hasFocus ? Colors.white12 : Colors.transparent,
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                        child: const Row(
+                          children: [
+                            Icon(Icons.delete_forever, color: Colors.redAccent),
+                            SizedBox(width: 12),
+                            Text('Delete', style: TextStyle(color: Colors.redAccent)),
+                          ],
+                        ),
+                      ),
+                    );
+                  },
+                ),
+              ),
+            ],
+          ),
+        );
+      },
+    );
   }
 
   Future<void> _confirmDeleteItem(
@@ -8944,19 +9127,19 @@ class _DetailActionButtonState extends State<_DetailActionButton>
               .findAncestorWidgetOfExactType<DetailActionButtons>()
               ?.fullWidthPrimary ??
           false;
-      // NOTE: only set `alignment` when full-width. A Container with an
-      // alignment expands to fill the parent's bounded width, which would make
-      final double? width = fullWidth 
-          ? double.infinity 
-          : (isExpanded ? null : height);
- 
-      final pill = AnimatedSize(
-        duration: const Duration(milliseconds: 150),
-        curve: Curves.easeOut,
-        child: Container(
+
+      // When expanded (focused): use ConstrainedBox with a minWidth floor
+      // so the pill always has enough room for labels like "Resume S12:E24".
+      // Flexible in the parent Row lets the pill grow beyond the minimum.
+      final Widget pill;
+      if (isExpanded || fullWidth) {
+        final pillInner = Container(
           height: height,
-          width: fullWidth ? null : width,
-          padding: EdgeInsets.symmetric(horizontal: isExpanded || fullWidth ? 16 : 0),
+          width: fullWidth ? double.infinity : null,
+          padding: EdgeInsets.only(
+            left: fullWidth ? 10 : 10,
+            right: fullWidth ? 10 : 14,
+          ),
           alignment: fullWidth ? Alignment.center : null,
           decoration: BoxDecoration(
             color: showHighlight
@@ -8973,8 +9156,7 @@ class _DetailActionButtonState extends State<_DetailActionButton>
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
               AdaptiveIcon(widget.icon ?? Icons.play_arrow, color: heartColor, size: 24),
-              if (isExpanded || fullWidth) ...[
-                const SizedBox(width: 6),
+              const SizedBox(width: 2),
                 widget.label.contains('\n')
                     ? Column(
                         mainAxisSize: MainAxisSize.min,
@@ -9003,18 +9185,50 @@ class _DetailActionButtonState extends State<_DetailActionButton>
                     : Text(
                         widget.label,
                         maxLines: 1,
+                        softWrap: false,
                         style: Theme.of(context).textTheme.titleSmall?.copyWith(
                               color: fg,
                               fontWeight: FontWeight.bold,
-                              fontSize: 14,
+                              fontSize: 13,
                               height: 1.1,
                             ),
                       ),
               ],
-            ],
+            ),
+        );
+        // Landscape: wrap with a minWidth so text always has room.
+        // Flexible in the parent Row allows growing beyond minWidth.
+        pill = fullWidth
+            ? pillInner
+            : ConstrainedBox(
+                constraints: const BoxConstraints(minWidth: 200),
+                child: pillInner,
+              );
+      } else {
+        // Collapsed: animate from/to a circle
+        pill = AnimatedSize(
+          duration: const Duration(milliseconds: 150),
+          curve: Curves.easeOut,
+          child: SizedBox.square(
+            dimension: height,
+            child: Container(
+              height: height,
+              width: height,
+              decoration: BoxDecoration(
+                color: Colors.white.withValues(alpha: 0.06),
+                borderRadius: BorderRadius.circular(height / 2),
+                border: Border.all(
+                  color: Colors.transparent,
+                  width: 3,
+                ),
+              ),
+              child: Center(
+                child: AdaptiveIcon(widget.icon ?? Icons.play_arrow, color: Colors.white, size: 24),
+              ),
+            ),
           ),
-        ),
-      );
+        );
+      }
       return fullWidth ? SizedBox(width: double.infinity, child: pill) : pill;
     }
 
@@ -11297,8 +11511,10 @@ class DetailEpisodeCardState extends State<DetailEpisodeCard> with FocusStateMix
                           )
                         : null),
               ),
-              clipBehavior: Clip.antiAlias,
-              child: Row(
+              clipBehavior: Clip.none,
+              child: ClipRRect(
+                borderRadius: BorderRadius.circular(8),
+                child: Row(
                 children: [
                   SizedBox(
                     width: isMobile ? 160.0 : 196.0 * desktopScale,
@@ -11416,6 +11632,7 @@ class DetailEpisodeCardState extends State<DetailEpisodeCard> with FocusStateMix
                 ],
               ),
             ),
+          ),
           ),
         ),
       ),
@@ -11647,6 +11864,7 @@ class ExpandableBiography extends StatefulWidget {
   final VoidCallback? onArrowUp;
   final VoidCallback? onArrowDown;
   final VoidCallback? onArrowLeft;
+  final VoidCallback? onArrowRight;
   final VoidCallback? onCollapse;
   final TextStyle? style;
   final TextAlign? textAlign;
@@ -11660,6 +11878,7 @@ class ExpandableBiography extends StatefulWidget {
     this.onArrowUp,
     this.onArrowDown,
     this.onArrowLeft,
+    this.onArrowRight,
     this.onCollapse,
     this.style,
     this.textAlign,
@@ -11722,9 +11941,15 @@ class _ExpandableBiographyState extends State<ExpandableBiography> {
     if (maxWidth <= 0) {
       return false;
     }
+    final limit = (GetIt.instance<UserPreferences>()
+                .get(UserPreferences.desktopUiScale)
+                .scaleFactor >=
+            1.2)
+        ? 2
+        : 4;
     final tp = TextPainter(
       text: TextSpan(text: widget.text, style: style),
-      maxLines: 4,
+      maxLines: limit,
       textDirection: TextDirection.ltr,
     )..layout(maxWidth: maxWidth);
     return tp.didExceedMaxLines;
@@ -11815,6 +12040,10 @@ class _ExpandableBiographyState extends State<ExpandableBiography> {
             }
 
             if (event.logicalKey == LogicalKeyboardKey.arrowRight) {
+              if (widget.onArrowRight != null) {
+                widget.onArrowRight!();
+                return KeyEventResult.handled;
+              }
               return KeyEventResult.handled;
             }
 
@@ -11911,7 +12140,12 @@ class _ExpandableBiographyState extends State<ExpandableBiography> {
                           Text(
                             widget.text,
                             style: style,
-                            maxLines: 4,
+                            maxLines: (GetIt.instance<UserPreferences>()
+                                        .get(UserPreferences.desktopUiScale)
+                                        .scaleFactor >=
+                                    1.2)
+                                ? 2
+                                : 4,
                             overflow: TextOverflow.ellipsis,
                             textAlign: widget.textAlign,
                           ),
@@ -13159,18 +13393,26 @@ class _TrackTileState extends State<_TrackTile> with FocusStateMixin {
                     ],
                   ),
                 ),
-                if (runtimeText != null)
-                  Padding(
+                () {
+                  final releaseYear = widget.track.productionYear ??
+                      (widget.track.premiereDate != null ? widget.track.premiereDate!.year : null);
+                  final parts = [
+                    if (releaseYear != null) '$releaseYear',
+                    if (runtimeText != null) runtimeText,
+                  ];
+                  if (parts.isEmpty) return const SizedBox.shrink();
+                  return Padding(
                     padding: const EdgeInsets.symmetric(horizontal: 12),
                     child: Text(
-                      runtimeText,
+                      parts.join('  •  '),
                       style: theme.textTheme.bodySmall?.copyWith(
                         color: showFocusBorder
                             ? Colors.white.withValues(alpha: 0.82)
                             : Colors.white.withValues(alpha: 0.5),
                       ),
                     ),
-                  ),
+                  );
+                }(),
                 if (PlatformDetection.isTV) ...[
                   if (widget.reorderable) ...[
                     IconButton(
