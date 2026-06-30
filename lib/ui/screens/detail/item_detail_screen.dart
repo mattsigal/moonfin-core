@@ -993,7 +993,7 @@ class _DetailContentState extends State<_DetailContent> {
 
     final isNeon = ThemeRegistry.active.id == ThemeRegistry.neonPulseId;
     final focusColor = Color(prefs.get(UserPreferences.focusColor).colorValue);
-    final profileBorderColor = isNeon ? const Color(0xFFFF2E92) : focusColor;
+    final profileBorderColor = isNeon ? AppColorScheme.accent : focusColor;
 
     const avatarRadius = 80.0;
     final avatar = Container(

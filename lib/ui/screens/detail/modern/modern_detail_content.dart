@@ -2841,6 +2841,11 @@ class _ModernDetailContentState extends State<ModernDetailContent> {
     return (circles + 2).clamp(2, 12);
   }
 
+  List<Shadow>? _neonTextGlow(double blurRadius) =>
+      ThemeRegistry.active.id == ThemeRegistry.neonPulseId
+          ? [Shadow(color: AppColorScheme.accent, blurRadius: blurRadius)]
+          : null;
+
   Widget _buildHero(BuildContext context, AggregatedItem item) {
     final textTheme = Theme.of(context).textTheme;
     final isEpisode = item.type == 'Episode';
@@ -2861,7 +2866,7 @@ class _ModernDetailContentState extends State<ModernDetailContent> {
       final profileUrl = _imageUrl(item);
       final isNeon = ThemeRegistry.active.id == ThemeRegistry.neonPulseId;
       final focusColor = Color(widget.prefs.get(UserPreferences.focusColor).colorValue);
-      final profileBorderColor = isNeon ? const Color(0xFFFF2E92) : focusColor;
+      final profileBorderColor = isNeon ? AppColorScheme.accent : focusColor;
 
 
       final avatar = Container(
@@ -3034,14 +3039,7 @@ class _ModernDetailContentState extends State<ModernDetailContent> {
             style: textTheme.displaySmall?.copyWith(
               fontWeight: FontWeight.w700,
               color: Colors.white,
-              shadows: ThemeRegistry.active.id == ThemeRegistry.neonPulseId
-                  ? [
-                      const Shadow(
-                        color: Color(0xFFFF2E92),
-                        blurRadius: 12,
-                      ),
-                    ]
-                  : null,
+              shadows: _neonTextGlow(12),
             ),
           ),
           if (item.type == 'MusicAlbum' && artistName != null) ...[
@@ -3103,14 +3101,7 @@ class _ModernDetailContentState extends State<ModernDetailContent> {
                         style: textTheme.titleMedium?.copyWith(
                           color: AppColorScheme.accent,
                           fontWeight: FontWeight.bold,
-                          shadows: ThemeRegistry.active.id == ThemeRegistry.neonPulseId
-                              ? [
-                                  const Shadow(
-                                    color: Color(0xFFFF2E92),
-                                    blurRadius: 8,
-                                  ),
-                                ]
-                              : null,
+                          shadows: _neonTextGlow(8),
                         ),
                       ),
                     ),
@@ -3887,14 +3878,7 @@ class _ModernDetailContentState extends State<ModernDetailContent> {
           style: textTheme.titleLarge?.copyWith(
             fontWeight: FontWeight.bold,
             color: Colors.white,
-            shadows: ThemeRegistry.active.id == ThemeRegistry.neonPulseId
-                ? [
-                    const Shadow(
-                      color: Color(0xFFFF2E92),
-                      blurRadius: 10,
-                    ),
-                  ]
-                : null,
+            shadows: _neonTextGlow(10),
           ),
         ),
       );
