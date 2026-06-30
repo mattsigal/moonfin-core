@@ -1,5 +1,4 @@
 import 'dart:async';
-import 'dart:io';
 
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -11,9 +10,7 @@ import 'package:moonfin_design/moonfin_design.dart';
 import '../../../data/database/offline_database.dart';
 import '../../../data/models/aggregated_item.dart';
 import '../../../data/providers/offline_providers.dart';
-import '../../../data/repositories/offline_repository.dart';
 import '../../../data/services/download_service.dart';
-import '../../../data/services/storage_path_service.dart';
 import '../../../di/providers.dart';
 import '../../../l10n/app_localizations.dart';
 import '../../../util/platform_detection.dart';

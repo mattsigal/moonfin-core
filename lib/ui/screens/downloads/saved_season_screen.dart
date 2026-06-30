@@ -1,5 +1,4 @@
 import 'dart:convert';
-import 'dart:io';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -10,9 +9,7 @@ import 'package:moonfin_design/moonfin_design.dart';
 import '../../../data/database/offline_database.dart';
 import '../../../data/models/aggregated_item.dart';
 import '../../../data/providers/offline_providers.dart';
-import '../../../data/repositories/offline_repository.dart';
 import '../../../data/services/download_service.dart';
-import '../../../data/services/storage_path_service.dart';
 import '../../../util/platform_detection.dart';
 import '../../../l10n/app_localizations.dart';
 import '../../../playback/offline_playback_launcher.dart';
