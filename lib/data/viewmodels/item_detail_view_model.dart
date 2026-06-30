@@ -84,6 +84,9 @@ class ItemDetailViewModel extends ChangeNotifier {
   List<AggregatedItem> _collectionItems = const [];
   List<AggregatedItem> get collectionItems => _collectionItems;
 
+  List<AggregatedItem> _playlistItems = const [];
+  List<AggregatedItem> get playlistItems => _playlistItems;
+
   String? _parentCollectionName;
   String? get parentCollectionName => _parentCollectionName;
 
@@ -436,6 +439,17 @@ class ItemDetailViewModel extends ChangeNotifier {
     }
   }
 
+  Future<void> reorderCollectionPlaylistItem(int oldIndex, int newIndex) async {
+    if (oldIndex < 0 || oldIndex >= _playlistItems.length) return;
+    if (newIndex < 0 || newIndex >= _playlistItems.length) return;
+    
+    final reordered = List<AggregatedItem>.from(_playlistItems);
+    final item = reordered.removeAt(oldIndex);
+    reordered.insert(newIndex, item);
+    _playlistItems = reordered;
+    notifyListeners();
+  }
+
   Future<void> _loadCollectionItems() async {
     try {
       // No sortBy: keep the collection's native order instead of forcing alphabetical s
@@ -445,6 +459,24 @@ class ItemDetailViewModel extends ChangeNotifier {
       );
       final items = (data['Items'] as List?) ?? [];
       _collectionItems = _mapItems(items);
+      
+      // Flatten to playlist items at lowest level (movies and tv show episodes)
+      final list = <AggregatedItem>[];
+      for (final item in _collectionItems) {
+        if (item.type == 'Series') {
+          try {
+            final epData = await _client.itemsApi.getEpisodes(item.id);
+            final epItems = (epData['Items'] as List?) ?? [];
+            list.addAll(_mapItems(epItems));
+          } catch (_) {}
+        } else if (item.type == 'Movie' ||
+            item.type == 'Audio' ||
+            item.type == 'Video' ||
+            item.type == 'MusicVideo') {
+          list.add(item);
+        }
+      }
+      _playlistItems = list;
       notifyListeners();
     } catch (_) {}
   }

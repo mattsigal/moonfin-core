@@ -592,6 +592,26 @@ class _ModernDetailContentState extends State<ModernDetailContent> {
         if (_personSeerrCrewCreditsFirstFocusNode.canRequestFocus) _personSeerrCrewCreditsFirstFocusNode.requestFocus();
       } else if (label == l10n.albums || label == l10n.items || label == l10n.appearances) {
         if (_gridFirstFocusNode.canRequestFocus) _gridFirstFocusNode.requestFocus();
+      } else if (label == l10n.playlist) {
+        if (_vm.item?.type == 'BoxSet' && _vm.playlistItems.isNotEmpty) {
+          final firstTrackId = _vm.playlistItems.first.id;
+          final firstTrackNode = _trackFocusNodes.putIfAbsent(firstTrackId, () => FocusNode());
+          if (firstTrackNode.canRequestFocus) {
+            firstTrackNode.requestFocus();
+          }
+        }
+      } else if (label == l10n.movies) {
+        if (_vm.item?.type == 'BoxSet') {
+          if (_gridFirstFocusNode.canRequestFocus) _gridFirstFocusNode.requestFocus();
+        } else {
+          if (_personMoviesFirstFocusNode.canRequestFocus) _personMoviesFirstFocusNode.requestFocus();
+        }
+      } else if (label == l10n.series) {
+        if (_vm.item?.type == 'BoxSet') {
+          if (_gridFirstFocusNode.canRequestFocus) _gridFirstFocusNode.requestFocus();
+        } else {
+          if (_personSeriesFirstFocusNode.canRequestFocus) _personSeriesFirstFocusNode.requestFocus();
+        }
       }
     }
   }
@@ -689,14 +709,63 @@ class _ModernDetailContentState extends State<ModernDetailContent> {
             _ModernTab(l10n.appearances, (_, _) => _itemGrid(_sortJellyfinItems(_vm.filmography))),
         ];
       case 'BoxSet':
+        final moviesList = _vm.collectionItems.where((i) => i.type == 'Movie').toList();
+        final seriesList = _vm.collectionItems.where((i) => i.type == 'Series').toList();
         return [
-          if (_vm.collectionItems.isNotEmpty)
-            _ModernTab(l10n.items, (_, _) => _itemGrid(_vm.collectionItems)),
+          if (_vm.playlistItems.isNotEmpty)
+            _ModernTab(
+              l10n.playlist,
+              (context, item) {
+                final listWidget = DetailTrackList(
+                  tracks: _vm.playlistItems,
+                  imageApi: _vm.imageApi,
+                  isPlaylist: true,
+                  getFocusNode: (id) =>
+                      _trackFocusNodes.putIfAbsent(id, () => FocusNode()),
+                  onPlayTrack: (index) => _playPlaylistTrack(context, index),
+                  reorderable: true,
+                  onReorder: (oldIndex, newIndex) {
+                    var target = newIndex;
+                    if (target > oldIndex) {
+                      target -= 1;
+                    }
+                    _vm.reorderCollectionPlaylistItem(oldIndex, target);
+                  },
+                  onMoveUp: (index) => _vm.reorderCollectionPlaylistItem(index, index - 1),
+                  onMoveDown: (index) => _vm.reorderCollectionPlaylistItem(index, index + 1),
+                  onFirstTrackUp: () => widget.initialFocusNode?.requestFocus(),
+                  onTrackFocused: widget.onBackdropItemFocused,
+                );
+
+                return Focus(
+                  canRequestFocus: false,
+                  onFocusChange: (focused) {
+                    if (focused && mounted) {
+                      widget.onToggleNavbar?.call(false);
+                    } else if (!focused && mounted) {
+                      widget.onToggleNavbar?.call(true);
+                    }
+                  },
+                  onKeyEvent: (node, event) {
+                    return KeyEventResult.ignored;
+                  },
+                  child: Align(
+                    alignment: Alignment.topLeft,
+                    child: ConstrainedBox(
+                      constraints: const BoxConstraints(maxWidth: 800),
+                      child: listWidget,
+                    ),
+                  ),
+                );
+              },
+            ),
+          if (moviesList.isNotEmpty)
+            _ModernTab(l10n.movies, (_, _) => _itemGrid(moviesList)),
+          if (seriesList.isNotEmpty)
+            _ModernTab(l10n.series, (_, _) => _itemGrid(seriesList)),
           if (hasCast) cast,
           if (hasCrew) crew,
           if (hasStudios) studios,
-          if (item.chapters.isNotEmpty) chapters,
-          details,
         ];
       default:
         return [
@@ -2067,6 +2136,14 @@ class _ModernDetailContentState extends State<ModernDetailContent> {
     await manager.playItems(_vm.tracks, startIndex: index);
     if (!context.mounted) return;
     final isAudio = _vm.tracks.every(_isAudioItem);
+    context.push(isAudio ? Destinations.audioPlayer : Destinations.videoPlayer);
+  }
+
+  Future<void> _playPlaylistTrack(BuildContext context, int index) async {
+    final manager = GetIt.instance<PlaybackManager>();
+    await manager.playItems(_vm.playlistItems, startIndex: index);
+    if (!context.mounted) return;
+    final isAudio = _vm.playlistItems.every(_isAudioItem);
     context.push(isAudio ? Destinations.audioPlayer : Destinations.videoPlayer);
   }
 
