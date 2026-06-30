@@ -595,7 +595,7 @@ class _ModernDetailContentState extends State<ModernDetailContent> {
     if (_selectedTab != tabIndex) {
       _selectTab(tabIndex);
     }
-    WidgetsBinding.instance.addPostFrameCallback((_) {
+    Future.delayed(const Duration(milliseconds: 50), () {
       if (!mounted) return;
       final l10n = AppLocalizations.of(context);
       final tabs = _tabsFor(_vm.item!, l10n);

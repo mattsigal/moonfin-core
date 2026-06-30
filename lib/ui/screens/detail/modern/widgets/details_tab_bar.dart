@@ -42,8 +42,18 @@ class DetailsTabBar extends StatelessWidget {
                 onSelect: () => onSelect(i),
                 onNavigateDown: onNavigateDown != null ? () => onNavigateDown!(i) : null,
                 onNavigateUp: onExitUp,
-                onNavigateLeft: i == 0 ? onExitLeft : null,
-                onNavigateRight: i == labels.length - 1 ? () {} : null,
+                onNavigateLeft: () {
+                  if (i > 0) {
+                    focusNodeFor(i - 1).requestFocus();
+                  } else {
+                    onExitLeft?.call();
+                  }
+                },
+                onNavigateRight: () {
+                  if (i < labels.length - 1) {
+                    focusNodeFor(i + 1).requestFocus();
+                  }
+                },
               ),
             ),
         ],
@@ -59,8 +69,8 @@ class _DetailsTabItem extends StatefulWidget {
   final VoidCallback onSelect;
   final VoidCallback? onNavigateDown;
   final VoidCallback? onNavigateUp;
-  final VoidCallback? onNavigateLeft;
-  final VoidCallback? onNavigateRight;
+  final VoidCallback onNavigateLeft;
+  final VoidCallback onNavigateRight;
 
   const _DetailsTabItem({
     required this.label,
@@ -69,8 +79,8 @@ class _DetailsTabItem extends StatefulWidget {
     required this.onSelect,
     this.onNavigateDown,
     this.onNavigateUp,
-    this.onNavigateLeft,
-    this.onNavigateRight,
+    required this.onNavigateLeft,
+    required this.onNavigateRight,
   });
 
   @override
@@ -131,21 +141,15 @@ class _DetailsTabItemState extends State<_DetailsTabItem> {
           }
           return KeyEventResult.handled;
         } else if (event.logicalKey == LogicalKeyboardKey.arrowLeft) {
-          if (widget.onNavigateLeft != null) {
-            if (isDownOrRepeat) {
-              widget.onNavigateLeft!();
-            }
-            return KeyEventResult.handled;
+          if (isDownOrRepeat) {
+            widget.onNavigateLeft();
           }
-          return KeyEventResult.ignored;
+          return KeyEventResult.handled;
         } else if (event.logicalKey == LogicalKeyboardKey.arrowRight) {
-          if (widget.onNavigateRight != null) {
-            if (isDownOrRepeat) {
-              widget.onNavigateRight!();
-            }
-            return KeyEventResult.handled;
+          if (isDownOrRepeat) {
+            widget.onNavigateRight();
           }
-          return KeyEventResult.ignored;
+          return KeyEventResult.handled;
         } else if (event.logicalKey == LogicalKeyboardKey.enter ||
             event.logicalKey == LogicalKeyboardKey.select) {
           if (isDownOrRepeat) {
