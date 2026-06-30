@@ -828,7 +828,6 @@ class _SeerrListsScreen extends StatefulWidget {
 }
 
 class _SeerrListsScreenState extends State<_SeerrListsScreen> {
-  late final SeerrPreferences _seerrPrefs;
   late List<SeerrRowConfig> _rows;
   final _syncService = GetIt.instance<PluginSyncService>();
   final _scope = FocusScopeNode(debugLabel: 'SeerrListsScope');
@@ -837,7 +836,6 @@ class _SeerrListsScreenState extends State<_SeerrListsScreen> {
   @override
   void initState() {
     super.initState();
-    _seerrPrefs = GetIt.instance<SeerrPreferences>();
     final prefs = GetIt.instance<UserPreferences>();
     final configs = prefs.homeSectionsConfig;
 

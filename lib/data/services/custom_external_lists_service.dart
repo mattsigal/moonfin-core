@@ -119,6 +119,9 @@ class CustomExternalListsService {
     final params = rowConfig['params'] as Map<String, dynamic>? ?? {};
     final modifiableParams = Map<String, dynamic>.from(params);
     if (forceRefresh) {
+      // The plugin keys its cache on source:type:sha256(params), so changing params
+      // is what actually forces a fresh fetch. This is an authed Dio call with no HTTP
+      // cache in between, so cache-control headers and query flags would do nothing.
       modifiableParams['_nocache'] = DateTime.now().millisecondsSinceEpoch.toString();
     }
 
@@ -152,21 +155,9 @@ class CustomExternalListsService {
           'source': source,
           'type': type,
           'params': paramsJson,
-          if (forceRefresh) ...{
-            'refresh': 'true',
-            'nocache': 'true',
-            '_': DateTime.now().millisecondsSinceEpoch.toString(),
-          },
         },
         options: Options(
-          headers: {
-            'Authorization': 'MediaBrowser Token="$token"',
-            if (forceRefresh) ...{
-              'Cache-Control': 'no-cache, no-store, must-revalidate',
-              'Pragma': 'no-cache',
-              'Expires': '0',
-            },
-          },
+          headers: {'Authorization': 'MediaBrowser Token="$token"'},
         ),
       );
 
