@@ -17,6 +17,7 @@ import '../../../../l10n/app_localizations.dart';
 import '../../../../preference/user_preferences.dart';
 import '../../../../preference/preference_constants.dart';
 import '../../../../util/platform_detection.dart';
+import '../../../../util/focus/dpad_keys.dart';
 import '../../../navigation/destinations.dart';
 import '../../../widgets/logo_view.dart';
 import '../../../widgets/media_card.dart';
@@ -102,6 +103,7 @@ class _ModernDetailContentState extends State<ModernDetailContent> {
   final List<FocusNode> _tabFocusNodes = [];
   final FocusNode _upNextFocusNode = FocusNode(debugLabel: 'modernUpNext');
   final FocusNode _actionRowRightFocusNode = FocusNode(debugLabel: 'actionRowRight');
+  final FocusNode _artistFocusNode = FocusNode(debugLabel: 'albumArtist');
   final FocusNode _audioShowAllFocusNode = FocusNode(debugLabel: 'audioShowAll');
   final FocusNode _subtitleShowAllFocusNode = FocusNode(debugLabel: 'subtitleShowAll');
   final FocusNode _detailsTabFocusNode = FocusNode(debugLabel: 'detailsTabContent');
@@ -110,6 +112,7 @@ class _ModernDetailContentState extends State<ModernDetailContent> {
   final FocusNode _studiosFirstFocusNode = FocusNode(debugLabel: 'studiosFirst');
   final FocusNode _chaptersFirstFocusNode = FocusNode(debugLabel: 'chaptersFirst');
   final FocusNode _similarFirstFocusNode = FocusNode(debugLabel: 'similarFirst');
+  final FocusNode _gridFirstFocusNode = FocusNode(debugLabel: 'gridFirst');
   final FocusNode _seasonsFirstFocusNode = FocusNode(debugLabel: 'seasonsFirst');
   final FocusNode _episodesFirstFocusNode = FocusNode(debugLabel: 'episodesFirst');
   final FocusNode _overviewFocusNode = FocusNode(debugLabel: 'overview');
@@ -424,6 +427,7 @@ class _ModernDetailContentState extends State<ModernDetailContent> {
     _personSeriesFirstFocusNode.onKeyEvent = leftToSidebarHandler;
     _personSeerrAppearancesFirstFocusNode.onKeyEvent = leftToSidebarHandler;
     _personSeerrCrewCreditsFirstFocusNode.onKeyEvent = leftToSidebarHandler;
+    _gridFirstFocusNode.onKeyEvent = leftToSidebarHandler;
 
     _vm.addListener(_onViewModelChanged);
     _scrollController.addListener(_onScroll);
@@ -497,6 +501,7 @@ class _ModernDetailContentState extends State<ModernDetailContent> {
     }
     _upNextFocusNode.dispose();
     _actionRowRightFocusNode.dispose();
+    _artistFocusNode.dispose();
     _audioShowAllFocusNode.dispose();
     _subtitleShowAllFocusNode.dispose();
     _detailsTabFocusNode.dispose();
@@ -505,6 +510,7 @@ class _ModernDetailContentState extends State<ModernDetailContent> {
     _studiosFirstFocusNode.dispose();
     _chaptersFirstFocusNode.dispose();
     _similarFirstFocusNode.dispose();
+    _gridFirstFocusNode.dispose();
     _seasonsFirstFocusNode.dispose();
     _episodesFirstFocusNode.dispose();
     _overviewFocusNode.dispose();
@@ -584,6 +590,8 @@ class _ModernDetailContentState extends State<ModernDetailContent> {
         if (_personSeerrAppearancesFirstFocusNode.canRequestFocus) _personSeerrAppearancesFirstFocusNode.requestFocus();
       } else if (label == l10n.crewContributionsSeerr) {
         if (_personSeerrCrewCreditsFirstFocusNode.canRequestFocus) _personSeerrCrewCreditsFirstFocusNode.requestFocus();
+      } else if (label == l10n.albums || label == l10n.items || label == l10n.appearances) {
+        if (_gridFirstFocusNode.canRequestFocus) _gridFirstFocusNode.requestFocus();
       }
     }
   }
@@ -657,8 +665,7 @@ class _ModernDetailContentState extends State<ModernDetailContent> {
       case 'MusicArtist':
         return [
           if (_vm.albums.isNotEmpty)
-            _ModernTab(l10n.albums, (_, _) => _itemGrid(_vm.albums)),
-          details,
+            _ModernTab(l10n.albums, (_, _) => _itemGrid(_vm.albums, aspectRatio: 1.0)),
           if (hasSimilar) similar,
         ];
       case 'Person':
@@ -1860,7 +1867,7 @@ class _ModernDetailContentState extends State<ModernDetailContent> {
     };
   }
 
-  Widget _itemGrid(List<AggregatedItem> items) {
+  Widget _itemGrid(List<AggregatedItem> items, {double aspectRatio = 2 / 3}) {
     return LayoutBuilder(
       builder: (context, constraints) {
         const spacing = 12.0;
@@ -1872,7 +1879,7 @@ class _ModernDetailContentState extends State<ModernDetailContent> {
         final cellWidth =
             (constraints.maxWidth - (crossAxisCount - 1) * spacing) /
                 crossAxisCount;
-        const cardRatio = 2 / 3;
+        final cardRatio = aspectRatio;
         const textHeight = 44.0;
         final childAspectRatio =
             cellWidth / (cellWidth / cardRatio + textHeight);
@@ -1907,6 +1914,7 @@ class _ModernDetailContentState extends State<ModernDetailContent> {
               final entry = items[i];
               return MediaCard(
                 title: entry.name,
+                focusNode: i == 0 ? _gridFirstFocusNode : null,
                 imageUrl: _imageUrl(entry),
                 width: double.infinity,
                 aspectRatio: cardRatio,
@@ -2294,31 +2302,76 @@ class _ModernDetailContentState extends State<ModernDetailContent> {
           ),
           if (item.type == 'MusicAlbum' && artistName != null) ...[
             const SizedBox(height: 4),
-            GestureDetector(
-              onTap: () {
-                final artistId = item.albumArtists.isNotEmpty
-                    ? item.albumArtists.first['Id']?.toString()
-                    : null;
-                if (artistId != null) {
-                  context.push(
-                    Destinations.item(artistId, serverId: item.serverId),
-                  );
+            Focus(
+              focusNode: _artistFocusNode,
+              onKeyEvent: (node, event) {
+                if (event is KeyDownEvent) {
+                  if (event.logicalKey == LogicalKeyboardKey.arrowDown) {
+                    widget.initialFocusNode?.requestFocus();
+                    return KeyEventResult.handled;
+                  }
+                  if (event.logicalKey == LogicalKeyboardKey.arrowUp) {
+                    return KeyEventResult.handled;
+                  }
                 }
+                if (isActivateKey(event)) {
+                  final artistId = item.albumArtists.isNotEmpty
+                      ? item.albumArtists.first['Id']?.toString()
+                      : null;
+                  if (artistId != null) {
+                    context.push(
+                      Destinations.item(artistId, serverId: item.serverId),
+                    );
+                  }
+                  return KeyEventResult.handled;
+                }
+                return KeyEventResult.ignored;
               },
-              child: Text(
-                artistName,
-                style: textTheme.titleMedium?.copyWith(
-                  color: AppColorScheme.accent,
-                  fontWeight: FontWeight.bold,
-                  shadows: ThemeRegistry.active.id == ThemeRegistry.neonPulseId
-                      ? [
-                          const Shadow(
-                            color: Color(0xFFFF2E92),
-                            blurRadius: 8,
-                          ),
-                        ]
-                      : null,
-                ),
+              child: Builder(
+                builder: (context) {
+                  final focused = Focus.of(context).hasFocus;
+                  return GestureDetector(
+                    onTap: () {
+                      final artistId = item.albumArtists.isNotEmpty
+                          ? item.albumArtists.first['Id']?.toString()
+                          : null;
+                      if (artistId != null) {
+                        context.push(
+                          Destinations.item(artistId, serverId: item.serverId),
+                        );
+                      }
+                    },
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                      decoration: BoxDecoration(
+                        borderRadius: BorderRadius.circular(4),
+                        border: focused
+                            ? Border.fromBorderSide(
+                                ThemeRegistry.active.borders.focusBorder.copyWith(
+                                  color: AppColorScheme.accent,
+                                  width: 1.5,
+                                ),
+                              )
+                            : null,
+                      ),
+                      child: Text(
+                        artistName,
+                        style: textTheme.titleMedium?.copyWith(
+                          color: AppColorScheme.accent,
+                          fontWeight: FontWeight.bold,
+                          shadows: ThemeRegistry.active.id == ThemeRegistry.neonPulseId
+                              ? [
+                                  const Shadow(
+                                    color: Color(0xFFFF2E92),
+                                    blurRadius: 8,
+                                  ),
+                                ]
+                              : null,
+                        ),
+                      ),
+                    ),
+                  );
+                },
               ),
             ),
           ],
@@ -2367,7 +2420,9 @@ class _ModernDetailContentState extends State<ModernDetailContent> {
               downTarget: _vm.tracks.isNotEmpty
                   ? _trackFocusNodes.putIfAbsent(_vm.tracks.first.id, () => FocusNode())
                   : null,
-              upTarget: null,
+              upTarget: item.type == 'MusicAlbum' && artistName != null
+                  ? _artistFocusNode
+                  : null,
               autoPlay: widget.autoPlay,
               modernStyle: true,
               fullWidthPrimary: false,
