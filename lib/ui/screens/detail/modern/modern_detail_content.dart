@@ -599,7 +599,11 @@ class _ModernDetailContentState extends State<ModernDetailContent> {
     return _tabFocusNodes[index];
   }
 
-  void _focusSelectedTab() => _tabNode(_selectedTab).requestFocus();
+  void _focusSelectedTab() {
+    // On TV _selectedTab starts at -1 (no tab chosen); guard the list index.
+    if (_selectedTab < 0) return;
+    _tabNode(_selectedTab).requestFocus();
+  }
 
   void _onTabBarNavigateDown(int tabIndex) {
     if (_vm.item == null) return;

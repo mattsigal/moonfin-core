@@ -221,6 +221,12 @@ class _ItemDetailScreenState extends State<ItemDetailScreen>
         setState(() => _backdropUrl = nextUrl);
       }
     }
+    // A pushed child screen (e.g. a similar item) clears the shared play-button
+    // notifier on its way out; reclaim it so focus restoration finds this screen.
+    if (PlatformDetection.isTV && _initialContentFocusNode != null) {
+      NavigationLayout.focusDetailsPlayButtonNotifier.value =
+          _initialContentFocusNode;
+    }
     _resumeThemeMusicIfEligible();
   }
 

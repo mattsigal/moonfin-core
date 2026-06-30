@@ -45,9 +45,13 @@ class DetailsTabBar extends StatelessWidget {
                 onNavigateLeft: () {
                   if (i > 0) {
                     focusNodeFor(i - 1).requestFocus();
-                  } else {
-                    onExitLeft?.call();
+                    return true;
                   }
+                  if (onExitLeft != null) {
+                    onExitLeft!();
+                    return true;
+                  }
+                  return false;
                 },
                 onNavigateRight: () {
                   if (i < labels.length - 1) {
@@ -69,7 +73,8 @@ class _DetailsTabItem extends StatefulWidget {
   final VoidCallback onSelect;
   final VoidCallback? onNavigateDown;
   final VoidCallback? onNavigateUp;
-  final VoidCallback onNavigateLeft;
+  // True if the left key was consumed; false to let focus traversal handle it.
+  final bool Function() onNavigateLeft;
   final VoidCallback onNavigateRight;
 
   const _DetailsTabItem({
@@ -142,7 +147,8 @@ class _DetailsTabItemState extends State<_DetailsTabItem> {
           return KeyEventResult.handled;
         } else if (event.logicalKey == LogicalKeyboardKey.arrowLeft) {
           if (isDownOrRepeat) {
-            widget.onNavigateLeft();
+            final handled = widget.onNavigateLeft();
+            return handled ? KeyEventResult.handled : KeyEventResult.ignored;
           }
           return KeyEventResult.handled;
         } else if (event.logicalKey == LogicalKeyboardKey.arrowRight) {
@@ -152,7 +158,8 @@ class _DetailsTabItemState extends State<_DetailsTabItem> {
           return KeyEventResult.handled;
         } else if (event.logicalKey == LogicalKeyboardKey.enter ||
             event.logicalKey == LogicalKeyboardKey.select) {
-          if (isDownOrRepeat) {
+          // Activate on press only so holding select does not reselect on repeat.
+          if (event is KeyDownEvent) {
             widget.onSelect();
           }
           return KeyEventResult.handled;
