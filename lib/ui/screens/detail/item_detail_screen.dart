@@ -9645,7 +9645,7 @@ class _DetailActionButtonState extends State<_DetailActionButton>
               : (isNeon ? neonAccent : Colors.white));
     final labelColor = showHighlight
         ? (isNeon
-              ? neonAccent
+              ? AppColorScheme.accent
               : (AppColorScheme.isGlass
                     ? Colors.white
                     : AppColorScheme.onButtonFocused))

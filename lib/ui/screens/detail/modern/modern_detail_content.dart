@@ -3521,13 +3521,12 @@ class _ModernDetailContentState extends State<ModernDetailContent> {
 
   Widget _statusBadge(BuildContext context, String status) {
     final isEnded = status.toLowerCase() == 'ended';
-    final color = isEnded
-        ? Theme.of(context).colorScheme.error
-        : AppColorScheme.statusAvailable;
+    final color =
+        isEnded ? const Color(0xFFB71C1C) : const Color(0xFF2E7D32);
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
       decoration: BoxDecoration(
-        color: color.withValues(alpha: 0.85),
+        color: color,
         borderRadius: JellyfinTokens.shapes.smallRadius,
       ),
       child: Text(
