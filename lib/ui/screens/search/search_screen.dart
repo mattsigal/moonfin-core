@@ -1183,10 +1183,12 @@ class _SearchScreenState extends State<SearchScreen> {
               }
             }
           },
-          onTap: () => context.push(
-            Destinations.seerrMedia(item.id.toString()),
-            extra: {'mediaType': item.mediaType ?? 'movie'},
-          ),
+          onTap: () => item.mediaType == 'person'
+              ? context.push(Destinations.seerrPerson(item.id.toString()))
+              : context.push(
+                  Destinations.seerrMedia(item.id.toString()),
+                  extra: {'mediaType': item.mediaType ?? 'movie'},
+                ),
         );
       }).toList(),
     );
