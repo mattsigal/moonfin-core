@@ -29,11 +29,11 @@ import 'util/tv_image_cache_stub.dart'
 
 DateTime? _lastIosRouteResync;
 
-/// iOS-only audio route handling. audio_service owns the AVAudioSession, so we
-/// observe route changes directly to (a) pause when the current output device
-/// disappears (AirPods removed, cable unplugged) and (b) re-sync A/V when a new
-/// output is connected mid-playback (AirPlay/HomePod), which otherwise leaves
-/// libmpv writing to a stale clock and drifts audio out of sync.
+/// iOS-only audio route handling: observe output route changes to (a) pause when
+/// the current output device disappears (AirPods removed, cable unplugged) and
+/// (b) re-sync A/V when the output switches mid-playback (a new device connects,
+/// or AirPlay/HomePod is selected), which otherwise leaves libmpv writing to a
+/// stale clock and drifts audio out of sync.
 void _attachIosAudioRouteHandling() {
   final session = AVAudioSession();
   session.routeChangeStream.listen((change) async {
@@ -43,6 +43,7 @@ void _attachIosAudioRouteHandling() {
         manager.pause();
         break;
       case AVAudioSessionRouteChangeReason.newDeviceAvailable:
+      case AVAudioSessionRouteChangeReason.override:
         if (!manager.state.isPlaying) return;
         final now = DateTime.now();
         final last = _lastIosRouteResync;
