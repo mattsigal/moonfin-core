@@ -3531,7 +3531,7 @@ class _HeaderSection extends StatelessWidget {
                     maxWidth: 350,
                   ),
           )
-        else
+        else ...[
           Text(
             item.name,
             style: Theme.of(context).textTheme.headlineLarge?.copyWith(
@@ -3544,6 +3544,29 @@ class _HeaderSection extends StatelessWidget {
             overflow: TextOverflow.ellipsis,
             textAlign: isMobile ? TextAlign.center : null,
           ),
+          (() {
+            final author = (item.rawData['AlbumArtist'] as String?) ??
+                (item.rawData['Artists'] as List?)?.cast<String>().firstOrNull ??
+                item.seriesName;
+            if (author != null && author.isNotEmpty) {
+              return Padding(
+                padding: const EdgeInsets.only(top: 4),
+                child: Align(
+                  alignment: isMobile ? Alignment.center : Alignment.centerLeft,
+                  child: Text(
+                    author,
+                    style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                      color: Colors.white.withValues(alpha: 0.8),
+                      fontWeight: FontWeight.w600,
+                      shadows: _textShadows,
+                    ),
+                  ),
+                ),
+              );
+            }
+            return const SizedBox.shrink();
+          })(),
+        ],
         const SizedBox(height: 8),
         DetailMetadataRow(item: item, selectedMediaSource: selectedMediaSource),
         if (viewModel.ratings.isNotEmpty ||
@@ -3795,7 +3818,57 @@ class DetailPosterImage extends StatelessWidget {
     final w = isMobile ? 120.0 : 165.0 * desktopScale;
     final h = isMobile ? 180.0 : 248.0 * desktopScale;
 
-    if (item.primaryImageTag == null) return SizedBox(width: w, height: h);
+    if (item.primaryImageTag == null) {
+      if (item.type == 'AudioBook' || item.type == 'Audio') {
+        final audiobookPlaceholderColors = [
+          const Color(0xFFE25B45),
+          const Color(0xFF2E8B57),
+          const Color(0xFF4682B4),
+          const Color(0xFF8A2BE2),
+          const Color(0xFFD2691E),
+        ];
+        final colorIndex = item.id.hashCode.abs() % audiobookPlaceholderColors.length;
+        final accent = audiobookPlaceholderColors[colorIndex];
+        return SizedBox(
+          width: w,
+          height: h,
+          child: ClipRRect(
+            borderRadius: AppRadius.circular(8),
+            child: Container(
+              color: accent,
+              child: Center(
+                child: Padding(
+                  padding: const EdgeInsets.all(8.0),
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      const AdaptiveIcon(
+                        Icons.audiotrack,
+                        color: Colors.white70,
+                        size: 40,
+                      ),
+                      const SizedBox(height: 8),
+                      Text(
+                        item.name,
+                        textAlign: TextAlign.center,
+                        maxLines: 4,
+                        overflow: TextOverflow.ellipsis,
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontSize: 12,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ),
+          ),
+        );
+      }
+      return SizedBox(width: w, height: h);
+    }
 
     return SizedBox(
       width: w,
@@ -5715,7 +5788,9 @@ class DetailActionButtonsState extends State<DetailActionButtons> {
           ? l10n.play
           : l10n.resume;
     } else if (hasProgress) {
-      playButtonLabel = l10n.resumeFrom(_formatResumePosition(item.playbackPosition));
+      playButtonLabel = (item.type == 'AudioBook' || item.type == 'Audio')
+          ? l10n.resume
+          : l10n.resumeFrom(_formatResumePosition(item.playbackPosition));
     } else {
       playButtonLabel = l10n.play;
     }
@@ -5850,9 +5925,11 @@ class DetailActionButtonsState extends State<DetailActionButtons> {
           activeColor: AppColorScheme.accent,
         ),
       _DetailActionButton(
-        label: isBook
-            ? (item.isPlayed ? l10n.finished : l10n.unread)
-            : (item.isPlayed ? l10n.watched : l10n.unwatched),
+        label: (item.type == 'AudioBook' || item.type == 'Audio')
+            ? (item.isPlayed ? 'Listened' : 'Unlistened')
+            : isBook
+                ? (item.isPlayed ? l10n.finished : l10n.unread)
+                : (item.isPlayed ? l10n.watched : l10n.unwatched),
         icon: item.isPlayed ? Icons.check_circle : Icons.check_circle_outline,
         onPressed: viewModel.togglePlayed,
         isActive: item.isPlayed,
@@ -5865,7 +5942,7 @@ class DetailActionButtonsState extends State<DetailActionButtons> {
         isActive: item.isFavorite,
         activeColor: const Color(0xFFFF4757),
       ),
-      if (!isBook)
+      if (!isBook && item.type != 'AudioBook' && item.type != 'Audio')
         _DetailActionButton(
           label: l10n.playlist,
           icon: Icons.playlist_add,
@@ -7489,8 +7566,24 @@ class DetailActionButtonsState extends State<DetailActionButtons> {
             final rawChildren = (data['Items'] as List?) ?? const [];
             final childItems = rawChildren.where(isAudioChild).toList();
             if (childItems.isNotEmpty) {
+              final siblings = _mapRawItemsForServer(childItems, item.serverId);
+              int startIndex = 0;
+              Duration startPosition = Duration.zero;
+              if (resume) {
+                final idx = siblings.indexWhere((t) => (t.playbackPosition ?? Duration.zero) > Duration.zero && !t.isPlayed);
+                if (idx >= 0) {
+                  startIndex = idx;
+                  startPosition = siblings[idx].playbackPosition ?? Duration.zero;
+                } else {
+                  final firstUnplayed = siblings.indexWhere((t) => !t.isPlayed);
+                  startIndex = firstUnplayed >= 0 ? firstUnplayed : 0;
+                  startPosition = Duration.zero;
+                }
+              }
               await manager.playItems(
-                _mapRawItemsForServer(childItems, item.serverId),
+                siblings,
+                startIndex: startIndex,
+                startPosition: startPosition,
               );
               break;
             }
@@ -7512,7 +7605,14 @@ class DetailActionButtonsState extends State<DetailActionButtons> {
               );
               final startIndex = siblings.indexWhere((t) => t.id == item.id);
               if (siblings.isNotEmpty && startIndex >= 0) {
-                await manager.playItems(siblings, startIndex: startIndex);
+                final startPosition = resume
+                    ? (item.playbackPosition ?? Duration.zero)
+                    : Duration.zero;
+                await manager.playItems(
+                  siblings,
+                  startIndex: startIndex,
+                  startPosition: startPosition,
+                );
                 break;
               }
             }
@@ -7584,7 +7684,9 @@ class DetailActionButtonsState extends State<DetailActionButtons> {
     await _pushPlayerRouteWhileStartingPlayback(
       context,
       destination: isAudio
-          ? Destinations.audioPlayer
+          ? (item.type == 'AudioBook' || item.type == 'Audio' || item.isAudiobook
+              ? '${Destinations.audioPlayer}?isAudiobook=true'
+              : Destinations.audioPlayer)
           : Destinations.videoPlayer,
       startupFuture: startupFuture,
     );
@@ -7627,7 +7729,9 @@ class DetailActionButtonsState extends State<DetailActionButtons> {
     await _pushPlayerRouteWhileStartingPlayback(
       context,
       destination: isAudio
-          ? Destinations.audioPlayer
+          ? (item.type == 'AudioBook' || item.type == 'Audio' || item.isAudiobook
+              ? '${Destinations.audioPlayer}?isAudiobook=true'
+              : Destinations.audioPlayer)
           : Destinations.videoPlayer,
       startupFuture: startupFuture,
     );

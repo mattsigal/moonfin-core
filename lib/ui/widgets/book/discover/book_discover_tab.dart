@@ -8,6 +8,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 
 import '../../../../l10n/app_localizations.dart';
 import '../../../../util/platform_detection.dart';
+import '../../../../util/focus/dpad_keys.dart';
 import '../../../screens/book/discover/discover_book_detail_screen.dart';
 import '../../../screens/book/discover/librivox_authors_screen.dart';
 import '../../../screens/book/discover/librivox_book_detail_screen.dart';
@@ -19,11 +20,19 @@ const _bookAccent = bookDiscoverAccent;
 class BookDiscoverTab extends StatefulWidget {
   final String libraryId;
   final bool isAudiobook;
+  final FocusNode? firstFocusNode;
+  final FocusNode? settingsMenuFocusNode;
+  final VoidCallback? onSettingsUpPressed;
+  final double leftPadding;
 
   const BookDiscoverTab({
     super.key,
     required this.libraryId,
     required this.isAudiobook,
+    required this.leftPadding,
+    this.firstFocusNode,
+    this.settingsMenuFocusNode,
+    this.onSettingsUpPressed,
   });
 
   @override
@@ -58,6 +67,70 @@ class _BookDiscoverTabState extends State<BookDiscoverTab> {
   bool _discoverAudiobookInitialized = false;
   bool _discoverAudiobookBootstrapping = false;
   final Map<String, String?> _librivoxCoverCache = {};
+  final Map<String, List<FocusNode>> _genreFocusNodesMap = {};
+  bool _isGenreSheetShowing = false;
+  bool _isAudiobookGenreSheetShowing = false;
+
+  List<FocusNode> _focusNodesForGenre(String genre, int count) {
+    return _genreFocusNodesMap.putIfAbsent(
+      genre,
+      () => List.generate(
+        count,
+        (index) => FocusNode(debugLabel: 'Discover_${genre}_$index'),
+      ),
+    );
+  }
+
+  double _calculateAdjustedCardWidth(double maxWidth, double baseCardWidth) {
+    const spacing = 12.0;
+    final n = ((maxWidth + spacing) / (baseCardWidth + spacing)).floor();
+    final count = n.clamp(1, 99);
+    return (maxWidth - (count - 1) * spacing) / count;
+  }
+
+  void _focusRow(String genre, bool goDown) {
+    final genresList = widget.isAudiobook ? _discoverAudiobookGenres : _discoverGenres;
+    final genreIndex = genresList.indexOf(genre);
+    if (genreIndex == -1) return;
+
+    final items = widget.isAudiobook
+        ? (_discoverAudiobooksByGenre[genre] ?? const [])
+        : (_discoverBooksByGenre[genre] ?? const []);
+    final hasFailed = widget.isAudiobook
+        ? _discoverAudiobookFailedGenres.contains(genre)
+        : _discoverFailedGenres.contains(genre);
+    final isLoading = widget.isAudiobook
+        ? _discoverAudiobookLoadingGenres.contains(genre)
+        : _discoverLoadingGenres.contains(genre);
+
+    if (items.isNotEmpty || hasFailed) {
+      final controller = widget.isAudiobook
+          ? _discoverAudiobookRowControllers[genre]
+          : _discoverRowControllers[genre];
+      if (controller != null && controller.hasClients) {
+        controller.jumpTo(0.0);
+      }
+
+      final isFirstRow = genreIndex == 0;
+      if (isFirstRow) {
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          widget.firstFocusNode?.requestFocus();
+        });
+      } else {
+        final nodes = _focusNodesForGenre(genre, items.length);
+        if (nodes.isNotEmpty) {
+          WidgetsBinding.instance.addPostFrameCallback((_) {
+            nodes[0].requestFocus();
+          });
+        }
+      }
+    } else if (isLoading) {
+      final nextIndex = goDown ? genreIndex + 1 : genreIndex - 1;
+      if (nextIndex >= 0 && nextIndex < genresList.length) {
+        _focusRow(genresList[nextIndex], goDown);
+      }
+    }
+  }
 
   @override
   void initState() {
@@ -78,6 +151,12 @@ class _BookDiscoverTabState extends State<BookDiscoverTab> {
     for (final controller in _discoverAudiobookRowControllers.values) {
       controller.dispose();
     }
+    for (final nodesList in _genreFocusNodesMap.values) {
+      for (final node in nodesList) {
+        node.dispose();
+      }
+    }
+    _genreFocusNodesMap.clear();
     _discoverDio.close(force: true);
     super.dispose();
   }
@@ -241,121 +320,39 @@ class _BookDiscoverTabState extends State<BookDiscoverTab> {
   }
 
   Future<void> _showDiscoverGenreSheet() async {
-    final temp = {..._discoverGenres};
-    final result = await showGeneralDialog<List<String>>(
-      context: context,
-      barrierDismissible: true,
-      barrierLabel: AppLocalizations.of(context).close,
-      barrierColor: Colors.black54,
-      transitionDuration: const Duration(milliseconds: 260),
-      pageBuilder: (context, _, _) => const SizedBox.shrink(),
-      transitionBuilder: (context, animation, _, _) {
-        final width = MediaQuery.of(
-          context,
-        ).size.width.clamp(320.0, 420.0).toDouble();
-        final sortedSubjects = bookDiscoverGenrePool.toList()
-          ..sort((a, b) => displayBookGenre(a).compareTo(displayBookGenre(b)));
-        return SlideTransition(
-          position: Tween<Offset>(begin: const Offset(1, 0), end: Offset.zero)
-              .animate(
-                CurvedAnimation(parent: animation, curve: Curves.easeOutCubic),
-              ),
-          child: Align(
-            alignment: Alignment.centerRight,
-            child: Material(
-              color: const Color(0xFFF0F7FF),
-              child: SizedBox(
-                width: width,
-                child: SafeArea(
-                  child: StatefulBuilder(
-                    builder: (context, setPanelState) => Padding(
-                      padding: const EdgeInsets.fromLTRB(16, 12, 16, 16),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Row(
-                            children: [
-                              Expanded(
-                                child: Text(
-                                  AppLocalizations.of(
-                                    context,
-                                  ).discoverySubjects,
-                                  style: const TextStyle(
-                                    fontSize: 20,
-                                    fontWeight: FontWeight.w700,
-                                    color: Color(0xFF13233A),
-                                  ),
-                                ),
-                              ),
-                              IconButton(
-                                onPressed: () => Navigator.of(context).pop(),
-                                icon: const AdaptiveIcon(Icons.close_rounded),
-                              ),
-                            ],
-                          ),
-                          const SizedBox(height: 4),
-                          Text(
-                            AppLocalizations.of(context).pickDiscoverySubjects,
-                            style: const TextStyle(color: Color(0xFF5C7290)),
-                          ),
-                          const SizedBox(height: 12),
-                          Expanded(
-                            child: ListView.builder(
-                              itemCount: sortedSubjects.length,
-                              itemBuilder: (context, index) {
-                                final subject = sortedSubjects[index];
-                                final selected = temp.contains(subject);
-                                return CheckboxListTile(
-                                  value: selected,
-                                  controlAffinity:
-                                      ListTileControlAffinity.leading,
-                                  activeColor: const Color(0xFF0D47A1),
-                                  checkColor: Colors.white,
-                                  side: ThemeRegistry.active.borders.chipBorder
-                                      .copyWith(
-                                        color: const Color(0xFF5C7290),
-                                        width: 2,
-                                      ),
-                                  title: Text(
-                                    displayBookGenre(subject),
-                                    style: const TextStyle(
-                                      fontWeight: FontWeight.w600,
-                                      color: Color(0xFF13233A),
-                                    ),
-                                  ),
-                                  onChanged: (value) {
-                                    setPanelState(() {
-                                      if (value == true) {
-                                        temp.add(subject);
-                                      } else if (temp.length > 1) {
-                                        temp.remove(subject);
-                                      }
-                                    });
-                                  },
-                                );
-                              },
-                            ),
-                          ),
-                          const SizedBox(height: 10),
-                          SizedBox(
-                            width: double.infinity,
-                            child: ElevatedButton(
-                              onPressed: () =>
-                                  Navigator.of(context).pop(temp.toList()),
-                              child: Text(AppLocalizations.of(context).apply),
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ),
+    if (_isGenreSheetShowing) return;
+    _isGenreSheetShowing = true;
+    List<String>? result;
+    try {
+      final temp = {..._discoverGenres};
+      final sortedSubjects = bookDiscoverGenrePool.toList()
+        ..sort((a, b) => displayBookGenre(a).compareTo(displayBookGenre(b)));
+      result = await showGeneralDialog<List<String>>(
+        context: context,
+        barrierDismissible: true,
+        barrierLabel: AppLocalizations.of(context).close,
+        barrierColor: Colors.black54,
+        transitionDuration: const Duration(milliseconds: 260),
+        pageBuilder: (context, _, _) => _GenreDialogContent(
+          title: AppLocalizations.of(context).discoverySubjects,
+          subtitle: AppLocalizations.of(context).pickDiscoverySubjects,
+          allGenres: sortedSubjects,
+          initialSelectedGenres: temp.toList(),
+          displayFn: displayBookGenre,
+        ),
+        transitionBuilder: (context, animation, _, child) {
+          return SlideTransition(
+            position: Tween<Offset>(begin: const Offset(1, 0), end: Offset.zero)
+                .animate(
+                  CurvedAnimation(parent: animation, curve: Curves.easeOutCubic),
                 ),
-              ),
-            ),
-          ),
-        );
-      },
-    );
+            child: child,
+          );
+        },
+      );
+    } finally {
+      _isGenreSheetShowing = false;
+    }
 
     if (result == null || result.isEmpty || !mounted) return;
     final sortedResult = result.toList()
@@ -551,119 +548,39 @@ class _BookDiscoverTabState extends State<BookDiscoverTab> {
   }
 
   Future<void> _showAudiobookGenreSheet() async {
-    final temp = {..._discoverAudiobookGenres};
-    final l10n = AppLocalizations.of(context);
-    final result = await showGeneralDialog<List<String>>(
-      context: context,
-      barrierDismissible: true,
-      barrierLabel: l10n.closeGenrePanel,
-      barrierColor: Colors.black54,
-      transitionDuration: const Duration(milliseconds: 260),
-      pageBuilder: (context, _, _) => const SizedBox.shrink(),
-      transitionBuilder: (context, animation, _, _) {
-        final width = MediaQuery.of(
-          context,
-        ).size.width.clamp(320.0, 420.0).toDouble();
-        final sortedGenres = librivoxGenrePool.toList()..sort();
-        return SlideTransition(
-          position: Tween<Offset>(begin: const Offset(1, 0), end: Offset.zero)
-              .animate(
-                CurvedAnimation(parent: animation, curve: Curves.easeOutCubic),
-              ),
-          child: Align(
-            alignment: Alignment.centerRight,
-            child: Material(
-              color: const Color(0xFFF0F7FF),
-              child: SizedBox(
-                width: width,
-                child: SafeArea(
-                  child: StatefulBuilder(
-                    builder: (context, setPanelState) => Padding(
-                      padding: const EdgeInsets.fromLTRB(16, 12, 16, 16),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Row(
-                            children: [
-                              Expanded(
-                                child: Text(
-                                  AppLocalizations.of(context).audiobookGenres,
-                                  style: const TextStyle(
-                                    fontSize: 20,
-                                    fontWeight: FontWeight.w700,
-                                    color: Color(0xFF13233A),
-                                  ),
-                                ),
-                              ),
-                              IconButton(
-                                onPressed: () => Navigator.of(context).pop(),
-                                icon: const AdaptiveIcon(Icons.close_rounded),
-                              ),
-                            ],
-                          ),
-                          const SizedBox(height: 4),
-                          Text(
-                            AppLocalizations.of(context).pickAudiobookGenres,
-                            style: const TextStyle(color: Color(0xFF5C7290)),
-                          ),
-                          const SizedBox(height: 12),
-                          Expanded(
-                            child: ListView.builder(
-                              itemCount: sortedGenres.length,
-                              itemBuilder: (context, index) {
-                                final genre = sortedGenres[index];
-                                final selected = temp.contains(genre);
-                                return CheckboxListTile(
-                                  value: selected,
-                                  controlAffinity:
-                                      ListTileControlAffinity.leading,
-                                  activeColor: const Color(0xFF0D47A1),
-                                  checkColor: Colors.white,
-                                  side: ThemeRegistry.active.borders.chipBorder
-                                      .copyWith(
-                                        color: const Color(0xFF5C7290),
-                                        width: 2,
-                                      ),
-                                  title: Text(
-                                    genre,
-                                    style: const TextStyle(
-                                      fontWeight: FontWeight.w600,
-                                      color: Color(0xFF13233A),
-                                    ),
-                                  ),
-                                  onChanged: (value) {
-                                    setPanelState(() {
-                                      if (value == true) {
-                                        temp.add(genre);
-                                      } else if (temp.length > 1) {
-                                        temp.remove(genre);
-                                      }
-                                    });
-                                  },
-                                );
-                              },
-                            ),
-                          ),
-                          const SizedBox(height: 10),
-                          SizedBox(
-                            width: double.infinity,
-                            child: ElevatedButton(
-                              onPressed: () =>
-                                  Navigator.of(context).pop(temp.toList()),
-                              child: Text(AppLocalizations.of(context).apply),
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ),
+    if (_isAudiobookGenreSheetShowing) return;
+    _isAudiobookGenreSheetShowing = true;
+    List<String>? result;
+    try {
+      final temp = {..._discoverAudiobookGenres};
+      final l10n = AppLocalizations.of(context);
+      final sortedGenres = librivoxGenrePool.toList()..sort();
+      result = await showGeneralDialog<List<String>>(
+        context: context,
+        barrierDismissible: true,
+        barrierLabel: l10n.closeGenrePanel,
+        barrierColor: Colors.black54,
+        transitionDuration: const Duration(milliseconds: 260),
+        pageBuilder: (context, _, _) => _GenreDialogContent(
+          title: AppLocalizations.of(context).audiobookGenres,
+          subtitle: AppLocalizations.of(context).pickAudiobookGenres,
+          allGenres: sortedGenres,
+          initialSelectedGenres: temp.toList(),
+          displayFn: (s) => s,
+        ),
+        transitionBuilder: (context, animation, _, child) {
+          return SlideTransition(
+            position: Tween<Offset>(begin: const Offset(1, 0), end: Offset.zero)
+                .animate(
+                  CurvedAnimation(parent: animation, curve: Curves.easeOutCubic),
                 ),
-              ),
-            ),
-          ),
-        );
-      },
-    );
+            child: child,
+          );
+        },
+      );
+    } finally {
+      _isAudiobookGenreSheetShowing = false;
+    }
 
     if (result == null || result.isEmpty || !mounted) return;
     final sortedResult = result.toList()..sort();
@@ -692,8 +609,9 @@ class _BookDiscoverTabState extends State<BookDiscoverTab> {
   Widget build(BuildContext context) {
     final isMobile =
         PlatformDetection.useMobileUi || MediaQuery.sizeOf(context).width < 600;
+    final paddingVal = isMobile ? 16.0 : widget.leftPadding;
     return Padding(
-      padding: EdgeInsets.fromLTRB(isMobile ? 16 : 60, 0, isMobile ? 16 : 60, 0),
+      padding: EdgeInsets.fromLTRB(paddingVal, 0, paddingVal, 0),
       child: widget.isAudiobook
           ? _buildAudiobookDiscoverCard(isMobile: isMobile)
           : _buildDiscoverCard(isMobile: isMobile),
@@ -703,33 +621,46 @@ class _BookDiscoverTabState extends State<BookDiscoverTab> {
   Widget _buildBookIconButton({
     required IconData icon,
     required VoidCallback onTap,
-    Color backgroundColor = const Color(0x1FEAF4FF),
-    Color foregroundColor = const Color(0xFFEAF4FF),
+    Color? backgroundColor,
+    Color? foregroundColor,
+    FocusNode? focusNode,
+    VoidCallback? onUpPressed,
+    VoidCallback? onDownPressed,
   }) {
-    return InkWell(
-      borderRadius: AppRadius.circular(20),
+    return _BookIconButton(
+      icon: icon,
       onTap: onTap,
-      child: Container(
-        width: 52,
-        height: 52,
-        decoration: BoxDecoration(
-          color: backgroundColor,
-          borderRadius: AppRadius.circular(20),
-          border: Border.fromBorderSide(
-            ThemeRegistry.active.borders.cardBorder.copyWith(
-              color: foregroundColor.withAlpha(28),
-            ),
-          ),
-        ),
-        child: AdaptiveIcon(icon, color: foregroundColor),
-      ),
+      backgroundColor: backgroundColor,
+      foregroundColor: foregroundColor,
+      focusNode: focusNode,
+      onUpPressed: onUpPressed,
+      onDownPressed: onDownPressed,
     );
   }
 
   Widget _buildDiscoverCard({required bool isMobile}) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final containerBgColor = isDark
+        ? AppColorScheme.onSurface.withValues(alpha: 0.05)
+        : const Color(0xFFEFF6FF);
+    final titleTextColor = isDark
+        ? AppColorScheme.onSurface
+        : const Color(0xFF13233A);
+    final subtitleTextColor = isDark
+        ? AppColorScheme.onSurface.withValues(alpha: 0.6)
+        : const Color(0xFF5C7290);
+    final chipBgColor = isDark
+        ? AppColorScheme.onSurface.withValues(alpha: 0.08)
+        : const Color(0xFFDDEEFF);
+    final chipFgColor = isDark
+        ? AppColorScheme.onSurface
+        : const Color(0xFF1D3654);
+
+    final innerPadding = EdgeInsets.symmetric(horizontal: isMobile ? 18.0 : 28.0);
+
     return Container(
       decoration: BoxDecoration(
-        color: const Color(0xFFEFF6FF),
+        color: containerBgColor,
         borderRadius: AppRadius.circular(32),
         boxShadow: const [
           BoxShadow(
@@ -739,81 +670,85 @@ class _BookDiscoverTabState extends State<BookDiscoverTab> {
           ),
         ],
       ),
-      padding: EdgeInsets.fromLTRB(
-        isMobile ? 18 : 28,
-        isMobile ? 22 : 30,
-        isMobile ? 18 : 28,
-        24,
+      padding: EdgeInsets.symmetric(
+        vertical: isMobile ? 22 : 30,
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Row(
-            children: [
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      AppLocalizations.of(context).discover,
-                      style: const TextStyle(
-                        color: Color(0xFF13233A),
-                        fontSize: 28,
-                        fontWeight: FontWeight.w700,
+          Padding(
+            padding: innerPadding,
+            child: Row(
+              children: [
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        AppLocalizations.of(context).discover,
+                        style: TextStyle(
+                          color: titleTextColor,
+                          fontSize: 28,
+                          fontWeight: FontWeight.w700,
+                        ),
                       ),
-                    ),
-                    const SizedBox(height: 6),
-                    Text(
-                      AppLocalizations.of(context).trendingTitlesOpenLibrary,
-                      style: TextStyle(
-                        color: Color(0xFF5C7290),
-                        fontSize: 14,
-                        height: 1.35,
+                      const SizedBox(height: 6),
+                      Text(
+                        AppLocalizations.of(context).trendingTitlesOpenLibrary,
+                        style: TextStyle(
+                          color: subtitleTextColor,
+                          fontSize: 14,
+                          height: 1.35,
+                        ),
                       ),
-                    ),
-                  ],
+                    ],
+                  ),
                 ),
-              ),
-              const SizedBox(width: 12),
-              _buildBookIconButton(
-                icon: Icons.tune_rounded,
-                onTap: _showDiscoverGenreSheet,
-                foregroundColor: const Color(0xFF1D3654),
-                backgroundColor: const Color(0xFFE2F0FF),
-              ),
-            ],
+                const SizedBox(width: 12),
+                _buildBookIconButton(
+                  icon: Icons.tune_rounded,
+                  onTap: _showDiscoverGenreSheet,
+                  focusNode: widget.settingsMenuFocusNode,
+                  onUpPressed: widget.onSettingsUpPressed,
+                  onDownPressed: () => _focusRow(_discoverGenres.first, true),
+                ),
+              ],
+            ),
           ),
           const SizedBox(height: 16),
-          Wrap(
-            spacing: 8,
-            runSpacing: 8,
-            children: _discoverGenres
-                .map(
-                  (genre) => Container(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 10,
-                      vertical: 6,
-                    ),
-                    decoration: BoxDecoration(
-                      color: const Color(0xFFDDEEFF),
-                      borderRadius: AppRadius.circular(999),
-                    ),
-                    child: Text(
-                      displayBookGenre(genre),
-                      style: const TextStyle(
-                        color: Color(0xFF1D3654),
-                        fontSize: 12,
-                        fontWeight: FontWeight.w700,
+          Padding(
+            padding: innerPadding,
+            child: Wrap(
+              spacing: 8,
+              runSpacing: 8,
+              children: _discoverGenres
+                  .map(
+                    (genre) => Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 10,
+                        vertical: 6,
+                      ),
+                      decoration: BoxDecoration(
+                        color: chipBgColor,
+                        borderRadius: AppRadius.circular(999),
+                      ),
+                      child: Text(
+                        displayBookGenre(genre),
+                        style: TextStyle(
+                          color: chipFgColor,
+                          fontSize: 12,
+                          fontWeight: FontWeight.w700,
+                        ),
                       ),
                     ),
-                  ),
-                )
-                .toList(),
+                  )
+                  .toList(),
+            ),
           ),
           const SizedBox(height: 14),
           if (_discoverBootstrapping && !_discoverInitialized)
-            const Padding(
-              padding: EdgeInsets.symmetric(vertical: 28),
+            Padding(
+              padding: const EdgeInsets.symmetric(vertical: 28),
               child: Center(
                 child: CircularProgressIndicator(color: _bookAccent),
               ),
@@ -832,177 +767,274 @@ class _BookDiscoverTabState extends State<BookDiscoverTab> {
     final rowController = _controllerForDiscoverSubject(genre);
     final canScrollRow = items.length > 2 && !isLoading;
 
-    return Padding(
-      padding: const EdgeInsets.only(top: 18),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              Expanded(
-                child: Text(
-                  displayBookGenre(genre),
-                  style: const TextStyle(
-                    color: Color(0xFF13233A),
-                    fontSize: 20,
-                    fontWeight: FontWeight.w700,
-                  ),
-                ),
-              ),
-              Text(
-                AppLocalizations.of(context).booksCount(items.length),
-                style: const TextStyle(
-                  color: Color(0xFF5C7290),
-                  fontSize: 12,
-                  fontWeight: FontWeight.w600,
-                ),
-              ),
-              const SizedBox(width: 8),
-              IconButton(
-                tooltip: AppLocalizations.of(context).scrollLeft,
-                onPressed: canScrollRow
-                    ? () => _scrollDiscoverSubjectRow(genre, -1)
-                    : null,
-                style: IconButton.styleFrom(
-                  backgroundColor: const Color(0xFF16304D),
-                  foregroundColor: Colors.white,
-                  disabledBackgroundColor: const Color(0xFFD7E3F0),
-                  disabledForegroundColor: const Color(0xFF90A5BC),
-                ),
-                icon: const AdaptiveIcon(Icons.chevron_left_rounded),
-              ),
-              IconButton(
-                tooltip: AppLocalizations.of(context).scrollRight,
-                onPressed: canScrollRow
-                    ? () => _scrollDiscoverSubjectRow(genre, 1)
-                    : null,
-                style: IconButton.styleFrom(
-                  backgroundColor: const Color(0xFF16304D),
-                  foregroundColor: Colors.white,
-                  disabledBackgroundColor: const Color(0xFFD7E3F0),
-                  disabledForegroundColor: const Color(0xFF90A5BC),
-                ),
-                icon: const AdaptiveIcon(Icons.chevron_right_rounded),
-              ),
-            ],
-          ),
-          const SizedBox(height: 12),
-          if (items.isEmpty && isLoading)
-            const Padding(
-              padding: EdgeInsets.symmetric(vertical: 20),
-              child: Center(
-                child: CircularProgressIndicator(color: _bookAccent),
-              ),
-            )
-          else if (items.isEmpty && hasFailed)
-            Row(
-              children: [
-                Expanded(
-                  child: Text(
-                    AppLocalizations.of(context).couldNotLoadSubject,
-                    style: const TextStyle(color: Color(0xFF5C7290)),
-                  ),
-                ),
-                TextButton(
-                  onPressed: () => _loadDiscoverPage(genre, reset: true),
-                  child: Text(AppLocalizations.of(context).retry),
-                ),
-              ],
-            )
-          else
-            SizedBox(
-              height: 240,
-              child: ListView.separated(
-                controller: rowController,
-                scrollDirection: Axis.horizontal,
-                itemCount: items.length,
-                separatorBuilder: (_, _) => const SizedBox(width: 12),
-                itemBuilder: (context, index) => SizedBox(
-                  width: 140,
-                  child: _buildDiscoverBookCard(items[index]),
-                ),
-              ),
-            ),
-          const SizedBox(height: 8),
-          if (isLoading && items.isNotEmpty)
-            const SizedBox(
-              height: 30,
-              child: Center(
-                child: CircularProgressIndicator(
-                  strokeWidth: 2.4,
-                  color: _bookAccent,
-                ),
-              ),
-            )
-          else
-            const SizedBox(height: 4),
-        ],
-      ),
-    );
-  }
+    final isMobile =
+        PlatformDetection.useMobileUi || MediaQuery.sizeOf(context).width < 600;
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final titleTextColor = isDark
+        ? AppColorScheme.onSurface
+        : const Color(0xFF13233A);
+    final subtitleTextColor = isDark
+        ? AppColorScheme.onSurface.withValues(alpha: 0.6)
+        : const Color(0xFF5C7290);
 
-  Widget _buildDiscoverBookCard(DiscoverBook item) {
-    return InkWell(
-      borderRadius: AppRadius.circular(18),
-      onTap: () => Navigator.of(context).push(
-        MaterialPageRoute<void>(
-          builder: (_) => DiscoverBookDetailScreen(book: item),
-        ),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Expanded(
-            child: ClipRRect(
-              borderRadius: AppRadius.circular(18),
-              child: item.coverUrl == null
-                  ? Container(
-                      color: const Color(0xFF2C77B7),
-                      alignment: Alignment.center,
-                      padding: const EdgeInsets.all(10),
-                      child: const AdaptiveIcon(
-                        Icons.auto_stories_rounded,
-                        color: Colors.white,
-                        size: 30,
-                      ),
-                    )
-                  : CachedNetworkImage(
-                      imageUrl: item.coverUrl!,
-                      fit: BoxFit.cover,
-                      errorWidget: (_, _, _) => Container(
-                        color: const Color(0xFF2C77B7),
-                        alignment: Alignment.center,
-                        child: const AdaptiveIcon(
-                          Icons.auto_stories_rounded,
-                          color: Colors.white,
+    final genresList = _discoverGenres;
+    final genreIndex = genresList.indexOf(genre);
+    final isFirstRow = genreIndex == 0;
+    final isLastRow = genreIndex == genresList.length - 1;
+    final prevGenre = isFirstRow ? null : genresList[genreIndex - 1];
+    final nextGenre = isLastRow ? null : genresList[genreIndex + 1];
+
+    final innerPadding = EdgeInsets.symmetric(horizontal: isMobile ? 18.0 : 28.0);
+    final horizontalPadding = isMobile ? 18.0 : 28.0;
+
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final viewportWidth = constraints.maxWidth - 2 * horizontalPadding;
+        final adjustedCardWidth = _calculateAdjustedCardWidth(viewportWidth, 140.0);
+        final nodes = _focusNodesForGenre(genre, items.isNotEmpty ? items.length : 1);
+
+        return Padding(
+          padding: const EdgeInsets.only(top: 18),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Padding(
+                padding: innerPadding,
+                child: Row(
+                  children: [
+                    Expanded(
+                      child: Text(
+                        displayBookGenre(genre),
+                        style: TextStyle(
+                          color: titleTextColor,
+                          fontSize: 20,
+                          fontWeight: FontWeight.w700,
                         ),
                       ),
                     ),
-            ),
+                    Text(
+                      AppLocalizations.of(context).booksCount(items.length),
+                      style: TextStyle(
+                        color: subtitleTextColor,
+                        fontSize: 12,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                    if (PlatformDetection.isDesktop) ...[
+                      const SizedBox(width: 8),
+                      IconButton(
+                        tooltip: AppLocalizations.of(context).scrollLeft,
+                        onPressed: canScrollRow
+                            ? () => _scrollDiscoverSubjectRow(genre, -1)
+                            : null,
+                        style: IconButton.styleFrom(
+                          backgroundColor: isDark
+                              ? AppColorScheme.accent
+                              : const Color(0xFF16304D),
+                          foregroundColor: isDark
+                              ? AppColorScheme.onAccent
+                              : Colors.white,
+                          disabledBackgroundColor: isDark
+                              ? AppColorScheme.onSurface.withValues(alpha: 0.1)
+                              : const Color(0xFFD7E3F0),
+                          disabledForegroundColor: isDark
+                              ? AppColorScheme.onSurface.withValues(alpha: 0.3)
+                              : const Color(0xFF90A5BC),
+                        ),
+                        icon: const AdaptiveIcon(Icons.chevron_left_rounded),
+                      ),
+                      IconButton(
+                        tooltip: AppLocalizations.of(context).scrollRight,
+                        onPressed: canScrollRow
+                            ? () => _scrollDiscoverSubjectRow(genre, 1)
+                            : null,
+                        style: IconButton.styleFrom(
+                          backgroundColor: isDark
+                              ? AppColorScheme.accent
+                              : const Color(0xFF16304D),
+                          foregroundColor: isDark
+                              ? AppColorScheme.onAccent
+                              : Colors.white,
+                          disabledBackgroundColor: isDark
+                              ? AppColorScheme.onSurface.withValues(alpha: 0.1)
+                              : const Color(0xFFD7E3F0),
+                          disabledForegroundColor: isDark
+                              ? AppColorScheme.onSurface.withValues(alpha: 0.3)
+                              : const Color(0xFF90A5BC),
+                        ),
+                        icon: const AdaptiveIcon(Icons.chevron_right_rounded),
+                      ),
+                    ],
+                  ],
+                ),
+              ),
+              const SizedBox(height: 12),
+              if (items.isEmpty && isLoading)
+                Padding(
+                  padding: innerPadding,
+                  child: const Padding(
+                    padding: EdgeInsets.symmetric(vertical: 20),
+                    child: Center(
+                      child: CircularProgressIndicator(color: _bookAccent),
+                    ),
+                  ),
+                )
+              else if (items.isEmpty && hasFailed)
+                Padding(
+                  padding: innerPadding,
+                  child: Row(
+                    children: [
+                      Expanded(
+                        child: Text(
+                          AppLocalizations.of(context).couldNotLoadSubject,
+                          style: TextStyle(color: subtitleTextColor),
+                        ),
+                      ),
+                      Focus(
+                        focusNode: isFirstRow ? widget.firstFocusNode : nodes[0],
+                        onKeyEvent: (node, event) {
+                          if (isActivateKey(event)) {
+                            _loadDiscoverPage(genre, reset: true);
+                            return KeyEventResult.handled;
+                          }
+                          if (event.isActionable) {
+                            if (event.logicalKey.isUpKey) {
+                              if (isFirstRow) {
+                                widget.settingsMenuFocusNode?.requestFocus();
+                              } else {
+                                _focusRow(prevGenre!, false);
+                              }
+                              return KeyEventResult.handled;
+                            }
+                            if (event.logicalKey.isDownKey && !isLastRow) {
+                              _focusRow(nextGenre!, true);
+                              return KeyEventResult.handled;
+                            }
+                          }
+                          return KeyEventResult.ignored;
+                        },
+                        child: TextButton(
+                          onPressed: () => _loadDiscoverPage(genre, reset: true),
+                          child: Text(AppLocalizations.of(context).retry),
+                        ),
+                      ),
+                    ],
+                  ),
+                )
+              else
+                SizedBox(
+                  height: 248,
+                  child: ListView.separated(
+                    padding: innerPadding.copyWith(top: 4.0, bottom: 4.0),
+                    clipBehavior: Clip.hardEdge,
+                    controller: rowController,
+                    scrollDirection: Axis.horizontal,
+                    itemCount: items.length,
+                    separatorBuilder: (_, _) => const SizedBox(width: 12),
+                    itemBuilder: (context, index) => SizedBox(
+                      width: adjustedCardWidth,
+                      child: _buildDiscoverBookCard(
+                        items[index],
+                        focusNode: (isFirstRow && index == 0) ? widget.firstFocusNode : nodes[index],
+                        onUpPressed: () {
+                          if (isFirstRow) {
+                            widget.settingsMenuFocusNode?.requestFocus();
+                          } else {
+                            _focusRow(prevGenre!, false);
+                          }
+                        },
+                        onDownPressed: isLastRow
+                            ? null
+                            : () {
+                                _focusRow(nextGenre!, true);
+                              },
+                        onLeftPressed: (index == 0)
+                            ? null
+                            : () {
+                                if (isFirstRow && index == 1) {
+                                  widget.firstFocusNode?.requestFocus();
+                                } else {
+                                  nodes[index - 1].requestFocus();
+                                }
+                              },
+                        onRightPressed: (index == items.length - 1)
+                            ? null
+                            : () => nodes[index + 1].requestFocus(),
+                      ),
+                    ),
+                  ),
+                ),
+              const SizedBox(height: 8),
+              if (isLoading && items.isNotEmpty)
+                const SizedBox(
+                  height: 30,
+                  child: Center(
+                    child: CircularProgressIndicator(
+                      strokeWidth: 2.4,
+                      color: _bookAccent,
+                    ),
+                  ),
+                )
+              else
+                const SizedBox(height: 4),
+            ],
           ),
-          const SizedBox(height: 8),
-          HoverMarqueeText(
-            text: item.title,
-            style: const TextStyle(
-              color: Color(0xFF13233A),
-              fontWeight: FontWeight.w700,
-              fontSize: 13,
-            ),
-          ),
-          const SizedBox(height: 2),
-          HoverMarqueeText(
-            text: item.author,
-            style: const TextStyle(color: Color(0xFF5C7290), fontSize: 12),
-          ),
-        ],
-      ),
+        );
+      },
+    );
+  }
+
+  Widget _buildDiscoverBookCard(
+    DiscoverBook item, {
+    FocusNode? focusNode,
+    VoidCallback? onUpPressed,
+    VoidCallback? onDownPressed,
+    VoidCallback? onLeftPressed,
+    VoidCallback? onRightPressed,
+  }) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final titleTextColor = isDark
+        ? AppColorScheme.onSurface
+        : const Color(0xFF13233A);
+    final subtitleTextColor = isDark
+        ? AppColorScheme.onSurface.withValues(alpha: 0.6)
+        : const Color(0xFF5C7290);
+
+    return _DiscoverBookCard(
+      book: item,
+      titleTextColor: titleTextColor,
+      subtitleTextColor: subtitleTextColor,
+      focusNode: focusNode,
+      onUpPressed: onUpPressed,
+      onDownPressed: onDownPressed,
+      onLeftPressed: onLeftPressed,
+      onRightPressed: onRightPressed,
     );
   }
 
   Widget _buildAudiobookDiscoverCard({required bool isMobile}) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final containerBgColor = isDark
+        ? AppColorScheme.onSurface.withValues(alpha: 0.05)
+        : const Color(0xFFEFF6FF);
+    final titleTextColor = isDark
+        ? AppColorScheme.onSurface
+        : const Color(0xFF13233A);
+    final subtitleTextColor = isDark
+        ? AppColorScheme.onSurface.withValues(alpha: 0.6)
+        : const Color(0xFF5C7290);
+    final chipBgColor = isDark
+        ? AppColorScheme.onSurface.withValues(alpha: 0.08)
+        : const Color(0xFFDDEEFF);
+    final chipFgColor = isDark
+        ? AppColorScheme.onSurface
+        : const Color(0xFF1D3654);
+
+    final innerPadding = EdgeInsets.symmetric(horizontal: isMobile ? 18.0 : 28.0);
+
     return Container(
       decoration: BoxDecoration(
-        color: const Color(0xFFEFF6FF),
+        color: containerBgColor,
         borderRadius: AppRadius.circular(32),
         boxShadow: const [
           BoxShadow(
@@ -1012,105 +1044,107 @@ class _BookDiscoverTabState extends State<BookDiscoverTab> {
           ),
         ],
       ),
-      padding: EdgeInsets.fromLTRB(
-        isMobile ? 18 : 28,
-        isMobile ? 22 : 30,
-        isMobile ? 18 : 28,
-        24,
+      padding: EdgeInsets.symmetric(
+        vertical: isMobile ? 22 : 30,
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Row(
-            children: [
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      AppLocalizations.of(context).discoverAudiobooks,
-                      style: const TextStyle(
-                        color: Color(0xFF13233A),
-                        fontSize: 28,
-                        fontWeight: FontWeight.w700,
+          Padding(
+            padding: innerPadding,
+            child: Row(
+              children: [
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        AppLocalizations.of(context).discoverAudiobooks,
+                        style: TextStyle(
+                          color: titleTextColor,
+                          fontSize: 28,
+                          fontWeight: FontWeight.w700,
+                        ),
                       ),
-                    ),
-                    const SizedBox(height: 6),
-                    Text(
-                      AppLocalizations.of(context).librivoxDescription,
-                      style: const TextStyle(
-                        color: Color(0xFF5C7290),
-                        fontSize: 14,
-                        height: 1.35,
+                      const SizedBox(height: 6),
+                      Text(
+                        AppLocalizations.of(context).librivoxDescription,
+                        style: TextStyle(
+                          color: subtitleTextColor,
+                          fontSize: 14,
+                          height: 1.35,
+                        ),
                       ),
-                    ),
-                  ],
+                    ],
+                  ),
                 ),
-              ),
-              const SizedBox(width: 8),
-              _buildBookIconButton(
-                icon: Icons.people_alt_rounded,
-                onTap: () {
-                  final allBooks = _discoverAudiobooksByGenre.values
-                      .expand((b) => b)
-                      .toList();
-                  final unique = {
-                    for (final b in allBooks) b.id: b,
-                  }.values.toList();
-                  if (unique.isEmpty) return;
-                  Navigator.of(context).push(
-                    MaterialPageRoute<void>(
-                      builder: (_) => LibrivoxAuthorsScreen(
-                        books: unique,
-                        coverCache: Map.unmodifiable(_librivoxCoverCache),
+                const SizedBox(width: 8),
+                _buildBookIconButton(
+                  icon: Icons.people_alt_rounded,
+                  onTap: () {
+                    final allBooks = _discoverAudiobooksByGenre.values
+                        .expand((b) => b)
+                        .toList();
+                    final unique = {
+                      for (final b in allBooks) b.id: b,
+                    }.values.toList();
+                    if (unique.isEmpty) return;
+                    Navigator.of(context).push(
+                      MaterialPageRoute<void>(
+                        builder: (_) => LibrivoxAuthorsScreen(
+                          books: unique,
+                          coverCache: Map.unmodifiable(_librivoxCoverCache),
+                        ),
                       ),
-                    ),
-                  );
-                },
-                foregroundColor: const Color(0xFF1D3654),
-                backgroundColor: const Color(0xFFE2F0FF),
-              ),
-              const SizedBox(width: 4),
-              _buildBookIconButton(
-                icon: Icons.tune_rounded,
-                onTap: _showAudiobookGenreSheet,
-                foregroundColor: const Color(0xFF1D3654),
-                backgroundColor: const Color(0xFFE2F0FF),
-              ),
-            ],
+                    );
+                  },
+                ),
+                const SizedBox(width: 4),
+                _buildBookIconButton(
+                  icon: Icons.tune_rounded,
+                  onTap: _showAudiobookGenreSheet,
+                  focusNode: widget.settingsMenuFocusNode,
+                  onUpPressed: widget.onSettingsUpPressed,
+                  onDownPressed: () => _focusRow(_discoverAudiobookGenres.first, true),
+                ),
+              ],
+            ),
           ),
           const SizedBox(height: 16),
-          Wrap(
-            spacing: 8,
-            runSpacing: 8,
-            children: _discoverAudiobookGenres
-                .map(
-                  (genre) => Container(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 10,
-                      vertical: 6,
-                    ),
-                    decoration: BoxDecoration(
-                      color: const Color(0xFFDDEEFF),
-                      borderRadius: AppRadius.circular(999),
-                    ),
-                    child: Text(
-                      genre,
-                      style: const TextStyle(
-                        color: Color(0xFF1D3654),
-                        fontSize: 12,
-                        fontWeight: FontWeight.w700,
+          Padding(
+            padding: innerPadding,
+            child: Wrap(
+              spacing: 8,
+              runSpacing: 8,
+              children: _discoverAudiobookGenres
+                  .map(
+                    (genre) => Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 10,
+                        vertical: 6,
+                      ),
+                      decoration: BoxDecoration(
+                        color: chipBgColor,
+                        borderRadius: AppRadius.circular(999),
+                      ),
+                      child: Text(
+                        genre,
+                        style: TextStyle(
+                          color: chipFgColor,
+                          fontSize: 12,
+                          fontWeight: FontWeight.w700,
+                        ),
                       ),
                     ),
-                  ),
-                )
-                .toList(),
+                  )
+                  .toList(),
+            ),
           ),
           const SizedBox(height: 14),
           if (_discoverAudiobookBootstrapping && !_discoverAudiobookInitialized)
-            const Padding(
-              padding: EdgeInsets.symmetric(vertical: 28),
-              child: Center(
+            Padding(
+              padding: const EdgeInsets.symmetric(vertical: 28),
+              child: const Center(
                 child: CircularProgressIndicator(color: _bookAccent),
               ),
             )
@@ -1128,113 +1162,220 @@ class _BookDiscoverTabState extends State<BookDiscoverTab> {
     final rowController = _controllerForAudiobookDiscoverGenre(genre);
     final canScrollRow = items.length > 2 && !isLoading;
 
-    return Padding(
-      padding: const EdgeInsets.only(top: 18),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
+    final isMobile =
+        PlatformDetection.useMobileUi || MediaQuery.sizeOf(context).width < 600;
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final titleTextColor = isDark
+        ? AppColorScheme.onSurface
+        : const Color(0xFF13233A);
+    final subtitleTextColor = isDark
+        ? AppColorScheme.onSurface.withValues(alpha: 0.6)
+        : const Color(0xFF5C7290);
+
+    final genresList = _discoverAudiobookGenres;
+    final genreIndex = genresList.indexOf(genre);
+    final isFirstRow = genreIndex == 0;
+    final isLastRow = genreIndex == genresList.length - 1;
+    final prevGenre = isFirstRow ? null : genresList[genreIndex - 1];
+    final nextGenre = isLastRow ? null : genresList[genreIndex + 1];
+
+    final innerPadding = EdgeInsets.symmetric(horizontal: isMobile ? 18.0 : 28.0);
+    final horizontalPadding = isMobile ? 18.0 : 28.0;
+
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final viewportWidth = constraints.maxWidth - 2 * horizontalPadding;
+        final adjustedCardWidth = _calculateAdjustedCardWidth(viewportWidth, 150.0);
+        final nodes = _focusNodesForGenre(genre, items.isNotEmpty ? items.length : 1);
+
+        return Padding(
+          padding: const EdgeInsets.only(top: 18),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Expanded(
-                child: Text(
-                  genre,
-                  style: const TextStyle(
-                    color: Color(0xFF13233A),
-                    fontSize: 20,
-                    fontWeight: FontWeight.w700,
+              Padding(
+                padding: innerPadding,
+                child: Row(
+                  children: [
+                    Expanded(
+                      child: Text(
+                        genre,
+                        style: TextStyle(
+                          color: titleTextColor,
+                          fontSize: 20,
+                          fontWeight: FontWeight.w700,
+                        ),
+                      ),
+                    ),
+                    Text(
+                      AppLocalizations.of(context).titlesCount(items.length),
+                      style: TextStyle(
+                        color: subtitleTextColor,
+                        fontSize: 12,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                    if (PlatformDetection.isDesktop) ...[
+                      const SizedBox(width: 8),
+                      IconButton(
+                        tooltip: AppLocalizations.of(context).scrollLeft,
+                        onPressed: canScrollRow
+                            ? () => _scrollAudiobookDiscoverRow(genre, -1)
+                            : null,
+                        style: IconButton.styleFrom(
+                          backgroundColor: isDark
+                              ? AppColorScheme.accent
+                              : const Color(0xFF16304D),
+                          foregroundColor: isDark
+                              ? AppColorScheme.onAccent
+                              : Colors.white,
+                          disabledBackgroundColor: isDark
+                              ? AppColorScheme.onSurface.withValues(alpha: 0.1)
+                              : const Color(0xFFD7E3F0),
+                          disabledForegroundColor: isDark
+                              ? AppColorScheme.onSurface.withValues(alpha: 0.3)
+                              : const Color(0xFF90A5BC),
+                        ),
+                        icon: const AdaptiveIcon(Icons.chevron_left_rounded),
+                      ),
+                      IconButton(
+                        tooltip: AppLocalizations.of(context).scrollRight,
+                        onPressed: canScrollRow
+                            ? () => _scrollAudiobookDiscoverRow(genre, 1)
+                            : null,
+                        style: IconButton.styleFrom(
+                          backgroundColor: isDark
+                              ? AppColorScheme.accent
+                              : const Color(0xFF16304D),
+                          foregroundColor: isDark
+                              ? AppColorScheme.onAccent
+                              : Colors.white,
+                          disabledBackgroundColor: isDark
+                              ? AppColorScheme.onSurface.withValues(alpha: 0.1)
+                              : const Color(0xFFD7E3F0),
+                          disabledForegroundColor: isDark
+                              ? AppColorScheme.onSurface.withValues(alpha: 0.3)
+                              : const Color(0xFF90A5BC),
+                        ),
+                        icon: const AdaptiveIcon(Icons.chevron_right_rounded),
+                      ),
+                    ],
+                  ],
+                ),
+              ),
+              const SizedBox(height: 12),
+              if (items.isEmpty && isLoading)
+                Padding(
+                  padding: innerPadding,
+                  child: const Padding(
+                    padding: EdgeInsets.symmetric(vertical: 20),
+                    child: Center(
+                      child: CircularProgressIndicator(color: _bookAccent),
+                    ),
+                  ),
+                )
+              else if (items.isEmpty && hasFailed)
+                Padding(
+                  padding: innerPadding,
+                  child: Row(
+                    children: [
+                      Expanded(
+                        child: Text(
+                          AppLocalizations.of(context).couldNotLoadGenre,
+                          style: TextStyle(color: subtitleTextColor),
+                        ),
+                      ),
+                      Focus(
+                        focusNode: isFirstRow ? widget.firstFocusNode : nodes[0],
+                        onKeyEvent: (node, event) {
+                          if (isActivateKey(event)) {
+                            _loadAudiobookDiscoverPage(genre, reset: true);
+                            return KeyEventResult.handled;
+                          }
+                          if (event.isActionable) {
+                            if (event.logicalKey.isUpKey) {
+                              if (isFirstRow) {
+                                widget.settingsMenuFocusNode?.requestFocus();
+                              } else {
+                                _focusRow(prevGenre!, false);
+                              }
+                              return KeyEventResult.handled;
+                            }
+                            if (event.logicalKey.isDownKey && !isLastRow) {
+                              _focusRow(nextGenre!, true);
+                              return KeyEventResult.handled;
+                            }
+                          }
+                          return KeyEventResult.ignored;
+                        },
+                        child: TextButton(
+                          onPressed: () => _loadAudiobookDiscoverPage(genre, reset: true),
+                          child: Text(AppLocalizations.of(context).retry),
+                        ),
+                      ),
+                    ],
+                  ),
+                )
+              else
+                SizedBox(
+                  height: 208,
+                  child: ListView.separated(
+                    padding: innerPadding.copyWith(top: 4.0, bottom: 4.0),
+                    clipBehavior: Clip.hardEdge,
+                    controller: rowController,
+                    scrollDirection: Axis.horizontal,
+                    itemCount: items.length,
+                    separatorBuilder: (_, _) => const SizedBox(width: 12),
+                    itemBuilder: (context, index) => SizedBox(
+                      width: adjustedCardWidth,
+                      child: _buildLibrivoxBookCard(
+                        items[index],
+                        focusNode: (isFirstRow && index == 0) ? widget.firstFocusNode : nodes[index],
+                        onUpPressed: () {
+                          if (isFirstRow) {
+                            widget.settingsMenuFocusNode?.requestFocus();
+                          } else {
+                            _focusRow(prevGenre!, false);
+                          }
+                        },
+                        onDownPressed: isLastRow
+                            ? null
+                            : () {
+                                _focusRow(nextGenre!, true);
+                              },
+                        onLeftPressed: (index == 0)
+                            ? null
+                            : () {
+                                if (isFirstRow && index == 1) {
+                                  widget.firstFocusNode?.requestFocus();
+                                } else {
+                                  nodes[index - 1].requestFocus();
+                                }
+                              },
+                        onRightPressed: (index == items.length - 1)
+                            ? null
+                            : () => nodes[index + 1].requestFocus(),
+                      ),
+                    ),
                   ),
                 ),
-              ),
-              Text(
-                AppLocalizations.of(context).titlesCount(items.length),
-                style: const TextStyle(
-                  color: Color(0xFF5C7290),
-                  fontSize: 12,
-                  fontWeight: FontWeight.w600,
-                ),
-              ),
-              const SizedBox(width: 8),
-              IconButton(
-                tooltip: AppLocalizations.of(context).scrollLeft,
-                onPressed: canScrollRow
-                    ? () => _scrollAudiobookDiscoverRow(genre, -1)
-                    : null,
-                style: IconButton.styleFrom(
-                  backgroundColor: const Color(0xFF16304D),
-                  foregroundColor: Colors.white,
-                  disabledBackgroundColor: const Color(0xFFD7E3F0),
-                  disabledForegroundColor: const Color(0xFF90A5BC),
-                ),
-                icon: const AdaptiveIcon(Icons.chevron_left_rounded),
-              ),
-              IconButton(
-                tooltip: AppLocalizations.of(context).scrollRight,
-                onPressed: canScrollRow
-                    ? () => _scrollAudiobookDiscoverRow(genre, 1)
-                    : null,
-                style: IconButton.styleFrom(
-                  backgroundColor: const Color(0xFF16304D),
-                  foregroundColor: Colors.white,
-                  disabledBackgroundColor: const Color(0xFFD7E3F0),
-                  disabledForegroundColor: const Color(0xFF90A5BC),
-                ),
-                icon: const AdaptiveIcon(Icons.chevron_right_rounded),
-              ),
+              const SizedBox(height: 8),
+              if (isLoading && items.isNotEmpty)
+                const SizedBox(
+                  height: 30,
+                  child: Center(
+                    child: CircularProgressIndicator(
+                      strokeWidth: 2.4,
+                      color: _bookAccent,
+                    ),
+                  ),
+                )
+              else
+                const SizedBox(height: 4),
             ],
           ),
-          const SizedBox(height: 12),
-          if (items.isEmpty && isLoading)
-            const Padding(
-              padding: EdgeInsets.symmetric(vertical: 20),
-              child: Center(
-                child: CircularProgressIndicator(color: _bookAccent),
-              ),
-            )
-          else if (items.isEmpty && hasFailed)
-            Row(
-              children: [
-                Expanded(
-                  child: Text(
-                    AppLocalizations.of(context).couldNotLoadGenre,
-                    style: const TextStyle(color: Color(0xFF5C7290)),
-                  ),
-                ),
-                TextButton(
-                  onPressed: () =>
-                      _loadAudiobookDiscoverPage(genre, reset: true),
-                  child: Text(AppLocalizations.of(context).retry),
-                ),
-              ],
-            )
-          else
-            SizedBox(
-              height: 200,
-              child: ListView.separated(
-                controller: rowController,
-                scrollDirection: Axis.horizontal,
-                itemCount: items.length,
-                separatorBuilder: (_, _) => const SizedBox(width: 12),
-                itemBuilder: (context, index) => SizedBox(
-                  width: 150,
-                  child: _buildLibrivoxBookCard(items[index]),
-                ),
-              ),
-            ),
-          const SizedBox(height: 8),
-          if (isLoading && items.isNotEmpty)
-            const SizedBox(
-              height: 30,
-              child: Center(
-                child: CircularProgressIndicator(
-                  strokeWidth: 2.4,
-                  color: _bookAccent,
-                ),
-              ),
-            )
-          else
-            const SizedBox(height: 4),
-        ],
-      ),
+        );
+      },
     );
   }
 
@@ -1275,72 +1416,951 @@ class _BookDiscoverTabState extends State<BookDiscoverTab> {
     );
   }
 
-  Widget _buildLibrivoxBookCard(LibrivoxBook book) {
+  Widget _buildLibrivoxBookCard(
+    LibrivoxBook book, {
+    FocusNode? focusNode,
+    VoidCallback? onUpPressed,
+    VoidCallback? onDownPressed,
+    VoidCallback? onLeftPressed,
+    VoidCallback? onRightPressed,
+  }) {
     final colorIndex =
         book.id.hashCode.abs() % audiobookPlaceholderColors.length;
     final placeholderColor = audiobookPlaceholderColors[colorIndex];
     final coverUrl = _librivoxCoverCache[book.id];
-    final hasCover =
-        _librivoxCoverCache.containsKey(book.id) && coverUrl != null;
     final resolvedCover = coverUrl;
 
-    return InkWell(
-      borderRadius: AppRadius.circular(18),
-      onTap: () {
-        final allBooksById = <String, LibrivoxBook>{};
-        for (final bookList in _discoverAudiobooksByGenre.values) {
-          for (final discoveredBook in bookList) {
-            allBooksById[discoveredBook.id] = discoveredBook;
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final titleTextColor = isDark
+        ? AppColorScheme.onSurface
+        : const Color(0xFF13233A);
+    final subtitleTextColor = isDark
+        ? AppColorScheme.onSurface.withValues(alpha: 0.6)
+        : const Color(0xFF5C7290);
+
+    final allBooksById = <String, LibrivoxBook>{};
+    for (final bookList in _discoverAudiobooksByGenre.values) {
+      for (final discoveredBook in bookList) {
+        allBooksById[discoveredBook.id] = discoveredBook;
+      }
+    }
+    final allBooks = allBooksById.values.toList();
+
+    return _LibrivoxBookCard(
+      book: book,
+      coverUrl: resolvedCover,
+      allBooks: allBooks,
+      coverCache: Map.of(_librivoxCoverCache),
+      placeholder: _buildAudiobookCoverPlaceholder(placeholderColor, book.formattedDuration),
+      titleTextColor: titleTextColor,
+      subtitleTextColor: subtitleTextColor,
+      focusNode: focusNode,
+      onUpPressed: onUpPressed,
+      onDownPressed: onDownPressed,
+      onLeftPressed: onLeftPressed,
+      onRightPressed: onRightPressed,
+    );
+  }
+}
+
+class _BookIconButton extends StatefulWidget {
+  final IconData icon;
+  final VoidCallback onTap;
+  final Color? backgroundColor;
+  final Color? foregroundColor;
+  final FocusNode? focusNode;
+  final VoidCallback? onUpPressed;
+  final VoidCallback? onDownPressed;
+
+  const _BookIconButton({
+    required this.icon,
+    required this.onTap,
+    this.backgroundColor,
+    this.foregroundColor,
+    this.focusNode,
+    this.onUpPressed,
+    this.onDownPressed,
+  });
+
+  @override
+  State<_BookIconButton> createState() => _BookIconButtonState();
+}
+
+class _BookIconButtonState extends State<_BookIconButton> {
+  bool _focused = false;
+  final FocusNode _parentFocusNode = FocusNode(debugLabel: 'BookIconButtonParent');
+
+  @override
+  void dispose() {
+    _parentFocusNode.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final bg = widget.backgroundColor ?? (isDark ? AppColorScheme.onSurface.withValues(alpha: 0.1) : const Color(0x1FEAF4FF));
+    final fg = widget.foregroundColor ?? (isDark ? AppColorScheme.onSurface : const Color(0xFFEAF4FF));
+
+    return Focus(
+      focusNode: _parentFocusNode,
+      onKeyEvent: (node, event) {
+        if (event.isActionable) {
+          if (event.logicalKey.isUpKey && widget.onUpPressed != null) {
+            widget.onUpPressed!();
+            return KeyEventResult.handled;
+          }
+          if (event.logicalKey.isDownKey && widget.onDownPressed != null) {
+            widget.onDownPressed!();
+            return KeyEventResult.handled;
           }
         }
-        final allBooks = allBooksById.values.toList();
-        Navigator.of(context).push(
-          MaterialPageRoute<void>(
-            builder: (_) => LibrivoxBookDetailScreen(
-              book: book,
-              coverUrl: coverUrl,
-              allBooks: allBooks,
-              coverCache: Map.of(_librivoxCoverCache),
-            ),
-          ),
-        );
+        return KeyEventResult.ignored;
       },
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Expanded(
-            child: ClipRRect(
-              borderRadius: AppRadius.circular(18),
-              child: hasCover
-                  ? CachedNetworkImage(
-                      imageUrl: resolvedCover ?? '',
-                      fit: BoxFit.cover,
-                      errorWidget: (_, _, _) => _buildAudiobookCoverPlaceholder(
-                        placeholderColor,
-                        book.formattedDuration,
-                      ),
-                    )
-                  : _buildAudiobookCoverPlaceholder(
-                      placeholderColor,
-                      book.formattedDuration,
+      child: InkWell(
+        focusNode: widget.focusNode,
+        onFocusChange: (f) {
+          setState(() => _focused = f);
+        },
+        onTap: widget.onTap,
+        borderRadius: AppRadius.circular(20),
+        focusColor: Colors.transparent,
+        child: AnimatedContainer(
+          duration: const Duration(milliseconds: 150),
+          width: 52,
+          height: 52,
+          decoration: BoxDecoration(
+            color: bg,
+            borderRadius: AppRadius.circular(20),
+            border: Border.all(
+              color: _focused ? AppColorScheme.accent : fg.withValues(alpha: 0.11),
+              width: 3.0,
+            ),
+          ),
+          child: Center(
+            child: AdaptiveIcon(widget.icon, color: fg),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _DiscoverBookCard extends StatefulWidget {
+  final DiscoverBook book;
+  final Color titleTextColor;
+  final Color subtitleTextColor;
+  final FocusNode? focusNode;
+  final VoidCallback? onUpPressed;
+  final VoidCallback? onDownPressed;
+  final VoidCallback? onLeftPressed;
+  final VoidCallback? onRightPressed;
+
+  const _DiscoverBookCard({
+    required this.book,
+    required this.titleTextColor,
+    required this.subtitleTextColor,
+    this.focusNode,
+    this.onUpPressed,
+    this.onDownPressed,
+    this.onLeftPressed,
+    this.onRightPressed,
+  });
+
+  @override
+  State<_DiscoverBookCard> createState() => _DiscoverBookCardState();
+}
+
+class _DiscoverBookCardState extends State<_DiscoverBookCard> {
+  bool _focused = false;
+  final FocusNode _parentFocusNode = FocusNode(debugLabel: 'DiscoverCardParent');
+
+  @override
+  void initState() {
+    super.initState();
+    _focused = widget.focusNode?.hasFocus ?? false;
+    widget.focusNode?.addListener(_handleFocusChange);
+  }
+
+  @override
+  void didUpdateWidget(covariant _DiscoverBookCard oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.focusNode != widget.focusNode) {
+      oldWidget.focusNode?.removeListener(_handleFocusChange);
+      widget.focusNode?.addListener(_handleFocusChange);
+      _focused = widget.focusNode?.hasFocus ?? false;
+    }
+  }
+
+  @override
+  void dispose() {
+    _parentFocusNode.dispose();
+    widget.focusNode?.removeListener(_handleFocusChange);
+    super.dispose();
+  }
+
+  void _handleFocusChange() {
+    if (mounted) {
+      setState(() => _focused = widget.focusNode?.hasFocus ?? false);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Focus(
+      focusNode: _parentFocusNode,
+      onKeyEvent: (node, event) {
+        if (event.isActionable) {
+          if (event.logicalKey.isUpKey && widget.onUpPressed != null) {
+            widget.onUpPressed!();
+            return KeyEventResult.handled;
+          }
+          if (event.logicalKey.isDownKey && widget.onDownPressed != null) {
+            widget.onDownPressed!();
+            return KeyEventResult.handled;
+          }
+          if (event.logicalKey.isLeftKey) {
+            if (widget.onLeftPressed != null) {
+              widget.onLeftPressed!();
+            }
+            return KeyEventResult.handled;
+          }
+          if (event.logicalKey.isRightKey) {
+            if (widget.onRightPressed != null) {
+              widget.onRightPressed!();
+            }
+            return KeyEventResult.handled;
+          }
+        }
+        return KeyEventResult.ignored;
+      },
+      child: InkWell(
+        focusNode: widget.focusNode,
+        onFocusChange: (focused) {
+          if (focused) {
+            Scrollable.ensureVisible(
+              context,
+              duration: const Duration(milliseconds: 200),
+              alignment: 0.5,
+              curve: Curves.easeOutCubic,
+            );
+          }
+        },
+        onTap: () => Navigator.of(context).push(
+          MaterialPageRoute<void>(
+            builder: (_) => DiscoverBookDetailScreen(book: widget.book),
+          ),
+        ),
+        borderRadius: AppRadius.circular(18),
+        focusColor: Colors.transparent,
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Expanded(
+              child: AnimatedContainer(
+                duration: const Duration(milliseconds: 150),
+                decoration: BoxDecoration(
+                  borderRadius: AppRadius.circular(18),
+                  border: Border.all(
+                    color: _focused ? AppColorScheme.accent : Colors.transparent,
+                    width: 3.0,
+                  ),
+                ),
+                child: ClipRRect(
+                  borderRadius: AppRadius.circular(15),
+                  child: widget.book.coverUrl == null
+                      ? Container(
+                          color: const Color(0xFF2C77B7),
+                          alignment: Alignment.center,
+                          padding: const EdgeInsets.all(10),
+                          child: const AdaptiveIcon(
+                            Icons.auto_stories_rounded,
+                            color: Colors.white,
+                            size: 30,
+                        ),
+                      )
+                      : CachedNetworkImage(
+                          imageUrl: widget.book.coverUrl!,
+                          fit: BoxFit.cover,
+                          errorWidget: (_, _, _) => Container(
+                            color: const Color(0xFF2C77B7),
+                            alignment: Alignment.center,
+                            child: const AdaptiveIcon(
+                              Icons.auto_stories_rounded,
+                              color: Colors.white,
+                            ),
+                          ),
+                        ),
+                ),
+              ),
+            ),
+            const SizedBox(height: 8),
+            HoverMarqueeText(
+              text: widget.book.title,
+              style: TextStyle(
+                color: widget.titleTextColor,
+                fontWeight: FontWeight.w700,
+                fontSize: 13,
+              ),
+            ),
+            const SizedBox(height: 2),
+            HoverMarqueeText(
+              text: widget.book.author,
+              style: TextStyle(color: widget.subtitleTextColor, fontSize: 12),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _LibrivoxBookCard extends StatefulWidget {
+  final LibrivoxBook book;
+  final String? coverUrl;
+  final List<LibrivoxBook> allBooks;
+  final Map<String, String?> coverCache;
+  final Widget placeholder;
+  final Color titleTextColor;
+  final Color subtitleTextColor;
+  final FocusNode? focusNode;
+  final VoidCallback? onUpPressed;
+  final VoidCallback? onDownPressed;
+  final VoidCallback? onLeftPressed;
+  final VoidCallback? onRightPressed;
+
+  const _LibrivoxBookCard({
+    required this.book,
+    required this.coverUrl,
+    required this.allBooks,
+    required this.coverCache,
+    required this.placeholder,
+    required this.titleTextColor,
+    required this.subtitleTextColor,
+    this.focusNode,
+    this.onUpPressed,
+    this.onDownPressed,
+    this.onLeftPressed,
+    this.onRightPressed,
+  });
+
+  @override
+  State<_LibrivoxBookCard> createState() => _LibrivoxBookCardState();
+}
+
+class _LibrivoxBookCardState extends State<_LibrivoxBookCard> {
+  bool _focused = false;
+  final FocusNode _parentFocusNode = FocusNode(debugLabel: 'LibrivoxCardParent');
+
+  @override
+  void initState() {
+    super.initState();
+    _focused = widget.focusNode?.hasFocus ?? false;
+    widget.focusNode?.addListener(_handleFocusChange);
+  }
+
+  @override
+  void didUpdateWidget(covariant _LibrivoxBookCard oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.focusNode != widget.focusNode) {
+      oldWidget.focusNode?.removeListener(_handleFocusChange);
+      widget.focusNode?.addListener(_handleFocusChange);
+      _focused = widget.focusNode?.hasFocus ?? false;
+    }
+  }
+
+  @override
+  void dispose() {
+    _parentFocusNode.dispose();
+    widget.focusNode?.removeListener(_handleFocusChange);
+    super.dispose();
+  }
+
+  void _handleFocusChange() {
+    if (mounted) {
+      setState(() => _focused = widget.focusNode?.hasFocus ?? false);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final hasCover = widget.coverUrl != null;
+    return Focus(
+      focusNode: _parentFocusNode,
+      onKeyEvent: (node, event) {
+        if (event.isActionable) {
+          if (event.logicalKey.isUpKey && widget.onUpPressed != null) {
+            widget.onUpPressed!();
+            return KeyEventResult.handled;
+          }
+          if (event.logicalKey.isDownKey && widget.onDownPressed != null) {
+            widget.onDownPressed!();
+            return KeyEventResult.handled;
+          }
+          if (event.logicalKey.isLeftKey) {
+            if (widget.onLeftPressed != null) {
+              widget.onLeftPressed!();
+            }
+            return KeyEventResult.handled;
+          }
+          if (event.logicalKey.isRightKey) {
+            if (widget.onRightPressed != null) {
+              widget.onRightPressed!();
+            }
+            return KeyEventResult.handled;
+          }
+        }
+        return KeyEventResult.ignored;
+      },
+      child: InkWell(
+        focusNode: widget.focusNode,
+        onFocusChange: (focused) {
+          if (focused) {
+            Scrollable.ensureVisible(
+              context,
+              duration: const Duration(milliseconds: 200),
+              alignment: 0.5,
+              curve: Curves.easeOutCubic,
+            );
+          }
+        },
+        onTap: () {
+          Navigator.of(context).push(
+            MaterialPageRoute<void>(
+              builder: (_) => LibrivoxBookDetailScreen(
+                book: widget.book,
+                coverUrl: widget.coverUrl,
+                allBooks: widget.allBooks,
+                coverCache: widget.coverCache,
+              ),
+            ),
+          );
+        },
+        borderRadius: AppRadius.circular(18),
+        focusColor: Colors.transparent,
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Expanded(
+              child: AnimatedContainer(
+                duration: const Duration(milliseconds: 150),
+                decoration: BoxDecoration(
+                  borderRadius: AppRadius.circular(18),
+                  border: Border.all(
+                    color: _focused ? AppColorScheme.accent : Colors.transparent,
+                    width: 3.0,
+                  ),
+                ),
+                child: ClipRRect(
+                  borderRadius: AppRadius.circular(15),
+                  child: hasCover
+                      ? CachedNetworkImage(
+                          imageUrl: widget.coverUrl!,
+                          fit: BoxFit.cover,
+                          errorWidget: (_, _, _) => widget.placeholder,
+                        )
+                      : widget.placeholder,
+                ),
+              ),
+            ),
+            const SizedBox(height: 8),
+            HoverMarqueeText(
+              text: widget.book.title,
+              style: TextStyle(
+                color: widget.titleTextColor,
+                fontWeight: FontWeight.w700,
+                fontSize: 13,
+              ),
+            ),
+            const SizedBox(height: 2),
+            HoverMarqueeText(
+              text: widget.book.authorName,
+              style: TextStyle(color: widget.subtitleTextColor, fontSize: 12),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _GenreDialogContent extends StatefulWidget {
+  final String title;
+  final String subtitle;
+  final List<String> allGenres;
+  final List<String> initialSelectedGenres;
+  final String Function(String) displayFn;
+
+  const _GenreDialogContent({
+    required this.title,
+    required this.subtitle,
+    required this.allGenres,
+    required this.initialSelectedGenres,
+    required this.displayFn,
+  });
+
+  @override
+  State<_GenreDialogContent> createState() => _GenreDialogContentState();
+}
+
+class _GenreDialogContentState extends State<_GenreDialogContent> {
+  late Set<String> _selected;
+  final FocusNode _closeFocusNode = FocusNode(debugLabel: 'GenreClose');
+  final List<FocusNode> _genreFocusNodes = [];
+  final FocusNode _applyFocusNode = FocusNode(debugLabel: 'GenreApply');
+  int _lastFocusedGenreIndex = 0;
+
+  @override
+  void initState() {
+    super.initState();
+    _selected = {...widget.initialSelectedGenres};
+    for (int i = 0; i < widget.allGenres.length; i++) {
+      final node = FocusNode(debugLabel: 'GenreItem_$i');
+      node.addListener(() {
+        if (node.hasFocus) {
+          _lastFocusedGenreIndex = i;
+        }
+      });
+      _genreFocusNodes.add(node);
+    }
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (_genreFocusNodes.isNotEmpty) {
+        _genreFocusNodes[0].requestFocus();
+      } else {
+        _applyFocusNode.requestFocus();
+      }
+    });
+  }
+
+  @override
+  void dispose() {
+    _closeFocusNode.dispose();
+    for (final node in _genreFocusNodes) {
+      node.dispose();
+    }
+    _applyFocusNode.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final width = MediaQuery.of(context).size.width.clamp(400.0, 520.0).toDouble();
+
+    final backgroundColor = isDark
+        ? AppColorScheme.background
+        : const Color(0xFFF0F7FF);
+    final titleTextColor = isDark
+        ? AppColorScheme.onSurface
+        : const Color(0xFF13233A);
+    final subtitleTextColor = isDark
+        ? AppColorScheme.onSurface.withValues(alpha: 0.6)
+        : const Color(0xFF5C7290);
+
+    return Align(
+      alignment: Alignment.centerRight,
+      child: Material(
+        color: backgroundColor,
+        child: SizedBox(
+          width: width,
+          child: SafeArea(
+            child: Padding(
+              padding: const EdgeInsets.fromLTRB(24, 16, 24, 24),
+              child: Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          widget.title,
+                          style: TextStyle(
+                            fontSize: 22,
+                            fontWeight: FontWeight.w700,
+                            color: titleTextColor,
+                          ),
+                        ),
+                        const SizedBox(height: 6),
+                        Text(
+                          widget.subtitle,
+                          style: TextStyle(color: subtitleTextColor, fontSize: 13),
+                        ),
+                        const SizedBox(height: 16),
+                        Expanded(
+                          child: ListView.builder(
+                            itemCount: widget.allGenres.length,
+                            itemBuilder: (context, index) {
+                              final genre = widget.allGenres[index];
+                              final selected = _selected.contains(genre);
+                              final isFirst = index == 0;
+                              final isLast = index == widget.allGenres.length - 1;
+
+                              return Padding(
+                                padding: const EdgeInsets.symmetric(vertical: 4.0),
+                                child: _GenreTile(
+                                  title: widget.displayFn(genre),
+                                  value: selected,
+                                  focusNode: _genreFocusNodes[index],
+                                  onChanged: (value) {
+                                    setState(() {
+                                      if (value == true) {
+                                        _selected.add(genre);
+                                      } else if (_selected.length > 1) {
+                                        _selected.remove(genre);
+                                      }
+                                    });
+                                  },
+                                  onUpPressed: () {
+                                    if (!isFirst) {
+                                      _genreFocusNodes[index - 1].requestFocus();
+                                    }
+                                  },
+                                  onDownPressed: () {
+                                    if (!isLast) {
+                                      _genreFocusNodes[index + 1].requestFocus();
+                                    }
+                                  },
+                                  onRightPressed: () {
+                                    if (index < 4) {
+                                      _closeFocusNode.requestFocus();
+                                    } else {
+                                      _applyFocusNode.requestFocus();
+                                    }
+                                  },
+                                ),
+                              );
+                            },
+                          ),
+                        ),
+                      ],
                     ),
+                  ),
+                  const SizedBox(width: 20),
+                  SizedBox(
+                    width: 80,
+                    child: Column(
+                      children: [
+                        _FocusableCloseButton(
+                          focusNode: _closeFocusNode,
+                          onPressed: () => Navigator.of(context).pop(),
+                          onDownPressed: () => _applyFocusNode.requestFocus(),
+                          onLeftPressed: () {
+                            if (_genreFocusNodes.isNotEmpty) {
+                              _genreFocusNodes[_lastFocusedGenreIndex].requestFocus();
+                            }
+                          },
+                        ),
+                        const Spacer(),
+                        _ApplyButton(
+                          focusNode: _applyFocusNode,
+                          label: AppLocalizations.of(context).apply,
+                          onPressed: () => Navigator.of(context).pop(_selected.toList()),
+                          onUpPressed: () => _closeFocusNode.requestFocus(),
+                          onLeftPressed: () {
+                            if (_genreFocusNodes.isNotEmpty) {
+                              _genreFocusNodes[_lastFocusedGenreIndex].requestFocus();
+                            }
+                          },
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
             ),
           ),
-          const SizedBox(height: 8),
-          HoverMarqueeText(
-            text: book.title,
+        ),
+      ),
+    );
+  }
+}
+
+class _FocusableCloseButton extends StatefulWidget {
+  final VoidCallback onPressed;
+  final FocusNode? focusNode;
+  final VoidCallback? onDownPressed;
+  final VoidCallback? onLeftPressed;
+
+  const _FocusableCloseButton({
+    required this.onPressed,
+    this.focusNode,
+    this.onDownPressed,
+    this.onLeftPressed,
+  });
+
+  @override
+  State<_FocusableCloseButton> createState() => _FocusableCloseButtonState();
+}
+
+class _FocusableCloseButtonState extends State<_FocusableCloseButton> {
+  bool _focused = false;
+  late final FocusNode _effectiveFocusNode;
+  final FocusNode _parentFocusNode = FocusNode(debugLabel: 'CloseButtonParent');
+
+  @override
+  void initState() {
+    super.initState();
+    _effectiveFocusNode = widget.focusNode ?? FocusNode();
+    _effectiveFocusNode.addListener(_handleFocusChange);
+    _focused = _effectiveFocusNode.hasFocus;
+  }
+
+  @override
+  void dispose() {
+    _parentFocusNode.dispose();
+    if (widget.focusNode == null) {
+      _effectiveFocusNode.dispose();
+    } else {
+      _effectiveFocusNode.removeListener(_handleFocusChange);
+    }
+    super.dispose();
+  }
+
+  void _handleFocusChange() {
+    if (mounted) {
+      setState(() => _focused = _effectiveFocusNode.hasFocus);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final color = isDark ? AppColorScheme.onSurface : const Color(0xFF13233A);
+
+    return Focus(
+      focusNode: _parentFocusNode,
+      onKeyEvent: (node, event) {
+        if (event.isActionable) {
+          if (event.logicalKey.isDownKey && widget.onDownPressed != null) {
+            widget.onDownPressed!();
+            return KeyEventResult.handled;
+          }
+          if (event.logicalKey.isLeftKey && widget.onLeftPressed != null) {
+            widget.onLeftPressed!();
+            return KeyEventResult.handled;
+          }
+        }
+        return KeyEventResult.ignored;
+      },
+      child: Container(
+        decoration: BoxDecoration(
+          shape: BoxShape.circle,
+          border: Border.all(
+            color: _focused ? AppColorScheme.accent : Colors.transparent,
+            width: 2.0,
+          ),
+        ),
+        child: IconButton(
+          focusNode: _effectiveFocusNode,
+          onPressed: widget.onPressed,
+          icon: AdaptiveIcon(Icons.close_rounded, color: color),
+        ),
+      ),
+    );
+  }
+}
+
+class _GenreTile extends StatefulWidget {
+  final String title;
+  final bool value;
+  final ValueChanged<bool?> onChanged;
+  final FocusNode? focusNode;
+  final VoidCallback? onUpPressed;
+  final VoidCallback? onDownPressed;
+  final VoidCallback? onRightPressed;
+
+  const _GenreTile({
+    required this.title,
+    required this.value,
+    required this.onChanged,
+    this.focusNode,
+    this.onUpPressed,
+    this.onDownPressed,
+    this.onRightPressed,
+  });
+
+  @override
+  State<_GenreTile> createState() => _GenreTileState();
+}
+
+class _GenreTileState extends State<_GenreTile> {
+  bool _focused = false;
+  final FocusNode _parentFocusNode = FocusNode(debugLabel: 'GenreTileParent');
+
+  @override
+  void dispose() {
+    _parentFocusNode.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final tileBg = _focused
+        ? (isDark ? AppColorScheme.accent.withValues(alpha: 0.15) : const Color(0xFFE3F2FD))
+        : Colors.transparent;
+    final titleColor = isDark ? AppColorScheme.onSurface : const Color(0xFF13233A);
+
+    return Focus(
+      focusNode: _parentFocusNode,
+      onKeyEvent: (node, event) {
+        if (event.isActionable) {
+          if (event.logicalKey.isUpKey && widget.onUpPressed != null) {
+            widget.onUpPressed!();
+            return KeyEventResult.handled;
+          }
+          if (event.logicalKey.isDownKey && widget.onDownPressed != null) {
+            widget.onDownPressed!();
+            return KeyEventResult.handled;
+          }
+          if (event.logicalKey.isRightKey && widget.onRightPressed != null) {
+            widget.onRightPressed!();
+            return KeyEventResult.handled;
+          }
+        }
+        return KeyEventResult.ignored;
+      },
+      child: InkWell(
+        focusNode: widget.focusNode,
+        onFocusChange: (f) {
+          setState(() => _focused = f);
+          if (f) {
+            Scrollable.ensureVisible(
+              context,
+              duration: const Duration(milliseconds: 150),
+              alignment: 0.5,
+              curve: Curves.easeOutCubic,
+            );
+          }
+        },
+        onTap: () => widget.onChanged(!widget.value),
+        focusColor: Colors.transparent,
+        borderRadius: AppRadius.circular(12),
+        child: AnimatedContainer(
+          duration: const Duration(milliseconds: 150),
+          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+          decoration: BoxDecoration(
+            color: tileBg,
+            borderRadius: AppRadius.circular(12),
+            border: Border.all(
+              color: _focused ? AppColorScheme.accent : Colors.transparent,
+              width: 2.0,
+            ),
+          ),
+          child: Row(
+            children: [
+              Checkbox(
+                value: widget.value,
+                onChanged: widget.onChanged,
+                activeColor: isDark ? AppColorScheme.accent : const Color(0xFF0D47A1),
+                checkColor: Colors.white,
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Text(
+                  widget.title,
+                  style: TextStyle(
+                    fontWeight: FontWeight.w600,
+                    color: titleColor,
+                    fontSize: 15,
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _ApplyButton extends StatefulWidget {
+  final VoidCallback onPressed;
+  final String label;
+  final FocusNode? focusNode;
+  final VoidCallback? onUpPressed;
+  final VoidCallback? onLeftPressed;
+
+  const _ApplyButton({
+    required this.onPressed,
+    required this.label,
+    this.focusNode,
+    this.onUpPressed,
+    this.onLeftPressed,
+  });
+
+  @override
+  State<_ApplyButton> createState() => _ApplyButtonState();
+}
+
+class _ApplyButtonState extends State<_ApplyButton> {
+  bool _focused = false;
+  final FocusNode _parentFocusNode = FocusNode(debugLabel: 'ApplyButtonParent');
+
+  @override
+  void dispose() {
+    _parentFocusNode.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final btnColor = isDark ? AppColorScheme.accent : const Color(0xFF0D47A1);
+
+    return Focus(
+      focusNode: _parentFocusNode,
+      onKeyEvent: (node, event) {
+        if (event.isActionable) {
+          if (event.logicalKey.isUpKey && widget.onUpPressed != null) {
+            widget.onUpPressed!();
+            return KeyEventResult.handled;
+          }
+          if (event.logicalKey.isLeftKey && widget.onLeftPressed != null) {
+            widget.onLeftPressed!();
+            return KeyEventResult.handled;
+          }
+        }
+        return KeyEventResult.ignored;
+      },
+      child: InkWell(
+        focusNode: widget.focusNode,
+        onFocusChange: (f) => setState(() => _focused = f),
+        onTap: widget.onPressed,
+        borderRadius: AppRadius.circular(16),
+        focusColor: Colors.transparent,
+        child: AnimatedContainer(
+          duration: const Duration(milliseconds: 150),
+          width: double.infinity,
+          height: 48,
+          alignment: Alignment.center,
+          decoration: BoxDecoration(
+            color: btnColor,
+            borderRadius: AppRadius.circular(16),
+            border: Border.all(
+              color: _focused ? (isDark ? Colors.white : Colors.black) : Colors.transparent,
+              width: 3.0,
+            ),
+            boxShadow: _focused
+                ? [
+                    BoxShadow(
+                      color: btnColor.withValues(alpha: 0.4),
+                      blurRadius: 12,
+                      offset: const Offset(0, 4),
+                    )
+                  ]
+                : [],
+          ),
+          child: Text(
+            widget.label,
             style: const TextStyle(
-              color: Color(0xFF13233A),
+              color: Colors.white,
               fontWeight: FontWeight.w700,
-              fontSize: 13,
+              fontSize: 16,
             ),
           ),
-          const SizedBox(height: 2),
-          HoverMarqueeText(
-            text: book.authorName,
-            style: const TextStyle(color: Color(0xFF5C7290), fontSize: 12),
-          ),
-        ],
+        ),
       ),
     );
   }

@@ -649,10 +649,14 @@ class RowDataSource {
     );
   }
 
-  Future<HomeRow> loadLibraryResume(String parentId, String serverId) async {
+  Future<HomeRow> loadLibraryResume(
+    String parentId,
+    String serverId, {
+    List<String> includeItemTypes = const ['Video'],
+  }) async {
     final response = await _getResumeItemsWithFallback(
       parentId: parentId,
-      includeItemTypes: ['Video'],
+      includeItemTypes: includeItemTypes,
       limit: _defaultLimit,
     );
     return _buildRow(

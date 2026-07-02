@@ -28,6 +28,18 @@ class BookBrowseViewModel extends ChangeNotifier {
   AggregatedItem? _featured;
   AggregatedItem? get featuredItem => _featured;
 
+  int _bookCount = 0;
+  int get bookCount => _bookCount;
+  int _audiobookCount = 0;
+  int get audiobookCount => _audiobookCount;
+
+  bool _isAudiobook(AggregatedItem item) {
+    final type = (item.type ?? '').toLowerCase();
+    final mediaType = (item.rawData['MediaType'] as String? ?? '')
+        .toLowerCase();
+    return type == 'audio' || type == 'audiobook' || mediaType == 'audio';
+  }
+
   int _titleCount = 0;
   int get titleCount => _titleCount;
   int _genreCount = 0;
@@ -50,7 +62,7 @@ class BookBrowseViewModel extends ChangeNotifier {
        _collectionType = collectionType;
 
   List<String> get _itemTypes =>
-      isAudiobookLibrary ? const ['AudioBook', 'Audio'] : const ['Book'];
+      isAudiobookLibrary ? const ['AudioBook', 'Audio'] : const ['Book', 'AudioBook', 'Audio'];
 
   Future<void> load() async {
     _isLoading = true;
@@ -68,7 +80,12 @@ class BookBrowseViewModel extends ChangeNotifier {
 
     try {
       final allTitle = isAudiobookLibrary ? l10n.audiobooks : l10n.books;
-      final resumeF = _dataSource.loadLibraryResume(libraryId, _serverId);
+      final resumeF = _dataSource.loadLibraryResume(
+        libraryId,
+        _serverId,
+        includeItemTypes: _itemTypes,
+      );
+      final resumeAudioF = _dataSource.loadResumeAudio(_serverId);
       final latestF = _dataSource.loadLatestMedia(
         libraryId,
         _libraryName,
@@ -103,8 +120,10 @@ class BookBrowseViewModel extends ChangeNotifier {
 
       await Future.wait([
         resumeF,
+        resumeAudioF,
         latestF,
-        ?lastPlayedF,
+        // ignore: use_null_aware_elements
+        if (lastPlayedF != null) lastPlayedF,
         favoritesF,
         genresF,
         collectionsF,
@@ -112,6 +131,7 @@ class BookBrowseViewModel extends ChangeNotifier {
       ]);
 
       final resume = await resumeF;
+      final resumeAudio = await resumeAudioF;
       final latest = await latestF;
       final lastPlayed = lastPlayedF == null ? null : await lastPlayedF;
       final favorites = await favoritesF;
@@ -119,19 +139,97 @@ class BookBrowseViewModel extends ChangeNotifier {
       final collections = await collectionsF;
       final all = await allF;
 
-      _rows = [
-        resume,
-        latest,
-        ?lastPlayed,
-        favorites,
-        genres,
-        collections,
-        all,
-      ].where((r) => r.items.isNotEmpty).toList();
+      final libraryItemIds = all.items.map((e) => e.id).toSet();
+      final libraryResumeAudio = resumeAudio.items
+          .where((item) => libraryItemIds.contains(item.id))
+          .toList();
+
+      final mergedResumeItems = [
+        ...resume.items,
+        ...libraryResumeAudio,
+      ];
+
+      final splitRows = <HomeRow>[];
+
+      void addSplit({
+        required HomeRow original,
+        required String booksId,
+        required String audiobooksId,
+        required String booksTitle,
+        required String audiobooksTitle,
+      }) {
+        final booksItems = original.items.where((item) => !_isAudiobook(item)).toList();
+        final audioItems = original.items.where((item) => _isAudiobook(item)).toList();
+
+        if (booksItems.isNotEmpty) {
+          splitRows.add(original.copyWith(
+            id: booksId,
+            title: booksTitle,
+            items: booksItems,
+            totalCount: booksItems.length,
+          ));
+        }
+        if (audioItems.isNotEmpty) {
+          splitRows.add(original.copyWith(
+            id: audiobooksId,
+            title: audiobooksTitle,
+            items: audioItems,
+            totalCount: audioItems.length,
+            isAudio: true,
+          ));
+        }
+      }
+
+      if (isAudiobookLibrary) {
+        addSplit(
+          original: latest,
+          booksId: 'recently_added_books',
+          audiobooksId: 'recently_added_audiobooks',
+          booksTitle: 'Recently Added Books',
+          audiobooksTitle: 'Recently Added Audiobooks',
+        );
+        _rows = [
+          resume,
+          ...splitRows,
+          // ignore: use_null_aware_elements
+          if (lastPlayed != null) lastPlayed,
+          favorites,
+          genres,
+          collections,
+        ].where((r) => r.items.isNotEmpty).toList();
+      } else {
+        if (mergedResumeItems.isNotEmpty) {
+          splitRows.add(resume.copyWith(
+            title: l10n.continueReading,
+            items: mergedResumeItems,
+            totalCount: mergedResumeItems.length,
+          ));
+        }
+        addSplit(
+          original: latest,
+          booksId: 'recently_added_books',
+          audiobooksId: 'recently_added_audiobooks',
+          booksTitle: 'Recently Added Books',
+          audiobooksTitle: 'Recently Added Audiobooks',
+        );
+
+        _rows = [
+          ...splitRows,
+          favorites,
+          genres,
+          collections,
+        ].where((r) => r.items.isNotEmpty).toList();
+      }
 
       _featured = resume.items.isNotEmpty
           ? resume.items.first
           : (latest.items.isNotEmpty ? latest.items.first : null);
+      
+      final booksAll = all.items.where((item) => !_isAudiobook(item)).toList();
+      final audioAll = all.items.where((item) => _isAudiobook(item)).toList();
+      _bookCount = booksAll.length;
+      _audiobookCount = audioAll.length;
+      
       _titleCount = all.totalCount > 0 ? all.totalCount : all.items.length;
       _genreCount = genres.items.length;
       _seriesCount = 0;

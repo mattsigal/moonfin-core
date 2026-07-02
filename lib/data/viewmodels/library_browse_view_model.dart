@@ -352,7 +352,11 @@ class LibraryBrowseViewModel extends ChangeNotifier {
 
     if (isBookLibrary) {
       recursive = true;
-      includeTypes = ['Book', 'Audio', 'AudioBook'];
+      if (includeItemTypes != null) {
+        includeTypes = List<String>.from(includeItemTypes!);
+      } else {
+        includeTypes = ['Book', 'Audio', 'AudioBook'];
+      }
       sortBy = 'SortName';
     } else if (isHomeVideosLibrary || isMixedContentLibrary) {
       recursive = false;
@@ -719,7 +723,17 @@ class LibraryBrowseViewModel extends ChangeNotifier {
 
   bool get isBookLibrary =>
       _collectionType == 'books' ||
-      (includeItemTypes != null && includeItemTypes!.contains('Book'));
+      _collectionType == 'audiobooks' ||
+      (includeItemTypes != null &&
+          (includeItemTypes!.contains('Book') ||
+              includeItemTypes!.contains('AudioBook') ||
+              includeItemTypes!.contains('Audio')));
+
+  bool get isAudiobookLibrary =>
+      _collectionType == 'audiobooks' ||
+      (includeItemTypes != null &&
+          (includeItemTypes!.contains('AudioBook') ||
+              includeItemTypes!.contains('Audio')));
 
   bool get isHomeVideosLibrary =>
       !isGenreBrowse &&

@@ -330,7 +330,11 @@ class _TopToolbarState extends State<TopToolbar> {
       return;
     }
     final focusContent = NavigationLayout.focusContentFromNavbarNotifier.value;
-    if (focusContent != null && widget.activeRoute == Destinations.home) {
+    final isBrowseRoute = widget.activeRoute == Destinations.home ||
+        widget.activeRoute?.startsWith('/books/') == true ||
+        widget.activeRoute?.startsWith('/music/') == true ||
+        widget.activeRoute?.startsWith('/library/') == true;
+    if (focusContent != null && isBrowseRoute) {
       focusContent();
       WidgetsBinding.instance.addPostFrameCallback((_) {
         if (!mounted) return;
@@ -550,7 +554,9 @@ class _TopToolbarState extends State<TopToolbar> {
                     }
                   }
 
+                  final hasCustomFocus = NavigationLayout.focusContentFromNavbarNotifier.value != null;
                   if (widget.activeRoute != Destinations.home &&
+                      !hasCustomFocus &&
                       NavigationLayout.focusDetailsPlayButtonNotifier.value == null) {
                     final success =
                         primary.focusInDirection(TraversalDirection.down);

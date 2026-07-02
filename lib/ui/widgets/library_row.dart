@@ -14,6 +14,7 @@ class LibraryRow extends StatefulWidget {
   final double? rowHeight;
   final ScrollController? scrollController;
   final bool isLoading;
+  final double? leftPadding;
 
   const LibraryRow({
     super.key,
@@ -23,6 +24,7 @@ class LibraryRow extends StatefulWidget {
     this.rowHeight,
     this.scrollController,
     this.isLoading = false,
+    this.leftPadding,
   });
 
   @override
@@ -39,6 +41,9 @@ class _LibraryRowState extends State<LibraryRow> {
         .get(UserPreferences.desktopUiScale)
         .scaleFactor;
     final rowHeight = (widget.rowHeight ?? 220) * desktopScale;
+    final leftPad = widget.leftPadding ?? (20.0 * desktopScale);
+    final headerLeftPad = widget.leftPadding ?? (16.0 * desktopScale);
+
     return HorizontalScrollSection(
       title: widget.title,
       scrollController: widget.scrollController,
@@ -47,7 +52,7 @@ class _LibraryRowState extends State<LibraryRow> {
         fontWeight: FontWeight.w700,
       ),
       headerPadding: EdgeInsets.fromLTRB(
-        16 * desktopScale,
+        headerLeftPad,
         16 * desktopScale,
         8 * desktopScale,
         8 * desktopScale,
@@ -72,10 +77,11 @@ class _LibraryRowState extends State<LibraryRow> {
               )
             : hasItems
                 ? ListView.separated(
+                    clipBehavior: Clip.none,
                     controller: scrollController,
                     scrollDirection: Axis.horizontal,
                     padding: EdgeInsets.fromLTRB(
-                      20 * desktopScale,
+                      leftPad,
                       5 * desktopScale,
                       20 * desktopScale,
                       5 * desktopScale,

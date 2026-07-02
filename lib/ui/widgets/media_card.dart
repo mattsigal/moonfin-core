@@ -130,6 +130,7 @@ class MediaCard extends StatefulWidget {
         return 16 / 9;
       case 'MusicAlbum':
       case 'Audio':
+      case 'AudioBook':
       case 'MusicArtist':
       case 'Playlist':
       case 'Person':
@@ -309,6 +310,12 @@ class _MediaCardState extends State<MediaCard> with FocusStateMixin {
                 setFocused(hasFocus);
                 if (hasFocus) {
                   widget.onFocus?.call();
+                  Scrollable.ensureVisible(
+                    context,
+                    duration: const Duration(milliseconds: 200),
+                    alignment: 0.5,
+                    curve: Curves.easeOutCubic,
+                  );
                 } else {
                   widget.onFocusLost?.call();
                 }
@@ -530,7 +537,11 @@ class _CardImage extends StatelessWidget {
                   child: imageUrl != null
                       ? BoundedNetworkImage(
                           imageUrl: imageUrl!,
-                          fit: (itemType == 'Network' || itemType == 'Studio')
+                          fit: (itemType == 'Network' ||
+                                  itemType == 'Studio' ||
+                                  itemType == 'Book' ||
+                                  itemType == 'AudioBook' ||
+                                  itemType == 'Audio')
                               ? BoxFit.contain
                               : BoxFit.cover,
                           fadeInDuration: Duration.zero,
@@ -567,6 +578,63 @@ class _CardImage extends StatelessWidget {
                   )
                 else if (_showWatchedIndicator)
                   Positioned(top: 4, right: 4, child: _buildWatchedIndicator()),
+                if (playedPercentage != null && playedPercentage! > 0 && playedPercentage! < 100 && !isPlayed)
+                  Positioned.fill(
+                    child: Center(
+                      child: AnimatedSwitcher(
+                        duration: const Duration(milliseconds: 150),
+                        child: (focused || hovered)
+                            ? Container(
+                                key: const ValueKey('focused_play'),
+                                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+                                decoration: BoxDecoration(
+                                  color: AppColorScheme.accent,
+                                  borderRadius: AppRadius.circular(16),
+                                  boxShadow: const [
+                                    BoxShadow(
+                                      color: Colors.black38,
+                                      blurRadius: 8,
+                                      offset: Offset(0, 3),
+                                    ),
+                                  ],
+                                ),
+                                child: Row(
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [
+                                    const Icon(
+                                      Icons.play_arrow,
+                                      size: 14,
+                                      color: Colors.white,
+                                    ),
+                                    const SizedBox(width: 4),
+                                    const Text(
+                                      'Resume',
+                                      style: TextStyle(
+                                        color: Colors.white,
+                                        fontSize: 10.5,
+                                        fontWeight: FontWeight.bold,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              )
+                            : Container(
+                                key: const ValueKey('unfocused_play'),
+                                width: 32,
+                                height: 32,
+                                decoration: BoxDecoration(
+                                  shape: BoxShape.circle,
+                                  color: Colors.black.withValues(alpha: 0.5),
+                                ),
+                                child: const Icon(
+                                  Icons.play_arrow,
+                                  size: 16,
+                                  color: Colors.white,
+                                ),
+                              ),
+                      ),
+                    ),
+                  ),
                 if (playedPercentage != null && playedPercentage! > 0)
                   Positioned(
                     left: 6,

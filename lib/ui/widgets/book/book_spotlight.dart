@@ -3,9 +3,15 @@ import 'dart:ui';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
+import 'package:get_it/get_it.dart';
 import 'package:moonfin_design/moonfin_design.dart';
 
+import 'package:flutter/services.dart';
+import '../../../preference/user_preferences.dart';
+import '../../../util/focus/dpad_keys.dart';
 import '../../../util/platform_detection.dart';
+import '../../mixins/focus_state_mixin.dart';
+import '../navigation_layout.dart';
 import 'book_glass.dart';
 
 class BookSpotlight extends StatelessWidget {
@@ -19,6 +25,7 @@ class BookSpotlight extends StatelessWidget {
     this.imageUrl,
     this.progress,
     this.topInset = 0,
+    this.focusNode,
   });
 
   final String eyebrow;
@@ -29,6 +36,7 @@ class BookSpotlight extends StatelessWidget {
   final String? imageUrl;
   final double? progress;
   final double topInset;
+  final FocusNode? focusNode;
 
   @override
   Widget build(BuildContext context) {
@@ -130,6 +138,7 @@ class BookSpotlight extends StatelessWidget {
                             apple: apple,
                             label: ctaLabel,
                             onTap: onPrimary,
+                            focusNode: focusNode,
                           ),
                         ],
                       ),
@@ -177,7 +186,7 @@ class _Cover extends StatelessWidget {
           child: imageUrl != null
               ? CachedNetworkImage(
                   imageUrl: imageUrl!,
-                  fit: BoxFit.cover,
+                  fit: BoxFit.contain,
                   errorWidget: (_, _, _) => _placeholder(),
                 )
               : _placeholder(),
@@ -230,60 +239,111 @@ class _ProgressRing extends StatelessWidget {
   }
 }
 
-class _ResumeButton extends StatelessWidget {
+class _ResumeButton extends StatefulWidget {
   const _ResumeButton({
     required this.apple,
     required this.label,
     required this.onTap,
+    this.focusNode,
   });
 
   final bool apple;
   final String label;
   final VoidCallback onTap;
+  final FocusNode? focusNode;
 
   @override
+  State<_ResumeButton> createState() => _ResumeButtonState();
+}
+
+class _ResumeButtonState extends State<_ResumeButton> with FocusStateMixin {
+  @override
   Widget build(BuildContext context) {
-    final content = Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 9),
+    final focusColor = Color(
+      GetIt.instance<UserPreferences>()
+          .get(UserPreferences.focusColor)
+          .colorValue,
+    );
+
+    final showLabel = showFocusBorder;
+    final content = AnimatedContainer(
+      duration: const Duration(milliseconds: 120),
+      padding: showLabel
+          ? const EdgeInsets.symmetric(horizontal: 16, vertical: 9)
+          : const EdgeInsets.all(9),
       child: Row(
         mainAxisSize: MainAxisSize.min,
+        mainAxisAlignment: MainAxisAlignment.center,
         children: [
           Icon(
-            apple ? CupertinoIcons.play_fill : Icons.play_arrow,
+            widget.apple ? CupertinoIcons.play_fill : Icons.play_arrow,
             size: 16,
-            color: apple ? AppColorScheme.onSurface : AppColorScheme.onAccent,
+            color: (widget.apple || showFocusBorder) ? AppColorScheme.onSurface : AppColorScheme.onAccent,
           ),
-          const SizedBox(width: 6),
-          Text(
-            label,
-            style: TextStyle(
-              fontSize: 13,
-              fontWeight: FontWeight.w600,
-              color: apple ? AppColorScheme.onSurface : AppColorScheme.onAccent,
+          if (showLabel) ...[
+            const SizedBox(width: 6),
+            Text(
+              widget.label,
+              style: TextStyle(
+                fontSize: 13,
+                fontWeight: FontWeight.w600,
+                color: (widget.apple || showFocusBorder) ? AppColorScheme.onSurface : AppColorScheme.onAccent,
+              ),
             ),
-          ),
+          ],
         ],
       ),
     );
 
-    return GestureDetector(
-      onTap: onTap,
-      behavior: HitTestBehavior.opaque,
-      child: apple
-          ? bookGlassOrSolid(
-              cornerRadius: 22,
-              blur: 18,
-              tint: AppColorScheme.accent.withValues(alpha: 0.30),
-              fallbackColor: AppColorScheme.accent,
-              child: content,
-            )
-          : DecoratedBox(
-              decoration: BoxDecoration(
-                color: AppColorScheme.accent,
-                borderRadius: AppRadius.circular(22),
-              ),
-              child: content,
+    return MouseRegion(
+      cursor: SystemMouseCursors.click,
+      onEnter: (_) => setHovered(true),
+      onExit: (_) => setHovered(false),
+      child: Focus(
+        focusNode: widget.focusNode,
+        onFocusChange: (f) => setFocused(f),
+        onKeyEvent: (_, event) {
+          if (event is KeyDownEvent || event is KeyRepeatEvent) {
+            if (event.logicalKey == LogicalKeyboardKey.arrowUp) {
+              final focusNavbar = NavigationLayout.focusNavbarNotifier.value;
+              if (focusNavbar != null) {
+                focusNavbar();
+                return KeyEventResult.handled;
+              }
+            }
+          }
+          if (isActivateKey(event)) {
+            widget.onTap();
+            return KeyEventResult.handled;
+          }
+          return KeyEventResult.ignored;
+        },
+        child: GestureDetector(
+          onTap: widget.onTap,
+          behavior: HitTestBehavior.opaque,
+          child: AnimatedContainer(
+            duration: const Duration(milliseconds: 120),
+            decoration: BoxDecoration(
+              color: showFocusBorder
+                  ? AppColorScheme.onSurface.withValues(alpha: 0.1)
+                  : (widget.apple ? Colors.transparent : AppColorScheme.accent),
+              borderRadius: AppRadius.circular(22),
+              border: showFocusBorder
+                  ? Border.all(color: focusColor, width: 2.0)
+                  : Border.all(color: Colors.transparent, width: 2.0),
             ),
+            child: widget.apple && !showFocusBorder
+                ? bookGlassOrSolid(
+                    cornerRadius: 22,
+                    blur: 18,
+                    tint: AppColorScheme.accent.withValues(alpha: 0.30),
+                    fallbackColor: AppColorScheme.accent,
+                    child: content,
+                  )
+                : content,
+          ),
+        ),
+      ),
     );
   }
 }

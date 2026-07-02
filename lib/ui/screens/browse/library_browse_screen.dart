@@ -87,6 +87,15 @@ class _LibraryBrowseScreenState extends State<LibraryBrowseScreen>
       overrideName: widget.genreName,
       includeItemTypes: widget.includeItemTypes,
     );
+    if (widget.includeItemTypes != null && widget.includeItemTypes!.isNotEmpty) {
+      if (widget.includeItemTypes!.contains('AudioBook') || widget.includeItemTypes!.contains('Audio')) {
+        _bookMediaTab = _BookMediaTab.audiobooks;
+      } else if (widget.includeItemTypes!.contains('Book')) {
+        _bookMediaTab = _BookMediaTab.books;
+      }
+    } else if (_vm.isAudiobookLibrary) {
+      _bookMediaTab = _BookMediaTab.audiobooks;
+    }
     _vm.addListener(_onChanged);
     _vm.load();
     _scrollController.addListener(_onScroll);
@@ -585,7 +594,14 @@ class _LibraryBrowseScreenState extends State<LibraryBrowseScreen>
                       return AppLocalizations.of(context).albumArtists;
                     } else if (type == 'MusicArtist') {
                       return AppLocalizations.of(context).artists;
+                    } else if (type == 'AudioBook' || type == 'Audio') {
+                      return AppLocalizations.of(context).audiobooks;
+                    } else if (type == 'Book') {
+                      return AppLocalizations.of(context).books;
                     }
+                  }
+                  if (_vm.isAudiobookLibrary) {
+                    return AppLocalizations.of(context).audiobooks;
                   }
                   return _vm.libraryName;
                 }(),
@@ -604,7 +620,7 @@ class _LibraryBrowseScreenState extends State<LibraryBrowseScreen>
                 sortBy: _vm.sortBy,
                 letterFilter: _vm.letterFilter,
                 isMusicBrowse: _vm.isMusicBrowse,
-                isBookBrowse: false,
+                isBookBrowse: _vm.isBookLibrary,
                 activeBookTab: _bookMediaTab,
                 bookOrganizeMode: _bookOrganizeMode,
                 playedFilter: _vm.playedFilter,
@@ -878,8 +894,9 @@ class _LibraryBrowseScreenState extends State<LibraryBrowseScreen>
         final cellWidth =
             (constraints.maxWidth - hPad * 2 - (crossAxisCount - 1) * spacing) /
             crossAxisCount;
-        const cardRatio = 2 / 3;
-        final textHeight = 44.0 * _desktopUiScaleFactor();
+        final cardRatio = _bookMediaTab == _BookMediaTab.audiobooks ? 1.0 : 2 / 3;
+        final desktopTextScale = MediaQuery.textScalerOf(context).scale(1.0);
+        final textHeight = 44.0 * desktopTextScale;
         final childAspectRatio =
             cellWidth / (cellWidth / cardRatio + textHeight);
 
@@ -896,34 +913,34 @@ class _LibraryBrowseScreenState extends State<LibraryBrowseScreen>
                     children: [
                       if (_bookOrganizeMode != _BookOrganizeMode.all)
                         Padding(
-                          padding: const EdgeInsets.only(bottom: 8),
-                          child: Text(
-                            section.key,
-                            style: const TextStyle(
-                              fontSize: 18,
-                              fontWeight: FontWeight.w700,
-                              color: Color(0xFFFFE6C3),
-                            ),
-                          ),
-                        ),
-                      GridView.builder(
-                        shrinkWrap: true,
-                        physics: const NeverScrollableScrollPhysics(),
-                        itemCount: section.value.length,
-                        gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-                          crossAxisCount: crossAxisCount,
-                          crossAxisSpacing: spacing,
-                          mainAxisSpacing: 10,
-                          childAspectRatio: childAspectRatio,
-                        ),
-                        itemBuilder: (context, i) {
-                          final item = section.value[i];
-                          return MediaCard(
-                            title: item.name,
-                            subtitle: _primaryAuthor(item),
-                            imageUrl: _imageUrl(item),
-                            width: double.infinity,
-                            aspectRatio: 2 / 3,
+                           padding: const EdgeInsets.only(bottom: 8),
+                           child: Text(
+                             section.key,
+                             style: const TextStyle(
+                               fontSize: 18,
+                               fontWeight: FontWeight.w700,
+                               color: Color(0xFFFFE6C3),
+                             ),
+                           ),
+                         ),
+                       GridView.builder(
+                         shrinkWrap: true,
+                         physics: const NeverScrollableScrollPhysics(),
+                         itemCount: section.value.length,
+                         gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+                           crossAxisCount: crossAxisCount,
+                           crossAxisSpacing: spacing,
+                           mainAxisSpacing: 10,
+                           childAspectRatio: childAspectRatio,
+                         ),
+                         itemBuilder: (context, i) {
+                           final item = section.value[i];
+                           return MediaCard(
+                             title: item.name,
+                             subtitle: _primaryAuthor(item),
+                             imageUrl: _imageUrl(item),
+                             width: double.infinity,
+                             aspectRatio: cardRatio,
                             focusColor: _bookAccent,
                             cardFocusExpansion: _prefs.get(
                               UserPreferences.cardFocusExpansion,
@@ -2145,7 +2162,7 @@ class _BookStatusCategories extends StatelessWidget {
   }
 }
 
-class _BookFilterChip extends StatelessWidget {
+class _BookFilterChip extends StatefulWidget {
   final String label;
   final bool selected;
   final VoidCallback onTap;
@@ -2157,29 +2174,57 @@ class _BookFilterChip extends StatelessWidget {
   });
 
   @override
+  State<_BookFilterChip> createState() => _BookFilterChipState();
+}
+
+class _BookFilterChipState extends State<_BookFilterChip> with FocusStateMixin {
+  @override
   Widget build(BuildContext context) {
-    return InkWell(
-      borderRadius: AppRadius.circular(999),
-      onTap: onTap,
-      child: AnimatedContainer(
-        duration: const Duration(milliseconds: 160),
-        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
-        decoration: BoxDecoration(
-          borderRadius: AppRadius.circular(999),
-          color: selected ? const Color(0x3332B9E8) : const Color(0x22131E33),
-          border: Border.fromBorderSide(
-            ThemeRegistry.active.borders.chipBorder.copyWith(
-              color: selected ? _bookAccent : const Color(0x556388A8),
-              width: selected ? 1.6 : 1,
+    final focusColor = Color(
+      GetIt.instance<UserPreferences>()
+          .get(UserPreferences.focusColor)
+          .colorValue,
+    );
+    final focusBorderColor = showFocusBorder
+        ? focusColor
+        : (widget.selected ? _bookAccent : const Color(0x556388A8));
+
+    return MouseRegion(
+      cursor: SystemMouseCursors.click,
+      onEnter: (_) => setHovered(true),
+      onExit: (_) => setHovered(false),
+      child: Focus(
+        onFocusChange: (f) => setFocused(f),
+        onKeyEvent: (_, event) {
+          if (isActivateKey(event)) {
+            widget.onTap();
+            return KeyEventResult.handled;
+          }
+          return KeyEventResult.ignored;
+        },
+        child: GestureDetector(
+          onTap: widget.onTap,
+          child: AnimatedContainer(
+            duration: const Duration(milliseconds: 160),
+            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+            decoration: BoxDecoration(
+              borderRadius: AppRadius.circular(999),
+              color: widget.selected ? const Color(0x3332B9E8) : const Color(0x22131E33),
+              border: Border.fromBorderSide(
+                ThemeRegistry.active.borders.chipBorder.copyWith(
+                  color: focusBorderColor,
+                  width: (widget.selected || showFocusBorder) ? 1.6 : 1,
+                ),
+              ),
             ),
-          ),
-        ),
-        child: Text(
-          label,
-          style: TextStyle(
-            fontSize: 13,
-            fontWeight: selected ? FontWeight.w700 : FontWeight.w500,
-            color: selected ? const Color(0xFFD9F2FF) : const Color(0xFFAECBE2),
+            child: Text(
+              widget.label,
+              style: TextStyle(
+                fontSize: 13,
+                fontWeight: widget.selected ? FontWeight.w700 : FontWeight.w500,
+                color: widget.selected ? const Color(0xFFD9F2FF) : const Color(0xFFAECBE2),
+              ),
+            ),
           ),
         ),
       ),
