@@ -48,6 +48,11 @@ class MediaCard extends StatefulWidget {
   final Color? subtitleColor;
   final bool isGenreFallback;
 
+  /// Puts the title and subtitle on one line, which is what the very wide
+  /// banner artwork has room for. The caller sets this rather than having the
+  /// card guess from [aspectRatio].
+  final bool isBanner;
+
   /// Extra widgets layered over the poster image (inside its clip), e.g.
   /// format badges. Position each with [Positioned].
   final List<Widget> imageOverlays;
@@ -93,6 +98,7 @@ class MediaCard extends StatefulWidget {
     this.imageOverlays = const [],
     this.overlayOccupiesTopLeft = false,
     this.isGenreFallback = false,
+    this.isBanner = false,
   });
 
   static IconData iconForType(String? type) {
@@ -164,9 +170,78 @@ class _MediaCardState extends State<MediaCard> with FocusStateMixin {
   final _selectKeyHandler = LongPressSelectKeyHandler();
 
   @override
+  void initState() {
+    super.initState();
+    _addFocusListener();
+  }
+
+  @override
+  void didUpdateWidget(covariant MediaCard oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.focusNode != widget.focusNode) {
+      _removeFocusListener(oldWidget.focusNode);
+      _addFocusListener();
+    }
+  }
+
+  @override
   void dispose() {
+    _removeFocusListener(widget.focusNode);
     _selectKeyHandler.dispose();
     super.dispose();
+  }
+
+  void _addFocusListener() {
+    widget.focusNode?.addListener(_onFocusNodeChanged);
+  }
+
+  void _removeFocusListener(FocusNode? node) {
+    node?.removeListener(_onFocusNodeChanged);
+  }
+
+  void _onFocusNodeChanged() {
+    if (mounted) {
+      setState(() {});
+    }
+  }
+
+  /// Title and subtitle on one line, which is the shape banner artwork wants.
+  /// A rich [MediaCard.subtitleWidget] can't be inlined here, so the caller
+  /// renders it below instead, the same precedence the taller cards use.
+  Widget _bannerLabel({
+    required TextStyle titleStyle,
+    required TextStyle subtitleStyle,
+    required bool showMarquee,
+  }) {
+    const separator = '  •  ';
+    final inlineSubtitle =
+        widget.subtitleWidget == null &&
+            widget.subtitle != null &&
+            widget.subtitle!.isNotEmpty
+        ? widget.subtitle
+        : null;
+    // Both branches share these spans so the subtitle keeps its own style
+    // once the card is focused and the text starts scrolling.
+    final spans = <InlineSpan>[
+      TextSpan(text: widget.title!),
+      if (inlineSubtitle != null) ...[
+        TextSpan(text: separator, style: subtitleStyle),
+        TextSpan(text: inlineSubtitle, style: subtitleStyle),
+      ],
+    ];
+    return showMarquee
+        ? MarqueeText(
+            text: inlineSubtitle != null
+                ? '${widget.title}$separator$inlineSubtitle'
+                : widget.title!,
+            style: titleStyle,
+            spans: spans,
+          )
+        : Text.rich(
+            TextSpan(style: titleStyle, children: spans),
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+          );
   }
 
   @override
@@ -234,66 +309,94 @@ class _MediaCardState extends State<MediaCard> with FocusStateMixin {
             curve: PlatformDetection.isAppleTV
                 ? Curves.easeOutCubic
                 : Curves.linear,
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                _CardImage(
-                  imageUrl: widget.imageUrl,
-                  title: widget.title,
-                  aspectRatio: widget.aspectRatio,
-                  isFavorite: widget.isFavorite,
-                  isPlayed: widget.isPlayed,
-                  unplayedCount: widget.unplayedCount,
-                  playedPercentage: widget.playedPercentage,
-                  watchedBehavior: widget.watchedBehavior,
-                  focused: effectiveFocused,
-                  hovered: hovered,
-                  focusColor: widget.focusColor,
-                  suppressFocusBorder: widget.suppressImageFocusBorder,
-                  suppressFocusGlow: widget.suppressFocusGlow,
-                  isCircular: widget.itemType == 'Person',
-                  itemType: widget.itemType,
-                  seerrMediaType: widget.seerrMediaType,
-                  seerrStatus: widget.seerrStatus,
-                  imageOverlays: widget.imageOverlays,
-                  overlayOccupiesTopLeft: widget.overlayOccupiesTopLeft,
-                  isGenreFallback: widget.isGenreFallback,
-                ),
-                if (widget.title != null) ...[
-                  const SizedBox(height: 6),
-                  SizedBox(
-                    height: titleLineHeight,
-                    child: showMarquee
-                        ? MarqueeText(text: widget.title!, style: titleStyle)
-                        : Text(
-                            widget.title!,
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
-                            style: titleStyle,
+            child: LayoutBuilder(
+              builder: (context, cardConstraints) {
+                final cardWidth = cardConstraints.maxWidth.isFinite
+                    ? cardConstraints.maxWidth
+                    : (widget.width.isFinite ? widget.width : 150.0);
+                return Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    _CardImage(
+                      imageUrl: widget.imageUrl,
+                      title: widget.title,
+                      aspectRatio: widget.aspectRatio,
+                      isFavorite: widget.isFavorite,
+                      isPlayed: widget.isPlayed,
+                      unplayedCount: widget.unplayedCount,
+                      playedPercentage: widget.playedPercentage,
+                      watchedBehavior: widget.watchedBehavior,
+                      focused: effectiveFocused,
+                      hovered: hovered,
+                      focusColor: widget.focusColor,
+                      suppressFocusBorder: widget.suppressImageFocusBorder,
+                      suppressFocusGlow: widget.suppressFocusGlow,
+                      isCircular: widget.itemType == 'Person',
+                      itemType: widget.itemType,
+                      seerrMediaType: widget.seerrMediaType,
+                      seerrStatus: widget.seerrStatus,
+                      imageOverlays: widget.imageOverlays,
+                      overlayOccupiesTopLeft: widget.overlayOccupiesTopLeft,
+                      isGenreFallback: widget.isGenreFallback,
+                    ),
+                    if (widget.isBanner) ...[
+                      if (widget.title != null) ...[
+                        const SizedBox(height: 6),
+                        SizedBox(
+                          height: titleLineHeight,
+                          width: cardWidth,
+                          child: _bannerLabel(
+                            titleStyle: titleStyle,
+                            subtitleStyle: subtitleStyle,
+                            showMarquee: showMarquee,
                           ),
-                  ),
-                ],
-                if (widget.subtitleWidget != null) ...[
-                  SizedBox(height: widget.title != null ? 2 : 6),
-                  widget.subtitleWidget!,
-                ] else if (widget.subtitle != null &&
-                    widget.subtitle!.isNotEmpty)
-                  SizedBox(
-                    height: subtitleLineHeight,
-                    child: showMarquee
-                        ? MarqueeText(
-                            text: widget.subtitle!,
-                            style: subtitleStyle,
-                          )
-                        : Text(
-                            widget.subtitle!,
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
-                            style: subtitleStyle,
-                          ),
-                  ),
-              ],
+                        ),
+                      ],
+                      if (widget.subtitleWidget != null) ...[
+                        SizedBox(height: widget.title != null ? 2 : 6),
+                        widget.subtitleWidget!,
+                      ],
+                    ] else ...[
+                      if (widget.title != null) ...[
+                        const SizedBox(height: 6),
+                        SizedBox(
+                          height: titleLineHeight,
+                          width: cardWidth,
+                          child: showMarquee
+                              ? MarqueeText(text: widget.title!, style: titleStyle)
+                              : Text(
+                                  widget.title!,
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
+                                  style: titleStyle,
+                                ),
+                        ),
+                      ],
+                      if (widget.subtitleWidget != null) ...[
+                        SizedBox(height: widget.title != null ? 2 : 6),
+                        widget.subtitleWidget!,
+                      ] else if (widget.subtitle != null &&
+                          widget.subtitle!.isNotEmpty)
+                        SizedBox(
+                          height: subtitleLineHeight,
+                          width: cardWidth,
+                          child: showMarquee
+                              ? MarqueeText(
+                                  text: widget.subtitle!,
+                                  style: subtitleStyle,
+                                )
+                              : Text(
+                                  widget.subtitle!,
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
+                                  style: subtitleStyle,
+                                ),
+                        ),
+                    ],
+                  ],
+                );
+              },
             ),
           ),
         ),

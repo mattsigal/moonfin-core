@@ -298,6 +298,7 @@ class HomeViewModel extends ChangeNotifier {
       return;
     }
     _isLoading = true;
+    _mediaBarViewModel.load(force: forceRefresh);
     notifyListeners();
     _rowOffsets.clear();
     _multiServerRepo.clearOffsets();
@@ -421,7 +422,7 @@ class HomeViewModel extends ChangeNotifier {
           .toList();
 
       if (!sections.contains(HomeSectionType.mediaBar)) {
-        _mediaBarViewModel.load();
+        _mediaBarViewModel.load(force: forceRefresh);
       }
 
       final merge = _prefs.get(UserPreferences.mergeContinueWatchingNextUp);

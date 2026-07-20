@@ -1055,6 +1055,12 @@ class PluginSyncService extends ChangeNotifier {
           var order = 0;
           for (final c in parsed) {
             sections.add(c.copyWith(order: order++));
+            // External list and calendar rows are also gated by their own toggle, so
+            // flip it to match the layout moonbase pushed or the row stays hidden.
+            final toggle = _rowEnabledPreference(c.type);
+            if (toggle != null) {
+              _prefs.set(toggle, c.enabled);
+            }
           }
           _appendDisabledBuiltinSections(sections, order);
           await _prefs.setHomeSectionsConfig(sections);
@@ -1625,6 +1631,30 @@ class PluginSyncService extends ChangeNotifier {
       default:
         throw ArgumentError('Not a TMDB section type: $type');
     }
+  }
+
+  Preference<bool>? _rowEnabledPreference(prefs.HomeSectionType type) {
+    if (_isTmdbSectionType(type)) return _tmdbPrefForType(type);
+    return switch (type) {
+      prefs.HomeSectionType.imdbTop250Movies =>
+        UserPreferences.imdbTop250MoviesEnabled,
+      prefs.HomeSectionType.imdbTop250TvShows =>
+        UserPreferences.imdbTop250TvShowsEnabled,
+      prefs.HomeSectionType.imdbMostPopularMovies =>
+        UserPreferences.imdbMostPopularMoviesEnabled,
+      prefs.HomeSectionType.imdbMostPopularTvShows =>
+        UserPreferences.imdbMostPopularTvShowsEnabled,
+      prefs.HomeSectionType.imdbLowestRatedMovies =>
+        UserPreferences.imdbLowestRatedMoviesEnabled,
+      prefs.HomeSectionType.imdbTopEnglishMovies =>
+        UserPreferences.imdbTopEnglishMoviesEnabled,
+      prefs.HomeSectionType.radarrCalendar =>
+        UserPreferences.enableRadarrCalendar,
+      prefs.HomeSectionType.sonarrCalendar =>
+        UserPreferences.enableSonarrCalendar,
+      prefs.HomeSectionType.rewatch => UserPreferences.displayRewatchRow,
+      _ => null,
+    };
   }
 
   @override

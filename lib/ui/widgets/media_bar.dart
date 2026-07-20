@@ -1704,7 +1704,12 @@ class _MediaBarState extends State<MediaBar>
     final useGalleryStyle = mode == UserPreferences.mediaBarModeGallery;
 
     return switch (state) {
-      MediaBarLoading() => SizedBox(height: widget.height),
+      MediaBarLoading() => SizedBox(
+          height: widget.height,
+          child: const Center(
+            child: CircularProgressIndicator(),
+          ),
+        ),
       MediaBarDisabled() => const SizedBox.shrink(),
       MediaBarError(message: final message) => _buildStatusPanel(
         context,
@@ -1778,7 +1783,8 @@ class _MediaBarState extends State<MediaBar>
                 ),
                 if (showRetry)
                   TextButton(
-                    onPressed: () => widget.viewModel.load(context: context),
+                    onPressed: () =>
+                        widget.viewModel.load(context: context, force: true),
                     child: Text(AppLocalizations.of(context).retry),
                   ),
               ],
