@@ -51,6 +51,9 @@ abstract class GamesApi {
   /// Streams GET /Moonfin/Games/{libraryId}/Bios/{biosId} to [destPath].
   Future<void> downloadBios(String libraryId, String biosId, String destPath);
 
+  /// Streams a custom path relative to the server base URL to [destPath].
+  Future<void> downloadUrl(String urlPath, String destPath);
+
   /// GET /Moonfin/Games/Saves/{gameId}: returns the stored save blob or null.
   Future<List<int>?> getSave(String gameId, {String kind = 'state'});
 

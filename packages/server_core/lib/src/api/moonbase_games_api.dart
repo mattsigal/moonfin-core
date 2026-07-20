@@ -122,6 +122,11 @@ class MoonbaseGamesApi implements GamesApi {
   }
 
   @override
+  Future<void> downloadUrl(String urlPath, String destPath) async {
+    await _dio.download(urlPath, destPath);
+  }
+
+  @override
   String playerUrl({
     required String libraryId,
     required String gameId,

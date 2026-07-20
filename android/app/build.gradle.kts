@@ -100,6 +100,7 @@ android {
             applicationId = baseAppId
             versionCode = androidTvVersionCode
             versionName = androidTvVersionName
+            targetSdk = 28
             ndk { abiFilters += tvAbis }
             manifestPlaceholders["appName"] = baseAppName
             // Impeller off on TV: the GLES fallback stutters on TV-box GPUs.
@@ -110,6 +111,7 @@ android {
             applicationId = "$baseAppId.beta"
             versionCode = androidTvVersionCode
             versionName = androidTvVersionName
+            targetSdk = 28
             ndk { abiFilters += tvAbis }
             manifestPlaceholders["appName"] = "$baseAppName Beta"
             manifestPlaceholders["enableImpeller"] = "false"

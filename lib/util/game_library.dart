@@ -21,7 +21,12 @@ class GameLibraryRegistry {
   bool _loaded = false;
 
   bool get loaded => _loaded;
-  bool contains(String id) => _ids.contains(id);
+
+  bool contains(String id) {
+    final normalized = id.replaceAll('-', '').toLowerCase();
+    return _ids.any((existingId) =>
+        existingId.replaceAll('-', '').toLowerCase() == normalized);
+  }
 
   Future<void> refresh() async {
     if (!GetIt.instance.isRegistered<MediaServerClient>()) return;

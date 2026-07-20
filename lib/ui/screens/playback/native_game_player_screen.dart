@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'dart:io';
+import 'dart:typed_data';
 
 import 'package:archive/archive_io.dart';
 import 'package:flutter/material.dart';
@@ -399,6 +400,7 @@ class _NativeGamePlayerScreenState extends State<NativeGamePlayerScreen> {
         }
         return;
       }
+      await _clearExecStack(corePath);
     }
 
     try {
@@ -439,6 +441,52 @@ class _NativeGamePlayerScreenState extends State<NativeGamePlayerScreen> {
           await games.downloadBios(widget.libraryId, bios.id, biosFile.path);
         }
       }
+
+      if (coreId == 'ppsspp') {
+        final ppssppDir = Directory('${systemDir.path}/PPSSPP');
+        final marker = File('${ppssppDir.path}/.extracted');
+        if (!await marker.exists()) {
+          if (mounted) {
+            setState(() {
+              _status = 'Downloading system assets...';
+            });
+          }
+          final ppssppZip = File('${systemDir.path}/ppsspp-assets.zip');
+          try {
+            await games.downloadUrl(
+                '/Moonfin/EmulatorJS/data/cores/ppsspp-assets.zip',
+                ppssppZip.path);
+            if (mounted) {
+              setState(() {
+                _status = 'Extracting system assets...';
+              });
+            }
+            final input = InputFileStream(ppssppZip.path);
+            try {
+              final archive = ZipDecoder().decodeStream(input);
+              for (final entry in archive) {
+                if (!entry.isFile) continue;
+                final outPath = '${ppssppDir.path}/${entry.name}';
+                final outFile = File(outPath);
+                await outFile.parent.create(recursive: true);
+                final output = OutputFileStream(outPath);
+                entry.writeContent(output);
+                await output.close();
+              }
+              await marker.create(recursive: true);
+            } finally {
+              await input.close();
+            }
+          } catch (e) {
+            // Log or ignore asset extraction failure, but don't fail boot
+          } finally {
+            if (await ppssppZip.exists()) {
+              await ppssppZip.delete().catchError((_) => ppssppZip);
+            }
+          }
+        }
+      }
+
       if (!mounted) return;
 
       setState(() {
@@ -455,6 +503,7 @@ class _NativeGamePlayerScreenState extends State<NativeGamePlayerScreen> {
 
       final settingsJson =
           await _loadSettings(games, coreId).catchError((_) => null);
+      print('[_prepare] loading with options: $settingsJson');
       final info = await _player.load(
         core: coreId,
         corePath: corePath,
@@ -526,15 +575,22 @@ class _NativeGamePlayerScreenState extends State<NativeGamePlayerScreen> {
 
   Future<Map<String, String>?> _loadSettings(
       GamesApi games, String coreId) async {
-    final blob = await games.getSave('moonfin-native-$coreId', kind: 'settings');
-    if (blob == null || blob.isEmpty) return null;
-    final text = String.fromCharCodes(blob);
     final map = <String, String>{};
-    for (final line in text.split('\n')) {
-      final eq = line.indexOf('=');
-      if (eq > 0) {
-        map[line.substring(0, eq)] = line.substring(eq + 1);
+    final blob = await games
+        .getSave('moonfin-native-$coreId', kind: 'settings')
+        .catchError((_) => null);
+    if (blob != null && blob.isNotEmpty) {
+      final text = String.fromCharCodes(blob);
+      for (final line in text.split('\n')) {
+        final eq = line.indexOf('=');
+        if (eq > 0) {
+          map[line.substring(0, eq)] = line.substring(eq + 1);
+        }
       }
+    }
+    if (coreId == 'ppsspp') {
+      map['ppsspp_software_rendering'] = 'enabled';
+      map['ppsspp_cpu_core'] = 'interpreter';
     }
     return map.isEmpty ? null : map;
   }
@@ -1045,6 +1101,78 @@ class _NativeGamePlayerScreenState extends State<NativeGamePlayerScreen> {
         ),
       ),
     );
+  }
+
+  Future<void> _clearExecStack(String filePath) async {
+    try {
+      final file = File(filePath);
+      if (!await file.exists()) {
+        print('[_clearExecStack] File does not exist: $filePath');
+        return;
+      }
+
+      final bytes = await file.readAsBytes();
+      if (bytes.length < 64) {
+        print('[_clearExecStack] File is too small: ${bytes.length}');
+        return;
+      }
+
+      if (bytes[0] != 0x7f ||
+          bytes[1] != 0x45 ||
+          bytes[2] != 0x4c ||
+          bytes[3] != 0x46) {
+        print('[_clearExecStack] Invalid ELF magic');
+        return;
+      }
+
+      if (bytes[4] != 2) {
+        print('[_clearExecStack] Not 64-bit ELF');
+        return;
+      }
+
+      final bd = ByteData.sublistView(bytes);
+      final phoff = bd.getUint64(32, Endian.little);
+      final phentsize = bd.getUint16(54, Endian.little);
+      final phnum = bd.getUint16(56, Endian.little);
+
+      print('[_clearExecStack] phoff: $phoff, phentsize: $phentsize, phnum: $phnum');
+
+      if (phoff + (phnum * phentsize) > bytes.length) {
+        print('[_clearExecStack] Program header table out of bounds');
+        return;
+      }
+
+      bool modified = false;
+      bool foundGnuStack = false;
+      for (int i = 0; i < phnum; i++) {
+        final entryOffset = phoff + (i * phentsize);
+        final pType = bd.getUint32(entryOffset, Endian.little);
+        if (pType == 0x6474e551) { // PT_GNU_STACK
+          foundGnuStack = true;
+          final pFlags = bd.getUint32(entryOffset + 4, Endian.little);
+          print('[_clearExecStack] Found PT_GNU_STACK at entry $i, flags: 0x${pFlags.toRadixString(16)}');
+          final newFlags = pFlags & ~0x1; // Clear PF_X
+          if (pFlags != newFlags) {
+            print('[_clearExecStack] Clearing execute bit! New flags: 0x${newFlags.toRadixString(16)}');
+            bd.setUint32(entryOffset + 4, newFlags, Endian.little);
+            modified = true;
+          } else {
+            print('[_clearExecStack] Execute bit already cleared.');
+          }
+        }
+      }
+
+      if (!foundGnuStack) {
+        print('[_clearExecStack] PT_GNU_STACK NOT found in program headers!');
+      }
+
+      if (modified) {
+        await file.writeAsBytes(bytes);
+        print('[_clearExecStack] File written successfully!');
+      }
+    } catch (e) {
+      print('[_clearExecStack] Error patching ELF: $e');
+    }
   }
 }
 
