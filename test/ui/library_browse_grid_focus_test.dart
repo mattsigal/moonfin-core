@@ -1,119 +1,182 @@
 import 'dart:math' as math;
+
+import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:moonfin/ui/screens/browse/library_browse_screen.dart';
 import 'package:moonfin/ui/widgets/media_card.dart';
 
+/// The vertical browse grid widens its row pitch and its leading pad to leave
+/// a focused card room to grow, and the scroll controller has to land on the
+/// lines the sliver really drew. These build the same sliver the screen builds
+/// and measure where the cards render, so a start that stops matching the
+/// layout fails here instead of walking the focused card off a TV screen.
 void main() {
-  group('Library Browse Grid Focus & Scroll Geometry (Issue #1356)', () {
-    test('tvOS focus overhang and row spacing parity across 200 rows', () {
-      // tvOS: focusScale is 1.12
-      const double tvosFocusScale = 1.12;
-      const double cellHeight = 282.0;
-      const int crossAxisCount = 5;
+  const viewport = Size(1920, 1080);
+  const gridPadding = 48.0;
+  const crossSpacing = 12.0;
 
-      // focusGap(cellHeight, minimum: 0.0) on tvOS
-      final focusOverhang =
-          math.max(0.0, cellHeight * (tvosFocusScale - 1.0) / 2.0);
-      final rowSpacing = math.max(8.0, focusOverhang);
-      final gridTopPadding = 8.0 + focusOverhang;
+  /// Lays out the grid the way _buildVerticalGrid does for a card of
+  /// [cellHeight] under [focusScale], then checks every row in [rows] renders
+  /// where gridLineStart says it will.
+  Future<void> expectNoDrift(
+    WidgetTester tester, {
+    required double focusScale,
+    required double cellHeight,
+    required int crossAxisCount,
+    required List<int> rows,
+  }) async {
+    tester.view.physicalSize = viewport;
+    tester.view.devicePixelRatio = 1.0;
+    addTearDown(tester.view.reset);
 
-      // Layout geometry used by SliverGridDelegate and _gridGeometry
-      final geometry = (
-        perLine: crossAxisCount,
-        lineExtent: cellHeight,
-        lineSpacing: rowSpacing,
-        leadingPad: gridTopPadding,
+    final overhang = math.max(0.0, cellHeight * (focusScale - 1) / 2);
+    final GridGeometry geometry = (
+      perLine: crossAxisCount,
+      lineExtent: cellHeight,
+      lineSpacing: math.max(8.0, overhang),
+      leadingPad: 8.0 + overhang,
+    );
+    final cellWidth =
+        (viewport.width -
+            gridPadding * 2 -
+            (crossAxisCount - 1) * crossSpacing) /
+        crossAxisCount;
+
+    // Enough lines past the deepest one under test for it to sit at the top of
+    // a full viewport, so no jump is clamped short of where it was aimed.
+    final pitch = geometry.lineExtent + geometry.lineSpacing;
+    final lineCount =
+        rows.reduce(math.max) + 2 + (viewport.height / pitch).ceil();
+
+    final controller = ScrollController();
+    addTearDown(controller.dispose);
+
+    await tester.pumpWidget(
+      Directionality(
+        textDirection: TextDirection.ltr,
+        child: CustomScrollView(
+          controller: controller,
+          slivers: [
+            SliverPadding(
+              padding: EdgeInsets.fromLTRB(
+                gridPadding,
+                geometry.leadingPad,
+                gridPadding,
+                16,
+              ),
+              sliver: SliverGrid(
+                gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+                  crossAxisCount: geometry.perLine,
+                  mainAxisSpacing: geometry.lineSpacing,
+                  crossAxisSpacing: crossSpacing,
+                  childAspectRatio: cellWidth / geometry.lineExtent,
+                ),
+                delegate: SliverChildBuilderDelegate(
+                  (context, index) =>
+                      SizedBox.expand(key: ValueKey<int>(index)),
+                  childCount: lineCount * crossAxisCount,
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+
+    for (final row in rows) {
+      final card = find.byKey(ValueKey<int>(row * crossAxisCount));
+      final start = gridLineStart(geometry, row * crossAxisCount);
+      controller.jumpTo(start);
+      await tester.pump();
+
+      expect(
+        controller.offset,
+        closeTo(start, 0.01),
+        reason:
+            'row $row has to be reachable or the checks below prove nothing',
       );
 
-      // Verify that using _gridGeometry matches the layout's exact row position
-      for (final row in [0, 1, 10, 30, 50, 100, 200]) {
-        final sliverRowTop =
-            gridTopPadding + row * (cellHeight + rowSpacing);
-
-        // Effective calculation in _scrollToGridRow with _gridGeometry
-        final effectiveLeadingPad = geometry.leadingPad;
-        final effectiveLineExtent = geometry.lineExtent;
-        final effectiveLineSpacing = geometry.lineSpacing;
-        final computedRowTop = effectiveLeadingPad +
-            row * (effectiveLineExtent + effectiveLineSpacing);
-
-        expect(
-          computedRowTop,
-          equals(sliverRowTop),
-          reason: 'Row $row position must match sliver layout without drift',
-        );
-
-        // Demonstrate the previous bug: hardcoded mainAxisSpacing: 8.0
-        final legacyRowTop = 8.0 + row * (cellHeight + 8.0);
-        final discrepancy = sliverRowTop - legacyRowTop;
-
-        if (row == 30) {
-          // At row 30 on tvOS, legacy formula was ~274px off!
-          expect(discrepancy, greaterThan(250.0));
-        } else if (row == 100) {
-          // At row 100 on tvOS, legacy formula was ~900px off (completely off-screen)
-          expect(discrepancy, greaterThan(850.0));
-        }
-      }
-    });
-
-    test('Desktop and Android TV Large card / Banner drift prevention', () {
-      // Android TV / Desktop: focusScale is 1.05
-      const double standardFocusScale = 1.05;
-      const double largeCellHeight = 360.0;
-      const int crossAxisCount = 6;
-
-      final focusOverhang =
-          math.max(0.0, largeCellHeight * (standardFocusScale - 1.0) / 2.0);
-      // For 360px card, overhang is 360 * 0.025 = 9.0px
-      expect(focusOverhang, closeTo(9.0, 0.001));
-
-      final rowSpacing = math.max(8.0, focusOverhang);
-      expect(rowSpacing, closeTo(9.0, 0.001));
-
-      final gridTopPadding = 8.0 + focusOverhang;
-      expect(gridTopPadding, closeTo(17.0, 0.001));
-
-      final geometry = (
-        perLine: crossAxisCount,
-        lineExtent: largeCellHeight,
-        lineSpacing: rowSpacing,
-        leadingPad: gridTopPadding,
+      final cardTop = tester.getTopLeft(card).dy;
+      expect(
+        cardTop,
+        closeTo(0.0, 0.01),
+        reason:
+            'row $row rendered ${cardTop}px from where gridLineStart put it',
       );
+      // A pitch that only comes out right because the extent and the spacing
+      // cancel each other would still leave the row's bottom edge wrong.
+      expect(tester.getSize(card).height, closeTo(geometry.lineExtent, 0.01));
+    }
+  }
 
-      for (final row in [0, 10, 50, 100]) {
-        final sliverRowTop =
-            gridTopPadding + row * (largeCellHeight + rowSpacing);
-
-        final computedRowTop = geometry.leadingPad +
-            row * (geometry.lineExtent + geometry.lineSpacing);
-
-        expect(
-          computedRowTop,
-          closeTo(sliverRowTop, 0.001),
-          reason: 'Large cards on Desktop/Android must match sliver layout',
-        );
-
-        // In legacy code, hardcoded 8.0 caused progressive drift on large cards
-        final legacyRowTop = 8.0 + row * (largeCellHeight + 8.0);
-        final discrepancy = sliverRowTop - legacyRowTop;
-        if (row == 100) {
-          // 1px per row + 9px top pad = 109px drift
-          expect(discrepancy, closeTo(109.0, 0.001));
-        }
-      }
+  group('grid line starts match the sliver the browse screen builds', () {
+    testWidgets('tvOS focus scale, standard poster', (tester) async {
+      await expectNoDrift(
+        tester,
+        focusScale: 1.12,
+        cellHeight: 282.0,
+        crossAxisCount: 5,
+        rows: const [0, 1, 10, 30, 100, 200],
+      );
     });
 
-    test('topPad respects focus overhang to prevent clipping top border glow', () {
-      const double tvosFocusScale = 1.12;
-      const double cellHeight = 282.0;
-      final focusOverhang =
-          math.max(0.0, cellHeight * (tvosFocusScale - 1.0) / 2.0);
-      final leadingPad = 8.0 + focusOverhang;
-
-      // In updated _scrollToGridRow:
-      final topPad = leadingPad;
-      expect(topPad, greaterThan(8.0));
-      expect(topPad, equals(8.0 + focusOverhang));
+    testWidgets('desktop and Android TV focus scale, standard poster', (
+      tester,
+    ) async {
+      await expectNoDrift(
+        tester,
+        focusScale: 1.05,
+        cellHeight: 282.0,
+        crossAxisCount: 6,
+        rows: const [0, 1, 10, 50, 200],
+      );
     });
+
+    testWidgets('desktop and Android TV focus scale, large poster', (
+      tester,
+    ) async {
+      await expectNoDrift(
+        tester,
+        focusScale: 1.05,
+        cellHeight: 360.0,
+        crossAxisCount: 6,
+        rows: const [0, 10, 100, 200],
+      );
+    });
+
+    testWidgets('banner layout, few wide cells per line', (tester) async {
+      await expectNoDrift(
+        tester,
+        focusScale: 1.12,
+        cellHeight: 180.0,
+        crossAxisCount: 2,
+        rows: const [0, 5, 60, 200],
+      );
+    });
+
+    testWidgets('the focus scale this build was compiled for', (tester) async {
+      await expectNoDrift(
+        tester,
+        focusScale: MediaCard.focusScale,
+        cellHeight: 282.0,
+        crossAxisCount: 5,
+        rows: const [0, 1, 40, 150],
+      );
+    });
+  });
+
+  test('gridLineStart holds a line together and steps a whole pitch', () {
+    const GridGeometry geometry = (
+      perLine: 5,
+      lineExtent: 282.0,
+      lineSpacing: 16.92,
+      leadingPad: 24.92,
+    );
+    const pitch = 282.0 + 16.92;
+
+    expect(gridLineStart(geometry, 0), closeTo(24.92, 0.001));
+    expect(gridLineStart(geometry, 4), closeTo(24.92, 0.001));
+    expect(gridLineStart(geometry, 5), closeTo(24.92 + pitch, 0.001));
+    expect(gridLineStart(geometry, 500), closeTo(24.92 + 100 * pitch, 0.001));
   });
 }
